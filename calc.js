@@ -30,7 +30,7 @@
     sec = Math.round(sec * p) / p;
     var m = Math.floor(sec / 60), s = sec - m * 60;
     var ss = s.toFixed(dec); if (s < 10) ss = '0' + ss;
-    return (neg ? '-' : '') + m + ':' + ss;
+    return (neg ? '-' : '') + (m ? m + ':' + ss : s.toFixed(dec));
   };
   // allure /100 m à partir d'une vitesse m/s
   C.pace100 = function (v) { return v > 0 ? 100 / v : null; };
@@ -336,6 +336,76 @@
       return Math.min(t, Math.max(0, tEnd - testDur));
     }
     return 0;
+  };
+
+
+  /* ---------- maturité (Mirwald 2002) ---------- */
+  // h, sh (taille assise) en cm, w en kg, age en années -> {mo, aphv, see}
+  C.maturity = function (sex, age, h, sh, w) {
+    h = num(h); sh = num(sh); w = num(w);
+    if (!(age > 0) || !h || !sh || !w || sh >= h) return null;
+    var ll = h - sh, mo;
+    if (sex === 'F') mo = -9.376 + 0.0001882 * ll * sh + 0.0022 * age * ll + 0.005841 * age * sh - 0.002658 * age * w + 0.07693 * (w / h * 100);
+    else mo = -9.236 + 0.0002708 * ll * sh - 0.001663 * age * ll + 0.007216 * age * sh + 0.02292 * (w / h * 100);
+    return { mo: mo, aphv: age - mo, see: sex === 'F' ? 0.57 : 0.59, legLen: ll };
+  };
+  C.maturityStage = function (mo) { return mo == null ? null : mo < -1 ? 'pre' : mo <= 1 ? 'circa' : 'post'; };
+  C.apeIndex = function (span, h) { span = num(span); h = num(h); return span && h ? span / h : null; };
+  C.bmi = function (w, h) { w = num(w); h = num(h); return w && h ? w / Math.pow(h / 100, 2) : null; };
+
+  /* ---------- points World Aquatics : P = 1000 × (B/T)^3 ---------- */
+  // temps de base SCM 2025 (01.09.2025–31.08.2026) et LCM 2026
+  C.WA_BASE = {
+    SCM: { M: { '50FR': 19.90, '100FR': 44.84, '200FR': 98.61, '400FR': 212.25, '800FR': 440.46, '1500FR': 846.88, '50BK': 22.11, '100BK': 48.33, '200BK': 105.63, '50BR': 24.95, '100BR': 55.28, '200BR': 120.16, '50FL': 21.32, '100FL': 47.71, '200FL': 106.85, '100IM': 49.28, '200IM': 108.88, '400IM': 234.81 },
+           F: { '50FR': 22.83, '100FR': 50.25, '200FR': 110.31, '400FR': 230.25, '800FR': 477.42, '1500FR': 908.24, '50BK': 25.23, '100BK': 54.02, '200BK': 118.04, '50BR': 28.37, '100BR': 62.36, '200BR': 132.50, '50FL': 23.94, '100FL': 52.71, '200FL': 119.32, '100IM': 55.11, '200IM': 121.63, '400IM': 255.48 } },
+    LCM: { M: { '50FR': 20.91, '100FR': 46.40, '200FR': 102.00, '400FR': 219.96, '800FR': 452.12, '1500FR': 870.67, '50BK': 23.55, '100BK': 51.60, '200BK': 111.92, '50BR': 25.95, '100BR': 56.88, '200BR': 125.48, '50FL': 22.27, '100FL': 49.45, '200FL': 110.34, '200IM': 112.69, '400IM': 242.50 },
+           F: { '50FR': 23.61, '100FR': 51.71, '200FR': 112.23, '400FR': 234.18, '800FR': 484.12, '1500FR': 920.48, '50BK': 26.86, '100BK': 57.13, '200BK': 123.14, '50BR': 29.16, '100BR': 64.13, '200BR': 137.55, '50FL': 24.43, '100FL': 54.60, '200FL': 121.81, '200IM': 125.70, '400IM': 263.65 } }
+  };
+  C.EVENTS = ['50FR', '100FR', '200FR', '400FR', '800FR', '1500FR', '50BK', '100BK', '200BK', '50BR', '100BR', '200BR', '50FL', '100FL', '200FL', '100IM', '200IM', '400IM'];
+  C.waPoints = function (ev, t, sex, course) {
+    t = num(t); var b = ((C.WA_BASE[course || 'SCM'] || {})[sex === 'F' ? 'F' : 'M'] || {})[ev];
+    return t && b ? Math.floor(1000 * Math.pow(b / t, 3)) : null;
+  };
+  // prédiction Riegel : T2 = T1 × (D2/D1)^1.06 (indicatif, même nage)
+  C.riegel = function (t1, d1, d2, k) { return t1 * Math.pow(d2 / d1, k || 1.06); };
+
+  /* ---------- récupération quotidienne & charge ---------- */
+  function stats(arr) { var v = arr.filter(function (x) { return x != null && isFinite(x); }); if (!v.length) return null; var m = v.reduce(function (a, b) { return a + b; }, 0) / v.length; var sd = v.length > 1 ? Math.sqrt(v.reduce(function (a, b) { return a + (b - m) * (b - m); }, 0) / (v.length - 1)) : 0; return { m: m, sd: sd, n: v.length }; }
+  C.stats = stats;
+  // days: [{date, hrv, rhr, sleepScore, sleepH, recharge (1..5), load}] ; cible = dernier jour
+  C.readiness = function (days, targetDate, age) {
+    var d = days.slice().sort(function (a, b) { return a.date < b.date ? -1 : 1; });
+    var cur = d.filter(function (x) { return x.date === targetDate; })[0];
+    if (!cur) return null;
+    var t = new Date(targetDate), base = d.filter(function (x) { var k = (t - new Date(x.date)) / 864e5; return k >= 1 && k <= 28; });
+    var hrvB = stats(base.map(function (x) { return num(x.hrv) ? Math.log(num(x.hrv)) : null; })), rhrB = stats(base.map(function (x) { return num(x.rhr); }));
+    var flags = [], score = 0, res = { flags: flags, baseN: base.length };
+    if (num(cur.hrv) && hrvB && hrvB.n >= 7) {
+      var z = (Math.log(num(cur.hrv)) - hrvB.m) / Math.max(hrvB.sd, 0.07); res.hrvZ = z; res.hrvBase = Math.exp(hrvB.m);
+      if (z < -1.5) { flags.push('hrv2'); score += 2; } else if (z < -0.75) { flags.push('hrv1'); score += 1; }
+    }
+    if (num(cur.rhr) && rhrB && rhrB.n >= 7) {
+      var z2 = (num(cur.rhr) - rhrB.m) / Math.max(rhrB.sd, 2); res.rhrZ = z2; res.rhrBase = rhrB.m;
+      if (z2 > 1.5) { flags.push('rhr2'); score += 2; } else if (z2 > 0.75) { flags.push('rhr1'); score += 1; }
+    }
+    var needH = age != null && age < 13 ? 9 : 8;
+    if (num(cur.sleepH) && num(cur.sleepH) < needH - 1) { flags.push('sleep2'); score += 2; } else if (num(cur.sleepH) && num(cur.sleepH) < needH) { flags.push('sleep1'); score += 1; }
+    if (num(cur.sleepScore) && num(cur.sleepScore) < 60) { flags.push('score'); score += 1; }
+    if (num(cur.recharge) && num(cur.recharge) <= 2) { flags.push('recharge'); score += num(cur.recharge) === 1 ? 2 : 1; }
+    res.score = score; res.level = score >= 3 ? 'red' : score >= 1 ? 'yellow' : 'green';
+    res.sleepNeed = needH;
+    return res;
+  };
+  // charge : sRPE = durée × RPE ; ACWR = charge 7 j / (charge 28 j / 4)
+  C.acwr = function (days, targetDate) {
+    var t = new Date(targetDate), a = 0, c = 0, n = 0;
+    days.forEach(function (x) { var k = (t - new Date(x.date)) / 864e5, l = num(x.load); if (l == null || k < 0) return; if (k < 7) a += l; if (k < 28) { c += l; n++; } });
+    if (!c) return null;
+    var first = null; days.forEach(function (x) { if (num(x.load) != null && (!first || x.date < first)) first = x.date; });
+    var span = first ? (t - new Date(first)) / 864e5 : 0;
+    if (span < 21) return { acute: a, short: true, span: Math.floor(span) + 1 };
+    var r = a / (c / 4);
+    return { acute: a, chronic: c / 4, ratio: r, zone: r < 0.8 ? 'low' : r <= 1.3 ? 'ok' : r <= 1.5 ? 'warn' : 'risk', n: n };
   };
 
   root.VO2C = C;

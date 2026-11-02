@@ -137,10 +137,119 @@ var D = {
   sum: ['الملخص', 'Résumé'],
   vVO2: ['سرعة VO2max (vVO2max)', 'Vitesse VO2max (vVO2max)'],
   fromStep: ['من التصاعدي', 'du progressif'], from400: ['من 400 م', 'du 400 m'],
+  settings2: ['الإعدادات', 'Paramètres'],
+  admin: ['الإدارة', 'Administration'], coach: ['المدرب', 'Entraîneur'], coaches: ['المدربون', 'Entraîneurs'],
+  addCoach: ['مدرب جديد', 'Nouvel entraîneur'], code: ['الكود', 'Code'], phone: ['الهاتف', 'Téléphone'], active: ['نشط', 'Actif'], inactive: ['موقوف', 'Désactivé'],
+  codeHint: ['4 خانات على الأقل، يدخل بيه المدرب. أنت وحدك تبدّلو.', '4 caractères min. Code de connexion de l’entraîneur, modifiable par vous seul.'],
+  dupcode: ['هذا الكود مستعمل', 'Code déjà utilisé'], forbidden: ['ماعندكش الصلاحية', 'Action non autorisée'],
+  viewAs: ['عرض حساب', 'Voir le compte'], viewing: ['راك تشوف حساب المدرب', 'Vous voyez le compte de'], exitView: ['رجوع للكل', 'Revenir à tout'],
+  allCoaches: ['كل المدربين', 'Tous les entraîneurs'], noCoach: ['بلا مدرب', 'Sans entraîneur'],
+  coachLogin: ['الإدارة: كلمة السر · المدرب: الكود تاعو', 'Administration : mot de passe · Entraîneur : son code'],
+  pwOrCode: ['كلمة السر ولا الكود', 'Mot de passe ou code'],
+  group: ['الفوج', 'Groupe'],
+  sitH: ['طول الجلوس (سم)', 'Taille assise (cm)'], sitHint: ['قاعد على كرسي، ظهرو للحيط: من الكرسي حتى فوق الراس', 'Assis dos au mur : du siège au sommet du crâne'],
+  span: ['طول الذراعين (سم)', 'Envergure (cm)'], spanHint: ['الذراعين مفتوحين: من طرف الأصبع للأصبع', 'Bras écartés, bout des doigts à bout des doigts'],
+  hHint: ['واقف حافي، ظهرو للحيط', 'Debout pieds nus, dos au mur'],
+  body: ['الجسم والنضج', 'Morphologie et maturité'], bmi: ['مؤشر كتلة الجسم', 'IMC'], ape: ['نسبة الذراعين/الطول', 'Indice envergure/taille'],
+  mo: ['البعد عن قمة النمو', 'Écart au pic de croissance'], aphv: ['عمر قمة النمو (PHV)', 'Âge au pic de croissance (PHV)'],
+  pre: ['قبل قمة النمو', 'Avant le pic'], circa: ['في قمة النمو', 'Autour du pic'], post: ['بعد قمة النمو', 'Après le pic'],
+  matNote: ['Mirwald 2002 · الخطأ ±0.6 سنة. قبل القمة بزاف: لا أحمال ثقيلة؛ في القمة: ركّز على التقنية والمرونة.', 'Mirwald 2002 · ±0,6 an. Bien avant le pic : pas de charges lourdes ; autour du pic : technique et souplesse.'],
+  matNeed: ['زيد الطول، طول الجلوس والوزن في ملف السباح', 'Ajoutez taille, taille assise et poids dans la fiche'],
+  yrsBefore: ['سنة قبل', 'an(s) avant'], yrsAfter: ['سنة بعد', 'an(s) après'],
+  recovery: ['الاسترجاع', 'Récupération'], times: ['الأزمنة', 'Temps'],
+  T_day: ['الاسترجاع اليومي', 'Récupération du jour'], D_day: ['من Polar Loop + حمل الحصة', 'Polar Loop + charge de séance'],
+  T_time: ['زمن منافسة', 'Temps de compétition'],
+  addDay: ['إدخال اليوم', 'Saisir la journée'], addTime: ['زيد زمن', 'Ajouter un temps'],
+  sleepH: ['مدة النوم (ساعات)', 'Durée de sommeil (h)'], sleepHint: ['Polar Flow ← النوم ← المدة (مثلاً 9.5)', 'Polar Flow ← Sommeil ← durée (ex. 9,5)'],
+  sleepScore: ['Sleep score (1–100)', 'Sleep score (1–100)'], sleepScoreHint: ['Polar Flow ← النوم ← النتيجة', 'Polar Flow ← Sommeil ← score'],
+  recharge: ['Nightly Recharge', 'Nightly Recharge'], rechargeHint: ['الحالة اللي يعطيها Polar الصباح', 'Statut affiché le matin'],
+  rc1: ['ضعيف جداً', 'Très faible'], rc2: ['ضعيف', 'Faible'], rc3: ['عادي', 'Correct'], rc4: ['جيد', 'Bon'], rc5: ['ممتاز', 'Très bon'],
+  hrvN: ['HRV الليلي (ms)', 'VFC nocturne (ms)'], hrvHint: ['Nightly Recharge ← متوسط HRV في الليل', 'Nightly Recharge ← VFC moyenne de la nuit'],
+  rhrN: ['نبض الراحة في الليل (bpm)', 'FC de repos nocturne (bpm)'], rhrHint: ['متوسط النبض وهو راقد: راحة، ماشي بعد الجهد', 'Moyenne pendant le sommeil : repos, pas après effort'],
+  br: ['التنفس (نفس/د)', 'Respiration (/min)'], ans: ['ANS charge (−10…+10)', 'ANS charge (−10…+10)'], optional: ['اختياري', 'facultatif'],
+  trainMin: ['مدة الحصة (دقيقة)', 'Durée de séance (min)'], trainHint: ['الوقت الكلي في الماء + الصالة', 'Temps total eau + salle'],
+  sRpe: ['تعب الحصة (0–10)', 'RPE de séance (0–10)'], sRpeHint: ['يسقسي السباح 30 دقيقة بعد الحصة: «كيفاش كانت؟»', 'Demander 30 min après : « c’était comment ? »'],
+  polarLoad: ['Training Load (Polar)', 'Training Load (Polar)'],
+  sleepSec: ['🌙 الليل (Polar Loop)', '🌙 La nuit (Polar Loop)'], trainSec: ['🏊 الحصة', '🏊 La séance'],
+  readyT: ['الجاهزية اليوم', 'Forme du jour'], green: ['جاهز: حصة عادية', 'Prêt : séance normale'], yellow: ['تعب خفيف: نقّص الشدة', 'Fatigue légère : réduire l’intensité'], red: ['تعب: حصة استرجاع', 'Fatigue : séance de récupération'],
+  needDays: ['لازم 7 أيام على الأقل باش يتحسب المعدل الشخصي', 'Au moins 7 jours pour calculer la référence personnelle'],
+  f_hrv1: ['HRV أقل من العادة', 'VFC sous la normale'], f_hrv2: ['HRV أقل بزاف من العادة', 'VFC très basse'], f_rhr1: ['نبض الليل أعلى من العادة', 'FC nocturne élevée'], f_rhr2: ['نبض الليل أعلى بزاف', 'FC nocturne très élevée'],
+  f_sleep1: ['نوم ناقص', 'Sommeil un peu court'], f_sleep2: ['نوم ناقص بزاف', 'Sommeil trop court'], f_score: ['جودة نوم ضعيفة', 'Qualité de sommeil faible'], f_recharge: ['Nightly Recharge ضعيف', 'Nightly Recharge faible'],
+  base28: ['المعدل الشخصي (28 يوم)', 'Référence perso (28 j)'], load: ['الحمل', 'Charge'], acwr: ['نسبة الحمل (7 أيام / 28 يوم)', 'Ratio de charge (7 j / 28 j)'],
+  acw_low: ['حمل ناقص', 'Charge basse'], acw_ok: ['حمل مناسب', 'Charge adaptée'], acw_warn: ['انتبه: زيادة سريعة', 'Attention : hausse rapide'], acw_risk: ['خطر إرهاق/إصابة', 'Risque de surmenage'],
+  lastDays: ['آخر الأيام', 'Derniers jours'], noDays: ['ما كاين حتى إدخال.', 'Aucune saisie.'],
+  redTest: ['الجاهزية في هذا النهار حمراء: النتيجة تنجم تكون أقل من الحقيقة.', 'Forme rouge ce jour-là : le résultat peut être sous-estimé.'],
+  event: ['السباق', 'Épreuve'], course: ['المسبح', 'Bassin'], meet: ['المنافسة', 'Compétition'], points: ['نقاط WA', 'Points WA'], best: ['أحسن زمن', 'Meilleur temps'],
+  timeHint: ['د:ث.ج مثلاً 5:15.32 ولا 32.10', 'm:ss.cc ex. 5:15.32 ou 32.10'],
+  noTimes: ['ما كاين حتى زمن.', 'Aucun temps.'], allTimes: ['كل الأزمنة', 'Tous les temps'],
+  guide: ['📘 كيفاش نديرو هذا الاختبار؟', '📘 Comment faire ce test ?'],
+  repTimeH: ['من الانطلاق حتى لمس الحائط', 'Du départ au toucher'], repHrH: ['مباشرة بعد الجهد', 'Juste après l’effort'], repLacH: ['دقيقة بعد الوصول', '1 min après l’arrivée'], rpeH: ['0 سهل · 10 أقصى', '0 facile · 10 max'],
+  hrEndH: ['أعلى نبض في 10 ثواني بعد لمس الحائط (بعد الجهد)', 'FC max dans les 10 s après le toucher (après effort)'],
+  hr60H: ['بعد دقيقة كاملة راحة، واقف بلا حركة', 'Après 1 min de repos complet, immobile'],
+  hrmaxLH: ['أعلى نبض عند التوقف (بعد الجهد)', 'FC la plus haute à l’arrêt (après effort)'],
+  stageH: ['المرحلة اللي وقف فيها', 'Palier atteint à l’arrêt'], shuttleH: ['عدد الذهابات المكمّلة في ذيك المرحلة', 'Navettes terminées dans ce palier'],
+  t1H: ['زمن 400 م بأقصى جهد', 'Temps du 400 m maximal'], t2H: ['زمن 200 م بأقصى جهد، بعد راحة 10–15 د', 'Temps du 200 m maximal, après 10–15 min de repos'],
+  restBpmH: ['نبض الراحة الصباحي، قبل ما ينوض', 'FC de repos au réveil, avant le lever'],
+  srH: ['ضربات الذراعين في الدقيقة (اختياري)', 'Cycles de bras/min (facultatif)'],
+  distH: ['مسافة الاختبار', 'Distance du test'],
+  stats_sw: ['السباحين', 'Nageurs'], stats_month: ['اختبارات هذا الشهر', 'Tests ce mois'], stats_ready: ['جاهزية اليوم', 'Forme du jour'],
+  by: ['سجّلو', 'Saisi par'],
+  acwrNeed: ['يتحسب بعد 3 أسابيع من إدخال الحصص', 'Calculé après 3 semaines de saisies'],
   hrrR: { exc: ['ممتاز', 'Excellent'], good: ['جيد', 'Bon'], avg: ['متوسط', 'Moyen'], low: ['ضعيف', 'Faible'], poor: ['ضعيف جداً', 'Très faible'] }
 };
 function T(k) { var v = D[k]; return v ? (LANG === 'fr' ? v[1] : v[0]) : k; }
 function Tv(v) { return LANG === 'fr' ? v[1] : v[0]; }
+var GUIDE = {
+  step: [
+    '<div class="gt">🎯 الهدف</div>نعرفو كيفاش يطلع النبض (واللاكتات) كي تزيد السرعة: FCmax في الماء، العتبات، والسرعة عند FCmax.' +
+    '<div class="gt">⏪ قبل الاختبار</div><ul><li>بلا تدريب قوي في 24 ساعة اللي قبل.</li><li>Verity Sense على الصدغ تحت البونيه، والتسجيل يبدا قبل الإحماء.</li><li>إحماء 800 م خفيف + 4×50 تصاعدي، ومن بعد 3 دقائق راحة.</li></ul>' +
+    '<div class="gt">🏊 السلسلة</div><ul><li>الشكل مثلاً <b>7×200 @ 5:00</b>: كل 200 تبدا كل 5 دقائق، والراحة هي اللي تبقى.</li><li>كل تكرار <b>أسرع من اللي قبلو بـ 3–5 ثواني</b>. الأول سهل بزاف، الأخير بكل القوة.</li><li>للتحضير: آخر تكرار = الأقصى، الأول ≈ أحسن زمن + 25–30 ث.</li></ul>' +
+    '<div class="gt">✍️ واش نكتبو</div><ul><li><b>الزمن:</b> من الانطلاق (دفع الحائط) حتى لمس الحائط في الأخير، بالكرونو، بعشر الثانية.</li><li><b>النبض:</b> مباشرة عند الوصول (بعد الجهد): أعلى نبض في 10 ثواني بعد لمس الحائط.</li><li><b>اللاكتات</b> (إذا كاين الجهاز): دقيقة بعد الوصول، من الأذن ولا الإصبع بعد التنشيف.</li><li><b>التعب:</b> تسقسيه من 0 (سهل) حتى 10 (أقصى).</li><li><b>بعد التكرار الأخير:</b> يبقى واقف في الماء دقيقة كاملة، وتكتب <b>النبض بعد 60 ث</b>.</li></ul>' +
+    '<div class="gt">📌 مهم</div>نفس المسبح، نفس الساعة، نفس الإحماء في كل مرة، باش نقدرو نقارنو.',
+    '<div class="gt">🎯 Objectif</div>Voir comment la FC (et le lactate) monte avec la vitesse : FCmax nage, seuils, vitesse à FCmax.' +
+    '<div class="gt">⏪ Avant</div><ul><li>Pas d’entraînement intense dans les 24 h.</li><li>Verity Sense à la tempe sous le bonnet, enregistrement lancé avant l’échauffement.</li><li>800 m facile + 4×50 progressifs, puis 3 min de repos.</li></ul>' +
+    '<div class="gt">🏊 Série</div><ul><li>Ex. <b>7×200 @ 5:00</b> : départ toutes les 5 min.</li><li>Chaque répétition <b>3–5 s plus rapide</b> ; la 1re très facile, la dernière à fond.</li></ul>' +
+    '<div class="gt">✍️ À noter</div><ul><li><b>Temps :</b> du départ au toucher final, au 1/10 s.</li><li><b>FC :</b> juste après l’effort, max des 10 s après le toucher.</li><li><b>Lactate :</b> 1 min après l’arrivée.</li><li><b>RPE :</b> 0 à 10.</li><li><b>Après la dernière :</b> 1 min immobile, noter la <b>FC à +60 s</b>.</li></ul>'
+  ],
+  '400': [
+    '<div class="gt">🎯 الهدف</div>سرعة VO2max في الماء (vVO2max) + كيفاش يسترجع النبض.' +
+    '<div class="gt">🏊 الطريقة</div><ol><li>إحماء 800–1000 م مع 4×50 سريعة، ومن بعد 5 دقائق راحة.</li><li>400 م حرة <b>بأقصى جهد متوازن</b>. الانطلاق دايماً نفس الطريقة (من الماء ولا من المكعب).</li></ol>' +
+    '<div class="gt">✍️ واش نكتبو</div><ul><li><b>الزمن:</b> من الانطلاق حتى لمس الحائط.</li><li><b>النبض عند الوصول:</b> بعد الجهد مباشرة (أعلى نبض في 10 ثواني).</li><li><b>النبض بعد 60 ث:</b> يبقى واقف بلا حركة دقيقة كاملة، ومن بعد نقراو النبض.</li><li><b>ضربات الذراعين/د</b> (اختياري): تحسبها وسط الحوض في الـ 100 الثالثة.</li></ul>',
+    '<div class="gt">🎯 Objectif</div>Vitesse VO2max en nage + récupération cardiaque.' +
+    '<ol><li>800–1000 m d’échauffement + 4×50 rapides, 5 min de repos.</li><li>400 m crawl <b>à fond, allure régulière</b>, départ toujours identique.</li></ol>' +
+    '<ul><li><b>Temps :</b> départ → toucher.</li><li><b>FC arrivée :</b> juste après l’effort (max sur 10 s).</li><li><b>FC +60 s :</b> après 1 min immobile.</li></ul>'
+  ],
+  css: [
+    '<div class="gt">🎯 الهدف</div>السرعة الحرجة (CSS) = سرعة العتبة اللي يقدر يحافظ عليها مدة طويلة. منها تتحسب سرعات A1 / A2 / EN.' +
+    '<div class="gt">🏊 الطريقة</div><ol><li>إحماء 800 م.</li><li><b>400 م بأقصى جهد</b>.</li><li>راحة كاملة <b>10–15 دقيقة</b> (سباحة خفيفة).</li><li><b>200 م بأقصى جهد</b>.</li></ol>' +
+    '<div class="gt">✍️ واش نكتبو</div><ul><li><b>الزمن 1:</b> زمن الـ 400.</li><li><b>الزمن 2:</b> زمن الـ 200.</li><li>الزمن دايماً من الانطلاق حتى لمس الحائط.</li><li>النبض (اختياري): عند الوصول، بعد الجهد.</li></ul>',
+    '<ol><li>800 m d’échauffement.</li><li><b>400 m à fond</b>.</li><li><b>10–15 min</b> de récupération.</li><li><b>200 m à fond</b>.</li></ol><ul><li><b>Temps 1</b> = 400 m, <b>Temps 2</b> = 200 m (départ → toucher).</li></ul>'
+  ],
+  leger: [
+    '<div class="gt">🎯 الهدف</div>VO2max الأدق للأطفال (6–18 سنة) + FCmax الأرضي.' +
+    '<div class="gt">📏 التحضير</div><ul><li>أرض مستوية ما تزلقش، <b>خطين بيناتهم 20 م بالضبط</b> (بالمتر)، صباط رياضي.</li><li>Verity Sense على الذراع، مربوط بالبلوتوث.</li><li>إحماء 5 دقائق جري خفيف.</li></ul>' +
+    '<div class="gt">🏃 الطريقة</div><ol><li>اضغط <b>تشغيل</b>: 5 بيبات عدّ، ومن بعد مع <b>كل بيب لازم يكون واصل للخط</b>.</li><li><b>3 بيبات = مرحلة جديدة</b> أسرع.</li><li>كي ما يلحقش الخط <b>مرتين متتابعين</b>، ولا يحبس وحدو، اضغط <b>توقف</b>.</li></ol>' +
+    '<div class="gt">✍️ واش نكتبو</div><ul><li><b>المرحلة والذهاب:</b> يتسجلو وحدهم (ولا اكتبهم باليد).</li><li><b>FCmax:</b> أعلى نبض عند التوقف (بعد الجهد).</li><li><b>النبض بعد 60 ث:</b> بعد دقيقة راحة.</li></ul>',
+    '<ul><li>Sol plat, <b>2 lignes à 20 m exactement</b>.</li><li>Verity Sense au bras, connecté.</li></ul><ol><li><b>Lancer</b> : 5 bips de décompte, puis il doit être sur la ligne à chaque bip.</li><li><b>3 bips = nouveau palier</b>.</li><li>Arrêt après <b>2 retards consécutifs</b>.</li></ol><ul><li><b>FCmax :</b> FC la plus haute à l’arrêt.</li><li><b>FC +60 s</b> après 1 min.</li></ul>'
+  ],
+  rest: [
+    '<div class="gt">🎯 الهدف</div>نبض الراحة الحقيقي: لمعادلة Uth ولمتابعة التعب.' +
+    '<div class="gt">🛏 الطريقة</div><ul><li><b>الصباح كي يفيق</b>، قبل ما ينوض، قبل الهاتف والأكل.</li><li>Verity Sense على الذراع، يرقد على ظهرو <b>5 دقائق</b> ساكت.</li><li>التطبيق يحسب متوسط آخر دقيقتين.</li><li><b>3 صباحات</b> متتابعة، ماشي بعد مرض ولا سهر.</li></ul>' +
+    '<div class="note" style="margin-top:8px">⚠ هذا نبض <b>راحة</b>، ماشي بعد الجهد.</div>',
+    '<ul><li><b>Au réveil</b>, avant le lever, avant téléphone et repas.</li><li>Verity Sense au bras, <b>5 min</b> allongé au calme ; moyenne des 2 dernières minutes.</li><li><b>3 matins</b> consécutifs.</li></ul><div class="note">⚠ FC de <b>repos</b>, pas après effort.</div>'
+  ],
+  day: [
+    '<div class="gt">🌙 كل صباح من Polar Flow</div><ul><li>السباح يلبس <b>Polar Loop</b> الليل كامل.</li><li><b>Nightly Recharge:</b> الحالة، HRV (ms) ونبض الراحة في الليل (bpm).</li><li><b>النوم:</b> المدة و Sleep score.</li></ul>' +
+    '<div class="gt">🏊 بعد كل حصة</div><ul><li><b>المدة</b> بالدقائق (الماء + الصالة).</li><li><b>تعب الحصة 0–10:</b> تسقسيه 30 دقيقة بعد الحصة «كيفاش كانت الحصة؟».</li></ul>' +
+    '<div class="gt">🧮 الحساب</div>كل رقم يتقارن مع <b>المعدل الشخصي تاع 28 يوم</b> تاع نفس السباح. لازم 7 أيام على الأقل.',
+    '<ul><li><b>Polar Loop</b> porté la nuit.</li><li><b>Nightly Recharge :</b> statut, VFC (ms), FC nocturne (bpm).</li><li><b>Sommeil :</b> durée et score.</li><li><b>Séance :</b> durée (min) et RPE 0–10 (30 min après).</li></ul>Comparaison avec la <b>référence perso sur 28 jours</b> (7 jours minimum).'
+  ],
+  time: [
+    'سجّل الأزمنة الرسمية (منافسة ولا اختبار مكروني). <b>نقاط World Aquatics</b> تتحسب وحدها حسب المسبح (25 ولا 50) والجنس.',
+    'Temps officiels (compétition). <b>Points World Aquatics</b> calculés selon bassin et sexe.'
+  ]
+};
+function guideHtml(k) { var g = GUIDE[k]; return g ? '<details class="guide"' + (k === 'day' || k === 'time' ? '' : ' open') + '><summary>' + T('guide') + '</summary><div class="gb">' + (LANG === 'fr' ? g[1] : g[0]) + '</div></details>' : ''; }
 
 /* ======================= backend ======================= */
 var API = {
@@ -154,23 +263,37 @@ var API = {
       .then(function (r) { if (!r.ok && r.err === 'auth') { ls('vo2_tk', null); render(); throw new Error('auth'); } return r; });
   }
 };
-// serveur local (mode essai / tests)
+// serveur local (mode essai / tests) — mêmes règles que le serveur
 var Local = {
-  db: function () { try { return JSON.parse(ls('vo2_demo') || '{"s":[],"t":[]}'); } catch (e) { return { s: [], t: [] }; } },
+  db: function () { try { var d = JSON.parse(ls('vo2_demo') || '{}'); d.s = d.s || []; d.t = d.t || []; d.c = d.c || []; return d; } catch (e) { return { s: [], t: [], c: [] }; } },
   put: function (d) { ls('vo2_demo', JSON.stringify(d)); },
   call: function (p) {
     var d = Local.db();
     if (p.a === 'login') {
-      if (!d.pw) { if (String(p.pw || '').length < 6) return { ok: false, err: 'short' }; d.pw = p.pw; Local.put(d); return { ok: true, tk: 'demo', first: true }; }
-      return p.pw === d.pw ? { ok: true, tk: 'demo' } : { ok: false, err: 'bad' };
+      if (!d.pw) { if (String(p.pw || '').length < 6) return { ok: false, err: 'short' }; d.pw = p.pw; Local.put(d); ls('vo2_demo_who', 'admin'); return { ok: true, tk: 'demo-admin', first: true, role: 'admin' }; }
+      if (p.pw === d.pw) return { ok: true, tk: 'demo-admin', role: 'admin' };
+      var c = d.c.find(function (x) { return x.code === p.pw && x.active !== false; });
+      return c ? { ok: true, tk: 'demo-coach-' + c.id, role: 'coach' } : { ok: false, err: 'bad' };
     }
+    var tk = p.tk || '', w = tk === 'demo-admin' ? { role: 'admin', name: 'Administration' } : null;
+    if (!w && tk.indexOf('demo-coach-') === 0) { var co = d.c.find(function (x) { return x.id === tk.slice(11) && x.active !== false; }); if (co) w = { role: 'coach', id: co.id, name: co.name }; }
+    if (!w) return { ok: false, err: 'auth' };
+    var own = function (s) { return w.role === 'admin' || (s && s.coachId === w.id); };
     function up(arr, rec) { if (!rec.id) rec.id = uid(); rec.updated = new Date().toISOString(); var i = arr.findIndex(function (x) { return x.id === rec.id; }); if (i >= 0) arr[i] = rec; else arr.push(rec); return rec; }
+    function S_(id) { return d.s.find(function (x) { return x.id === id; }); }
     var r = { ok: true };
-    if (p.a === 'all') { r.swimmers = d.s; r.tests = d.t; }
-    else if (p.a === 'saveSwimmer') r.rec = up(d.s, p.rec);
-    else if (p.a === 'saveTest') r.rec = up(d.t, p.rec);
-    else if (p.a === 'delSwimmer') { d.s = d.s.filter(function (x) { return x.id !== p.id; }); d.t = d.t.filter(function (x) { return x.swimmerId !== p.id; }); }
+    if (p.a === 'all') {
+      var ss = d.s.filter(own), ids = {}; ss.forEach(function (x) { ids[x.id] = 1; });
+      r.swimmers = ss; r.tests = d.t.filter(function (t) { return ids[t.swimmerId]; });
+      r.coaches = w.role === 'admin' ? d.c : d.c.filter(function (c) { return c.id === w.id; }).map(function (c) { return { id: c.id, name: c.name }; });
+      r.me = { role: w.role, id: w.id || null, name: w.name };
+    }
+    else if (p.a === 'saveSwimmer') { var old = S_(p.rec.id); if (old && !own(old)) return { ok: false, err: 'forbidden' }; if (w.role !== 'admin') p.rec.coachId = w.id; r.rec = up(d.s, p.rec); }
+    else if (p.a === 'saveTest') { if (!own(S_(p.rec.swimmerId))) return { ok: false, err: 'forbidden' }; p.rec.by = p.rec.by || w.name; r.rec = up(d.t, p.rec); }
+    else if (p.a === 'delSwimmer') { if (!own(S_(p.id))) return { ok: false, err: 'forbidden' }; d.s = d.s.filter(function (x) { return x.id !== p.id; }); d.t = d.t.filter(function (x) { return x.swimmerId !== p.id; }); }
     else if (p.a === 'delTest') d.t = d.t.filter(function (x) { return x.id !== p.id; });
+    else if (p.a === 'saveCoach') { if (w.role !== 'admin') return { ok: false, err: 'forbidden' }; if (String(p.rec.code || '').length < 4) return { ok: false, err: 'code' }; if (d.c.some(function (c) { return c.code === p.rec.code && c.id !== p.rec.id; }) || p.rec.code === d.pw) return { ok: false, err: 'dupcode' }; r.rec = up(d.c, p.rec); }
+    else if (p.a === 'delCoach') { if (w.role !== 'admin') return { ok: false, err: 'forbidden' }; d.c = d.c.filter(function (c) { return c.id !== p.id; }); }
     else if (p.a === 'changePw') { if (p.old !== d.pw) return { ok: false, err: 'bad' }; if (String(p.nw).length < 6) return { ok: false, err: 'short' }; d.pw = p.nw; }
     Local.put(d);
     return JSON.parse(JSON.stringify(r));
@@ -178,21 +301,24 @@ var Local = {
 };
 
 /* ======================= état ======================= */
-var DB = { swimmers: [], tests: [] };
+var DB = { swimmers: [], tests: [], coaches: [], me: null };
 try { var cache = JSON.parse(ls('vo2_cache') || 'null'); if (cache) DB = cache; } catch (e) {}
 var QUEUE = []; try { QUEUE = JSON.parse(ls('vo2_queue') || '[]'); } catch (e) {}
 var S = { view: 'home', sid: null, tid: null, type: null, tab: 'sum' };
+var VIEWAS = ls('vo2_viewas') || '';
+function isAdmin() { return DB.me && DB.me.role === 'admin'; }
+function coachName(id) { var c = (DB.coaches || []).find(function (x) { return x.id === id; }); return c ? c.name : ''; }
 function persist() { ls('vo2_cache', JSON.stringify(DB)); ls('vo2_queue', JSON.stringify(QUEUE)); }
 
 function load() {
   return API.call('all').then(function (r) {
-    if (r.ok) { DB = { swimmers: r.swimmers || [], tests: r.tests || [] }; applyQueueLocal(); persist(); }
+    if (r.ok) { DB = { swimmers: r.swimmers || [], tests: r.tests || [], coaches: r.coaches || [], me: r.me || null }; applyQueueLocal(); persist(); }
     return r;
   });
 }
 function applyQueueLocal() {
   QUEUE.forEach(function (q) {
-    var arr = q.a.indexOf('Swimmer') > 0 ? DB.swimmers : DB.tests;
+    var arr = q.a.indexOf('Swimmer') > 0 ? DB.swimmers : q.a.indexOf('Coach') > 0 ? (DB.coaches = DB.coaches || []) : DB.tests;
     if (q.a.indexOf('save') === 0) { var i = arr.findIndex(function (x) { return x.id === q.rec.id; }); if (i >= 0) arr[i] = q.rec; else arr.push(q.rec); }
     else { var j = arr.findIndex(function (x) { return x.id === q.id; }); if (j >= 0) arr.splice(j, 1); }
   });
@@ -212,7 +338,7 @@ function flush() {
   return API.call(q.a, p).then(function (r) {
     flushing = false;
     if (r.ok) { QUEUE.shift(); persist(); return flush(); }
-    toast(r.err || 'error');
+    QUEUE.shift(); persist(); toast(T(r.err) || r.err || 'error'); return load().then(function () { render(); });
   }).catch(function (e) { flushing = false; if (e.message !== 'auth') toast(T('offline')); });
 }
 window.addEventListener('online', flush);
@@ -220,14 +346,17 @@ window.addEventListener('online', flush);
 /* ======================= aides ======================= */
 function toast(m) { var t = document.createElement('div'); t.className = 'toast'; t.textContent = m; document.body.appendChild(t); setTimeout(function () { t.remove(); }, 2600); }
 function sw(id) { return DB.swimmers.find(function (s) { return s.id === id; }); }
-function testsOf(id) { return DB.tests.filter(function (t) { return t.swimmerId === id; }).sort(function (a, b) { return (b.date || '').localeCompare(a.date || '') || (b.updated || '').localeCompare(a.updated || ''); }); }
+function testsOf(id, all) { return DB.tests.filter(function (t) { return t.swimmerId === id && (all || (t.type !== 'day' && t.type !== 'time')); }).sort(function (a, b) { return (b.date || '').localeCompare(a.date || '') || (b.updated || '').localeCompare(a.updated || ''); }); }
 function ageOf(s, date) { return C.ageAt(s && s.dob, date); }
 function paceStr(p) { return p ? F(p, 1) : '—'; }
 function vPace(v) { return v ? F(100 / v, 1) : '—'; }
 function n1(x) { return x == null ? '—' : R(x, 1); }
 function n0(x) { return x == null ? '—' : Math.round(x); }
 function initials(n) { return String(n || '?').trim().split(/\s+/).slice(0, 2).map(function (w) { return w[0]; }).join('').toUpperCase(); }
-var ICON = { step: '📈', '400': '🏊', css: '⏱', leger: '🏃', rest: '😴' };
+var ICON = { step: '📈', '400': '🏊', css: '⏱', leger: '🏃', rest: '😴', day: '🌙', time: '🏅' };
+function daysOf(id) { return DB.tests.filter(function (t) { return t.swimmerId === id && t.type === 'day'; }).map(function (t) { var d = t.data || {}; return { id: t.id, date: t.date, hrv: d.hrv, rhr: d.rhr, sleepH: d.sleepH, sleepScore: d.sleepScore, recharge: d.recharge, br: d.br, ans: d.ans, min: d.min, rpe: d.rpe, load: C.num(d.min) && C.num(d.rpe) != null ? C.num(d.min) * C.num(d.rpe) : null, polar: d.polar }; }).sort(function (a, b) { return a.date < b.date ? -1 : 1; }); }
+function readyOf(s, date) { return C.readiness(daysOf(s.id), date || today(), ageOf(s, date)); }
+function visibleSwimmers() { return DB.swimmers.filter(function (s) { return !isAdmin() || !VIEWAS || s.coachId === VIEWAS; }); }
 function fmtDate(d) { if (!d) return ''; var p = d.split('-'); return p[2] + '/' + p[1] + '/' + p[0]; }
 
 /* ======================= analyse d'un nageur ======================= */
@@ -307,6 +436,9 @@ function profile(s, upTo) {
   P.paces = C.paces(P.cssPace, P.p400);
   var hrrT = all.map(function (t) { return { t: t, r: computeTest(t, s) }; }).find(function (x) { return x.r.hrr != null; });
   P.hrr = hrrT ? hrrT.r.hrr : null;
+  P.mat = C.maturity(s.sex, age, s.height, s.sitH, s.weight);
+  P.bmi = C.bmi(s.weight, s.height); P.ape = C.apeIndex(s.span, s.height);
+  P.ready = upTo ? null : readyOf(s);
   return P;
 }
 
@@ -367,13 +499,18 @@ function render() {
   killCharts();
   document.documentElement.lang = LANG; document.documentElement.dir = LANG === 'fr' ? 'ltr' : 'rtl';
   $('#lang-btn').textContent = LANG === 'fr' ? 'ع' : 'FR';
-  $('#hd-sub').textContent = T('sub');
+  var logged = !!(API.url() && API.tk());
+  $('#set-btn').classList.toggle('hide', !logged); $('#out-btn').classList.toggle('hide', !logged);
+  $('#set-lbl').textContent = T('settings'); $('#out-lbl').textContent = T('logout');
+  $('#hd-sub').textContent = logged && DB.me ? (DB.me.role === 'admin' ? T('admin') : T('coach') + ' · ' + DB.me.name) : T('sub');
   var app = $('#app');
   if (!API.url()) return vSetup(app);
   if (!API.tk()) return vLogin(app);
   ({ home: vHome, swimmer: vSwimmer, swForm: vSwForm, test: vTest, settings: vSettings })[S.view](app);
 }
 $('#lang-btn').onclick = function () { LANG = LANG === 'fr' ? 'ar' : 'fr'; ls('vo2_lang', LANG); render(); };
+$('#set-btn').onclick = function () { route('settings'); };
+$('#out-btn').onclick = function () { ls('vo2_tk', null); ls('vo2_viewas', null); VIEWAS = ''; DB = { swimmers: [], tests: [], coaches: [], me: null }; persist(); BT.disconnect(); vHome.loaded = false; route('home'); };
 
 /* ---------- setup & login ---------- */
 function vSetup(app) {
@@ -385,9 +522,9 @@ function vSetup(app) {
   $('#demo').onclick = function (e) { e.preventDefault(); ls('vo2_api', 'demo'); render(); };
 }
 function vLogin(app) {
-  app.innerHTML = '<form class="login card" id="lf"><img src="logo.png" alt=""><h2>VO2max</h2>' +
-    '<div class="f"><label>' + T('pw') + '</label><input type="password" id="pw" autocomplete="current-password" class="ltr"></div>' +
-    '<button class="btn pri" style="width:100%">' + T('login') + '</button><p class="small muted">' + T('pwFirst') + '</p>' +
+  app.innerHTML = '<form class="login card" id="lf"><img src="logo.png" alt=""><h2>VO2max · Al-Wathba</h2><p class="small muted">' + T('coachLogin') + '</p>' +
+    '<div class="f"><label>' + T('pwOrCode') + '</label><input type="password" id="pw" autocomplete="current-password" class="ltr" style="text-align:center;font-size:20px"></div>' +
+    '<button class="btn pri big" style="width:100%">' + T('login') + '</button><p class="small muted">' + T('pwFirst') + '</p>' +
     '<p><a href="#" id="chg" class="small">' + T('apiUrl') + ' ✎</a></p></form>';
   $('#pw').focus();
   $('#chg').onclick = function (e) { e.preventDefault(); ls('vo2_api', null); render(); };
@@ -397,56 +534,71 @@ function vLogin(app) {
       b.disabled = false;
       if (!r.ok) { toast(T(r.err) || r.err); return; }
       ls('vo2_tk', r.tk); if (r.first) toast(T('first'));
-      return load().then(function () { route('home'); });
+      return load().then(function () { vHome.loaded = true; route('home'); });
     }).catch(function () { b.disabled = false; toast(T('neterr')); });
   };
 }
 
 /* ---------- accueil ---------- */
 function vHome(app) {
-  var list = DB.swimmers.slice().sort(function (a, b) { return (a.name || '').localeCompare(b.name || ''); });
-  var h = '<div class="row"><h1 class="sp">' + T('swimmers') + '</h1><button class="btn" id="set">⚙</button><button class="btn pri" id="add">＋ ' + T('addSw') + '</button></div>';
+  var list = visibleSwimmers().sort(function (a, b) { return (a.name || '').localeCompare(b.name || ''); });
+  var h = '';
+  if (isAdmin() && (DB.coaches || []).length) {
+    h += '<div class="coachbar"><span class="small muted" style="font-weight:700">👁 ' + T('viewAs') + ' :</span><div class="seg"><button class="btn sm' + (!VIEWAS ? ' on' : '') + '" data-va="">' + T('allCoaches') + '</button>' +
+      DB.coaches.map(function (c) { return '<button class="btn sm' + (VIEWAS === c.id ? ' on' : '') + '" data-va="' + c.id + '">' + esc(c.name) + (c.active === false ? ' ⛔' : '') + '</button>'; }).join('') + '</div></div>';
+    if (VIEWAS) h += '<div class="info" style="margin-bottom:14px">👁 ' + T('viewing') + ' <b>' + esc(coachName(VIEWAS)) + '</b></div>';
+  }
+  // statistiques
+  var month = today().slice(0, 7), nT = 0, rd = { green: 0, yellow: 0, red: 0 };
+  list.forEach(function (s) { nT += testsOf(s.id).filter(function (t) { return (t.date || '').slice(0, 7) === month; }).length; var r = readyOf(s); if (r) rd[r.level]++; });
+  h += '<div class="statbar"><div class="card kpi"><div class="l">' + T('stats_sw') + '</div><div class="v">' + list.length + '</div></div>' +
+    '<div class="card kpi"><div class="l">' + T('stats_month') + '</div><div class="v">' + nT + '</div></div>' +
+    '<div class="card kpi"><div class="l">' + T('stats_ready') + '</div><div class="row" style="gap:12px;font:700 22px Rubik"><span><span class="dot green"></span> ' + rd.green + '</span><span><span class="dot yellow"></span> ' + rd.yellow + '</span><span><span class="dot red"></span> ' + rd.red + '</span></div></div>' +
+    (isAdmin() ? '<div class="card kpi"><div class="l">' + T('coaches') + '</div><div class="v">' + (DB.coaches || []).length + '</div></div>' : '') + '</div>';
+  h += '<div class="row"><h1 class="sp">' + T('swimmers') + '</h1><button class="btn pri" id="add">＋ ' + T('addSw') + '</button></div>';
   if (QUEUE.length) h += '<div class="note" style="margin-bottom:12px">⏳ ' + QUEUE.length + ' ' + T('pending') + '</div>';
   if (!list.length) h += '<div class="card empty">' + T('noSw') + '</div>';
   h += '<div class="grid g3">';
   list.forEach(function (s) {
-    var P = profile(s), a = P.age;
-    h += '<div class="card sw" data-id="' + s.id + '"><div class="av">' + esc(initials(s.name)) + '</div><div class="sp"><b>' + esc(s.name) + '</b><div class="small muted">' +
-      (a ? Math.floor(a) + ' ' + T('yrs') : '') + (s.level ? ' · ' + T('level') + ' ' + (s.level == 7 ? T('comp') : s.level) : '') + ' · ' + P.tests.length + ' ' + T('tests') + '</div></div>' +
-      '<div class="kpi" style="text-align:center"><div class="v num" style="font-size:28px">' + (P.final ? R(P.final.vo2, 1) : '—') + '</div><div class="l">VO2max</div></div></div>';
+    var P = profile(s), a = P.age, r = P.ready;
+    h += '<div class="card sw" data-id="' + s.id + '"><div class="av">' + esc(initials(s.name)) + '</div><div class="sp" style="min-width:0"><b style="font-size:17px">' + esc(s.name) + '</b><div class="small muted">' +
+      (a ? Math.floor(a) + ' ' + T('yrs') : '') + (s.level ? ' · ' + (s.level == 7 ? T('comp') : T('level') + ' ' + s.level) : '') + (s.group ? ' · ' + esc(s.group) : '') + '</div>' +
+      '<div class="small muted">' + (isAdmin() && !VIEWAS ? '👤 ' + esc(coachName(s.coachId) || T('noCoach')) + ' · ' : '') + '<span class="dot ' + (r ? r.level : 'none') + '" style="vertical-align:middle"></span> ' + (r ? T(r.level).split(':')[0] : '—') + '</div></div>' +
+      '<div class="kpi" style="text-align:center"><div class="v" style="font-size:28px">' + (P.final ? R(P.final.vo2, 1) : '—') + '</div><div class="l">VO2max</div></div></div>';
   });
   h += '</div>';
   app.innerHTML = h;
   $('#add').onclick = function () { route('swForm', { sid: null }); };
-  $('#set').onclick = function () { route('settings'); };
+  $$('[data-va]').forEach(function (b) { b.onclick = function () { VIEWAS = b.dataset.va; ls('vo2_viewas', VIEWAS || null); render(); }; });
   $$('.sw').forEach(function (el) { el.onclick = function () { route('swimmer', { sid: el.dataset.id, tab: 'sum' }); }; });
-  // rafraîchir en arrière-plan
   if (!vHome.loaded) { vHome.loaded = true; load().then(function (r) { if (r && r.ok && S.view === 'home') render(); }).catch(function () {}); }
 }
 
 /* ---------- fiche nageur (formulaire) ---------- */
+function lab(k, hintKey) { return '<label>' + T(k) + (hintKey ? '<span class="hint">' + T(hintKey) + '</span>' : '') + '</label>'; }
 function vSwForm(app) {
-  var s = S.sid ? sw(S.sid) : {};
+  var s = S.sid ? sw(S.sid) : { coachId: VIEWAS || '' };
   var lv = '<option value="">—</option>' + [1, 2, 3, 4, 5, 6, 7].map(function (n) { return '<option value="' + n + '"' + (String(s.level) === String(n) ? ' selected' : '') + '>' + (n === 7 ? T('comp') : T('level') + ' ' + n) + '</option>'; }).join('');
-  app.innerHTML = '<button class="btn sm" id="bk">← ' + T('back') + '</button><h1>' + (S.sid ? esc(s.name) : T('addSw')) + '</h1><form class="card" id="sf">' +
-    '<div class="f"><label>' + T('name') + '</label><input name="name" required value="' + esc(s.name) + '"></div>' +
-    '<div class="fr"><div class="f"><label>' + T('dob') + '</label><input type="date" name="dob" required value="' + esc(s.dob) + '"></div>' +
-    '<div class="f"><label>' + T('sex') + '</label><select name="sex"><option value="M">' + T('M') + '</option><option value="F"' + (s.sex === 'F' ? ' selected' : '') + '>' + T('Fm') + '</option></select></div>' +
-    '<div class="f"><label>' + T('level') + '</label><select name="level">' + lv + '</select></div></div>' +
-    '<div class="fr"><div class="f"><label>' + T('height') + '</label><input name="height" inputmode="decimal" class="num" value="' + esc(s.height) + '"></div>' +
-    '<div class="f"><label>' + T('weight') + '</label><input name="weight" inputmode="decimal" class="num" value="' + esc(s.weight) + '"></div>' +
-    '<div class="f"><label>' + T('hrmaxOverride') + '</label><input name="hrmaxKnown" inputmode="numeric" class="num" value="' + esc(s.hrmaxKnown) + '"></div></div>' +
-    '<div class="f"><label>' + T('notes') + '</label><textarea name="notes" rows="2">' + esc(s.notes) + '</textarea></div>' +
-    '<div class="row"><button class="btn pri">' + T('save') + '</button>' + (S.sid ? '<span class="sp"></span><button type="button" class="btn dan" id="dl">' + T('del') + '</button>' : '') + '</div></form>';
+  var co = isAdmin() ? '<div class="f">' + lab('coach') + '<select name="coachId"><option value="">' + T('noCoach') + '</option>' + (DB.coaches || []).map(function (c) { return '<option value="' + c.id + '"' + (s.coachId === c.id ? ' selected' : '') + '>' + esc(c.name) + '</option>'; }).join('') + '</select></div>' : '';
+  var inp = function (n, k, h, mode) { return '<div class="f">' + lab(k, h) + '<input name="' + n + '" inputmode="' + (mode || 'decimal') + '" class="num" value="' + esc(s[n]) + '"></div>'; };
+  app.innerHTML = '<button class="btn sm" id="bk">← ' + T('back') + '</button><h1>' + (S.sid ? esc(s.name) : T('addSw')) + '</h1><form id="sf">' +
+    '<div class="card"><div class="f">' + lab('name') + '<input name="name" required value="' + esc(s.name) + '"></div>' +
+    '<div class="fr"><div class="f">' + lab('dob') + '<input type="date" name="dob" required value="' + esc(s.dob) + '"></div>' +
+    '<div class="f">' + lab('sex') + '<select name="sex"><option value="M">' + T('M') + '</option><option value="F"' + (s.sex === 'F' ? ' selected' : '') + '>' + T('Fm') + '</option></select></div>' +
+    '<div class="f">' + lab('level') + '<select name="level">' + lv + '</select></div>' +
+    '<div class="f">' + lab('group') + '<input name="group" value="' + esc(s.group) + '"></div>' + co + '</div></div>' +
+    '<div class="card"><h3>📏 ' + T('body') + '</h3><div class="fr">' + inp('height', 'height', 'hHint') + inp('sitH', 'sitH', 'sitHint') + inp('span', 'span', 'spanHint') + inp('weight', 'weight') + inp('hrmaxKnown', 'hrmaxOverride', null, 'numeric') + '</div></div>' +
+    '<div class="card"><div class="f">' + lab('notes') + '<textarea name="notes" rows="2">' + esc(s.notes) + '</textarea></div>' +
+    '<div class="row"><button class="btn pri big">' + T('save') + '</button>' + (S.sid ? '<span class="sp"></span><button type="button" class="btn dan" id="dl">' + T('del') + '</button>' : '') + '</div></div></form>';
   $('#bk').onclick = function () { S.sid ? route('swimmer') : route('home'); };
   $('#sf').onsubmit = function (e) {
     e.preventDefault(); var f = e.target, rec = Object.assign({}, s);
-    ['name', 'dob', 'sex', 'level', 'height', 'weight', 'hrmaxKnown', 'notes'].forEach(function (k) { rec[k] = f[k].value.trim(); });
+    ['name', 'dob', 'sex', 'level', 'group', 'height', 'sitH', 'span', 'weight', 'hrmaxKnown', 'notes'].forEach(function (k) { rec[k] = f[k].value.trim(); });
+    if (f.coachId) rec.coachId = f.coachId.value; else if (!rec.coachId && DB.me && DB.me.role === 'coach') rec.coachId = DB.me.id;
     rec.id = rec.id || uid();
-    // historique taille/poids
     rec.body = (s.body || []).slice();
-    if (rec.height !== (s.height || '') || rec.weight !== (s.weight || '')) rec.body.push({ date: today(), h: rec.height, w: rec.weight });
-    mutate('saveSwimmer', { rec: rec }); toast(T('saved')); route('swimmer', { sid: rec.id });
+    if (rec.height !== (s.height || '') || rec.weight !== (s.weight || '') || rec.sitH !== (s.sitH || '')) rec.body.push({ date: today(), h: rec.height, w: rec.weight, sh: rec.sitH, span: rec.span });
+    mutate('saveSwimmer', { rec: rec }); toast(T('saved')); route('swimmer', { sid: rec.id, tab: 'sum' });
   };
   if (S.sid) $('#dl').onclick = function () { if (confirm(T('confirmDel'))) { mutate('delSwimmer', { id: S.sid }); toast(T('deleted')); route('home'); } };
 }
@@ -456,11 +608,14 @@ function vSwimmer(app) {
   var s = sw(S.sid); if (!s) return route('home');
   var P = profile(s);
   var h = '<div class="row"><button class="btn sm" id="bk">← ' + T('swimmers') + '</button><span class="sp"></span><button class="btn sm" id="pr">🖨 ' + T('print') + '</button><button class="btn sm" id="ed">✎ ' + T('edit') + '</button></div>' +
-    '<div class="row" style="margin:10px 0"><div class="av">' + esc(initials(s.name)) + '</div><div class="sp"><h1 style="margin:0">' + esc(s.name) + '</h1><div class="small muted">' +
-    (P.age ? R(P.age, 1) + ' ' + T('yrs') : '') + (s.weight ? ' · <span class="ltr">' + esc(s.weight) + ' kg</span>' : '') + (s.height ? ' · <span class="ltr">' + esc(s.height) + ' cm</span>' : '') + (s.level ? ' · ' + T('level') + ' ' + (s.level == 7 ? T('comp') : s.level) : '') + '</div></div></div>';
-  h += '<div class="tabs">' + ['sum', 'tests', 'history'].map(function (k) { return '<button class="btn sm' + (S.tab === k ? ' on' : '') + '" data-tab="' + k + '">' + T(k === 'sum' ? 'sum' : k) + '</button>'; }).join('') + '</div>';
+    '<div class="row" style="margin:12px 0"><div class="av" style="width:58px;height:58px;font-size:22px">' + esc(initials(s.name)) + '</div><div class="sp"><h1 style="margin:0">' + esc(s.name) + '</h1><div class="small muted">' +
+    (P.age ? '<span class="num">' + R(P.age, 1) + '</span> ' + T('yrs') : '') + (s.weight ? ' · <span class="ltr">' + esc(s.weight) + ' kg</span>' : '') + (s.height ? ' · <span class="ltr">' + esc(s.height) + ' cm</span>' : '') + (s.level ? ' · ' + (s.level == 7 ? T('comp') : T('level') + ' ' + s.level) : '') + (isAdmin() && s.coachId ? ' · 👤 ' + esc(coachName(s.coachId)) : '') + '</div></div>' +
+    (P.ready ? '<span class="chip ' + P.ready.level + '"><span class="dot ' + P.ready.level + '"></span> ' + T(P.ready.level).split(':')[0] + '</span>' : '') + '</div>';
+  h += '<div class="tabs">' + [['sum', '📊'], ['recovery', '🌙'], ['tests', '🧪'], ['times', '🏅'], ['history', '📈']].map(function (k) { return '<button class="btn sm' + (S.tab === k[0] ? ' on' : '') + '" data-tab="' + k[0] + '">' + k[1] + ' ' + T(k[0]) + '</button>'; }).join('') + '</div>';
   if (S.tab === 'sum') h += summaryHtml(P);
   else if (S.tab === 'tests') h += testsHtml(P);
+  else if (S.tab === 'recovery') h += recoveryHtml(s);
+  else if (S.tab === 'times') h += timesHtml(s);
   else h += '<div class="grid g2"><div class="card"><h3>VO2max</h3><div class="chart"><canvas id="ch-vo2"></canvas></div></div><div class="card"><h3>' + T('pacesT') + '</h3><div class="chart"><canvas id="ch-pace"></canvas></div></div>' +
     '<div class="card"><h3>' + T('hrCurve') + '</h3><div class="chart"><canvas id="ch-hrall"></canvas></div></div><div class="card"><h3>' + T('hrrest') + ' / ' + T('hrr') + '</h3><div class="chart"><canvas id="ch-rest"></canvas></div></div></div>';
   app.innerHTML = h;
@@ -472,6 +627,63 @@ function vSwimmer(app) {
   $$('[data-tid]').forEach(function (b) { b.onclick = function () { var t = DB.tests.find(function (x) { return x.id === b.dataset.tid; }); route('test', { tid: t.id, type: t.type }); }; });
   if (S.tab === 'sum') drawSummaryCharts(P);
   if (S.tab === 'history') drawHistory(s);
+  if (S.tab === 'recovery') drawRecovery(s);
+}
+
+/* ---------- récupération ---------- */
+function readyCard(r, s) {
+  if (!r) return '<div class="card"><h3>' + T('readyT') + '</h3><p class="muted">' + T('noDays') + '</p></div>';
+  var em = { green: '🟢', yellow: '🟡', red: '🔴' }[r.level];
+  return '<div class="ready ' + r.level + '" style="margin-bottom:14px"><span class="big">' + em + '</span><div class="sp"><b style="font-size:18px">' + T(r.level) + '</b>' +
+    (r.flags.length ? '<div class="small">' + r.flags.map(function (f) { return T('f_' + f); }).join(' · ') + '</div>' : '') +
+    (r.baseN < 7 ? '<div class="small">' + T('needDays') + '</div>' : '') + '</div></div>';
+}
+function recoveryHtml(s) {
+  var days = daysOf(s.id), last = days[days.length - 1], r = last ? C.readiness(days, last.date, ageOf(s, last.date)) : null, ac = C.acwr(days, today());
+  var h = '<div class="row" style="margin-bottom:12px"><h2 class="sp" style="margin:0">' + T('readyT') + (last ? ' <span class="small muted">' + fmtDate(last.date) + '</span>' : '') + '</h2><button class="btn pri" data-new="day">＋ ' + T('addDay') + '</button></div>';
+  h += readyCard(r, s);
+  h += '<div class="grid g4" style="margin-bottom:14px">';
+  if (last) {
+    h += '<div class="card">' + kpi(T('hrvN'), n0(C.num(last.hrv)), 'ms') + (r && r.hrvBase ? '<div class="small muted">' + T('base28') + ' : <span class="num">' + n0(r.hrvBase) + '</span></div>' : '') + '</div>';
+    h += '<div class="card">' + kpi(T('rhrN'), n0(C.num(last.rhr)), 'bpm') + (r && r.rhrBase ? '<div class="small muted">' + T('base28') + ' : <span class="num">' + n1(r.rhrBase) + '</span></div>' : '') + '</div>';
+    h += '<div class="card">' + kpi(T('sleepH'), n1(C.num(last.sleepH)), 'h') + '<div class="small muted">' + T('sleepScore') + ' : <span class="num">' + n0(C.num(last.sleepScore)) + '</span></div></div>';
+  }
+  h += '<div class="card">' + kpi(T('acwr'), ac && !ac.short ? R(ac.ratio, 2) : '—', '') + (ac && ac.short ? '<div class="small muted">' + T('acwrNeed') + '</div>' : '') + (ac && !ac.short ? '<span class="chip ' + ({ low: 'warn', ok: 'ok', warn: 'warn', risk: 'bad' })[ac.zone] + '">' + T('acw_' + ac.zone) + '</span><div class="small muted">' + T('load') + ' (7) : <span class="num">' + Math.round(ac.acute) + '</span> · (28/4) : <span class="num">' + Math.round(ac.chronic) + '</span></div>' : '') + '</div>';
+  h += '</div><div class="grid g2"><div class="card"><h3>HRV · ' + T('rhrN') + '</h3><div class="chart"><canvas id="ch-hrv"></canvas></div></div><div class="card"><h3>' + T('sleepH') + ' · ' + T('load') + '</h3><div class="chart"><canvas id="ch-sleep"></canvas></div></div></div>';
+  h += '<div class="card"><h3>' + T('lastDays') + '</h3>';
+  if (!days.length) h += '<p class="muted">' + T('noDays') + '</p>';
+  else h += '<div class="tbl-wrap"><table><tr><th>' + T('date') + '</th><th></th><th>HRV</th><th>' + T('hr') + '</th><th>' + T('sleepH') + '</th><th>Score</th><th>' + T('load') + '</th></tr>' + days.slice(-21).reverse().map(function (d) {
+    var rr = C.readiness(days, d.date, ageOf(s, d.date));
+    return '<tr data-tid="' + d.id + '" style="cursor:pointer"><td class="num">' + fmtDate(d.date) + '</td><td><span class="dot ' + (rr ? rr.level : 'none') + '"></span></td><td class="num">' + n0(C.num(d.hrv)) + '</td><td class="num">' + n0(C.num(d.rhr)) + '</td><td class="num">' + n1(C.num(d.sleepH)) + '</td><td class="num">' + n0(C.num(d.sleepScore)) + '</td><td class="num">' + (d.load != null ? Math.round(d.load) : '—') + '</td></tr>';
+  }).join('') + '</table></div>';
+  return h + '</div>' + guideHtml('day');
+}
+function drawRecovery(s) {
+  var days = daysOf(s.id).slice(-42); if (!days.length) return;
+  var lab = days.map(function (d) { return fmtDate(d.date).slice(0, 5); });
+  var o = chartBase(); o.spanGaps = true; o.scales = { y: { title: { display: true, text: 'HRV ms' } }, y2: { position: 'right', grid: { display: false }, title: { display: true, text: 'bpm' } } };
+  var base = days.map(function (d) { var r = C.readiness(daysOf(s.id), d.date); return r && r.hrvBase ? R(r.hrvBase, 0) : null; });
+  mk('ch-hrv', { type: 'line', data: { labels: lab, datasets: [{ label: 'HRV', data: days.map(function (d) { return C.num(d.hrv); }), borderColor: CH.blue, backgroundColor: CH.blue, borderWidth: 2.5 }, { label: T('base28'), data: base, borderColor: CH.grey, borderDash: [5, 4], pointRadius: 0 }, { label: T('rhrN'), data: days.map(function (d) { return C.num(d.rhr); }), borderColor: CH.red, backgroundColor: CH.red, yAxisID: 'y2' }] }, options: o });
+  var o2 = chartBase(); o2.scales = { y: { title: { display: true, text: 'h' }, min: 0 }, y2: { position: 'right', grid: { display: false }, title: { display: true, text: T('load') } } };
+  mk('ch-sleep', { type: 'bar', data: { labels: lab, datasets: [{ type: 'bar', label: T('sleepH'), data: days.map(function (d) { return C.num(d.sleepH); }), backgroundColor: '#8ab8ec' }, { type: 'line', label: T('load'), data: days.map(function (d) { return d.load; }), borderColor: CH.gold, backgroundColor: CH.gold, yAxisID: 'y2', spanGaps: true }] }, options: o2 });
+}
+
+/* ---------- temps de compétition ---------- */
+var EVL = { FR: ['حرة', 'NL'], BK: ['ظهر', 'Dos'], BR: ['صدر', 'Brasse'], FL: ['فراشة', 'Pap.'], IM: ['متنوع', '4N'] };
+function evName(e) { var m = e.match(/^(\d+)(\w+)$/); return m ? m[1] + ' ' + Tv(EVL[m[2]]) : e; }
+function timesOf(id) { return DB.tests.filter(function (t) { return t.swimmerId === id && t.type === 'time'; }).sort(function (a, b) { return a.date < b.date ? 1 : -1; }); }
+function timesHtml(s) {
+  var all = timesOf(s.id), best = {};
+  all.forEach(function (t) { var d = t.data || {}, k = d.event + '|' + (d.course || 'SCM'), sec = C.parseTime(d.time); if (!sec) return; if (!best[k] || sec < best[k].sec) best[k] = { sec: sec, t: t, ev: d.event, course: d.course || 'SCM' }; });
+  var rows = Object.keys(best).map(function (k) { return best[k]; }).sort(function (a, b) { return C.EVENTS.indexOf(a.ev) - C.EVENTS.indexOf(b.ev) || (a.course < b.course ? 1 : -1); });
+  var h = '<div class="row" style="margin-bottom:12px"><h2 class="sp" style="margin:0">' + T('best') + '</h2><button class="btn pri" data-new="time">＋ ' + T('addTime') + '</button></div><div class="card">';
+  if (!rows.length) h += '<p class="muted">' + T('noTimes') + '</p>';
+  else h += '<div class="tbl-wrap"><table><tr><th>' + T('event') + '</th><th>' + T('course') + '</th><th>' + T('best') + '</th><th>' + T('points') + '</th><th>' + T('date') + '</th></tr>' + rows.map(function (b) {
+    var pts = C.waPoints(b.ev, b.sec, s.sex, b.course);
+    return '<tr data-tid="' + b.t.id + '" style="cursor:pointer"><td><b>' + evName(b.ev) + '</b></td><td>' + (b.course === 'LCM' ? '50 m' : '25 m') + '</td><td class="num" style="font-weight:700">' + F(b.sec, 2) + '</td><td class="num">' + (pts != null ? pts : '—') + '</td><td class="num small">' + fmtDate(b.t.date) + '</td></tr>';
+  }).join('') + '</table></div>';
+  h += '</div><div class="card tlist"><h3>' + T('allTimes') + '</h3>' + (all.length ? all.map(function (t) { var d = t.data || {}; return '<div class="it" data-tid="' + t.id + '" style="cursor:pointer"><span class="ic">🏅</span><div class="sp"><b>' + evName(d.event) + '</b> <span class="small muted">' + (d.course === 'LCM' ? '50 m' : '25 m') + (d.meet ? ' · ' + esc(d.meet) : '') + '</span><div class="small muted">' + fmtDate(t.date) + '</div></div><div class="num" style="font-size:18px;font-weight:700">' + esc(d.time) + '</div></div>'; }).join('') : '<p class="muted">' + T('noTimes') + '</p>') + '</div>';
+  return h;
 }
 
 function summaryHtml(P) {
@@ -522,6 +734,15 @@ function summaryHtml(P) {
     }).join('') + '</table>';
   } else h += '<p class="muted small">' + T('T_css') + ' / ' + T('T_step') + '</p>';
   h += '</div></div>';
+  // morphologie & maturité
+  var M = P.mat;
+  h += '<div class="card"><h3>📏 ' + T('body') + '</h3>';
+  if (M || P.bmi || P.ape) {
+    h += '<div class="grid g4">' + '<div class="kbox">' + kpi(T('bmi'), P.bmi ? R(P.bmi, 1) : '—', 'kg/m²') + '</div>' + '<div class="kbox">' + kpi(T('ape'), P.ape ? R(P.ape, 3) : '—', P.ape ? '(' + (P.ape >= 1.04 ? '++' : P.ape >= 1.0 ? '+' : '−') + ')' : '') + '</div>';
+    if (M) h += '<div class="kbox">' + kpi(T('mo'), (M.mo > 0 ? '+' : '') + R(M.mo, 1), T('yrs')) + '<span class="chip">' + T(C.maturityStage(M.mo)) + '</span></div><div class="kbox">' + kpi(T('aphv'), R(M.aphv, 1), T('yrs') + ' ± ' + M.see) + '</div>';
+    h += '</div>' + (M ? '<p class="small muted" style="margin:10px 0 0">' + T('matNote') + '</p>' : '<p class="small muted">' + T('matNeed') + '</p>');
+  } else h += '<p class="small muted">' + T('matNeed') + '</p>';
+  h += '</div>';
   // courbes du dernier progressif
   if (P.stepT) {
     h += '<div class="grid g2"><div class="card"><h3>' + T('hrCurve') + ' · ' + fmtDate(P.stepT.t.date) + '</h3><div class="chart"><canvas id="ch-hr"></canvas></div>' +
@@ -620,23 +841,26 @@ function vTest(app) {
   var s = sw(S.sid), t = S.tid ? DB.tests.find(function (x) { return x.id === S.tid; }) : null;
   t = t ? JSON.parse(JSON.stringify(t)) : { id: uid(), swimmerId: s.id, type: S.type, date: today(), data: {} };
   TMP = { t: t, s: s, samples: (t.data.samples ? unpack(t.data.samples) : null) };
-  var h = '<button class="btn sm" id="bk">← ' + esc(s.name) + '</button><h1>' + ICON[t.type] + ' ' + T('T_' + t.type) + '</h1><form id="tf" autocomplete="off">' +
+  var backTab = t.type === 'day' ? 'recovery' : t.type === 'time' ? 'times' : 'tests';
+  var h = '<button class="btn sm" id="bk">← ' + esc(s.name) + '</button><h1>' + ICON[t.type] + ' ' + T('T_' + t.type) + '</h1>' + (t.type !== 'time' && t.type !== 'day' ? guideHtml(t.type) : '') + '<div id="rdw"></div><form id="tf" autocomplete="off">' +
     '<div class="card"><div class="fr"><div class="f"><label>' + T('date') + '</label><input type="date" name="date" value="' + esc(t.date) + '"></div>' +
-    (t.type !== 'leger' && t.type !== 'rest' ? '<div class="f"><label>' + T('pool') + '</label><select name="pool"><option value="25">25 m</option><option value="50"' + (t.data.pool == 50 ? ' selected' : '') + '>50 m</option></select></div>' : '') + '</div></div>';
+    (t.type !== 'leger' && t.type !== 'rest' && t.type !== 'day' && t.type !== 'time' ? '<div class="f"><label>' + T('pool') + '</label><select name="pool"><option value="25">25 m</option><option value="50"' + (t.data.pool == 50 ? ' selected' : '') + '>50 m</option></select></div>' : '') + '</div></div>';
   h += '<div id="form-body"></div>';
   h += '<div class="card"><div class="f"><label>' + T('notes') + '</label><textarea name="notes" rows="2">' + esc(t.notes) + '</textarea></div><div id="res"></div>' +
     '<div class="row"><button class="btn pri big" id="save">' + T('save') + '</button>' + (S.tid ? '<span class="sp"></span><button type="button" class="btn dan" id="dl">' + T('del') + '</button>' : '') + '</div></div></form>';
   app.innerHTML = h;
-  $('#bk').onclick = function () { route('swimmer', { tab: 'tests' }); };
-  if (S.tid) $('#dl').onclick = function () { if (confirm(T('confirmDel'))) { mutate('delTest', { id: t.id }); toast(T('deleted')); route('swimmer', { tab: 'tests' }); } };
-  ({ step: fStep, '400': f400, css: fCss, leger: fLeger, rest: fRest })[t.type]($('#form-body'));
+  $('#bk').onclick = function () { route('swimmer', { tab: backTab }); };
+  if (S.tid) $('#dl').onclick = function () { if (confirm(T('confirmDel'))) { mutate('delTest', { id: t.id }); toast(T('deleted')); route('swimmer', { tab: backTab }); } };
+  ({ step: fStep, '400': f400, css: fCss, leger: fLeger, rest: fRest, day: fDay, time: fTime })[t.type]($('#form-body'));
+  var rdw = function () { var r = t.type !== 'day' && t.type !== 'time' ? readyOf(s, val('date') || today()) : null; $('#rdw').innerHTML = r && r.level === 'red' ? '<div class="alert" style="margin-bottom:14px">🔴 ' + T('redTest') + '</div>' : ''; };
+  $('#tf [name=date]').addEventListener('change', rdw); rdw();
   $('#tf').addEventListener('input', liveResults);
   liveResults();
   $('#tf').onsubmit = function (e) {
     e.preventDefault();
     var rec = TMP.t; rec.date = e.target.date.value || today(); rec.notes = e.target.notes.value; rec.data = collect();
     if (TMP.samples && TMP.samples.length) rec.data.samples = pack(TMP.samples);
-    mutate('saveTest', { rec: rec }); toast(T('saved')); route('swimmer', { tab: 'sum' });
+    mutate('saveTest', { rec: rec }); toast(T('saved')); route('swimmer', { tab: backTab === 'tests' ? 'sum' : backTab });
   };
 }
 function pack(samples) { // [t,hr,…] réduit à 1 point / 2 s si long
@@ -647,7 +871,7 @@ function pack(samples) { // [t,hr,…] réduit à 1 point / 2 s si long
 function unpack(a) { var o = []; for (var i = 0; i + 1 < a.length; i += 2) o.push({ t: a[i], hr: a[i + 1] }); return o; }
 function val(n) { var el = document.querySelector('#tf [name="' + n + '"]'); return el ? el.value.trim() : ''; }
 function setVal(n, v) { var el = document.querySelector('#tf [name="' + n + '"]'); if (el) { el.value = v == null ? '' : v; } }
-function fieldsHtml(list) { return '<div class="fr">' + list.map(function (f) { return '<div class="f"><label>' + f[1] + '</label><input name="' + f[0] + '" class="num mono" inputmode="' + (f[2] || 'decimal') + '" placeholder="' + (f[3] || '') + '" value="' + esc((TMP.t.data || {})[f[0]]) + '"></div>'; }).join('') + '</div>'; }
+function fieldsHtml(list) { return '<div class="fr">' + list.map(function (f) { return '<div class="f"><label>' + f[1] + (f[4] ? '<span class="hint">' + T(f[4]) + '</span>' : '') + '</label><input name="' + f[0] + '" class="num mono" inputmode="' + (f[2] || 'decimal') + '" placeholder="' + (f[3] || '') + '" value="' + esc((TMP.t.data || {})[f[0]]) + '"></div>'; }).join('') + '</div>'; }
 
 function collect() {
   var t = TMP.t, d = { pool: val('pool') };
@@ -658,6 +882,8 @@ function collect() {
   } else if (t.type === '400') { ['dist', 'time', 'hrEnd', 'hr60', 'sr'].forEach(function (k) { d[k] = val(k); }); d.hrSrc = TMP.src || t.data.hrSrc; }
   else if (t.type === 'css') { ['d1', 't1', 'd2', 't2', 'hr1', 'hr2'].forEach(function (k) { d[k] = val(k); }); }
   else if (t.type === 'leger') { ['stage', 'shuttle', 'hrmax', 'hr60'].forEach(function (k) { d[k] = val(k); }); d.lastDone = ''; }
+  else if (t.type === 'day') { ['sleepH', 'sleepScore', 'recharge', 'hrv', 'rhr', 'br', 'ans', 'min', 'rpe', 'polar'].forEach(function (k) { d[k] = val(k); }); }
+  else if (t.type === 'time') { ['event', 'course', 'time', 'meet'].forEach(function (k) { d[k] = val(k); }); }
   else if (t.type === 'rest') { d.rows = $$('#rest-rows tr[data-i]').map(function (tr) { var i = tr.dataset.i; return { date: val('rd' + i), bpm: val('rb' + i), rmssd: val('rr' + i) }; }).filter(function (r) { return r.bpm; }); }
   return d;
 }
@@ -679,6 +905,12 @@ function liveResults() {
     if (r.age && (r.age < 6 || r.age >= 18)) h += '<p class="note">' + T('ageWarn') + '</p>';
   }
   if (t.type === 'rest' && r.rest) h = '<div class="grid g3">' + kpi(T('avg'), n1(r.rest.mean), 'bpm') + kpi('SD', n1(r.rest.sd), 'bpm') + (r.rmssd ? kpi(T('rmssd'), n0(r.rmssd), 'ms') : '') + '</div>';
+  if (t.type === 'day') {
+    var days = daysOf(TMP.s.id).filter(function (x) { return x.id !== t.id; }), dt = val('date') || today();
+    days.push({ date: dt, hrv: d.hrv, rhr: d.rhr, sleepH: d.sleepH, sleepScore: d.sleepScore, recharge: d.recharge, load: C.num(d.min) && C.num(d.rpe) != null ? C.num(d.min) * C.num(d.rpe) : null });
+    var rr = C.readiness(days, dt, ageOf(TMP.s, dt)); h = readyCard(rr, TMP.s) + (C.num(d.min) && C.num(d.rpe) != null ? '<div class="kbox">' + kpi(T('load') + ' (sRPE)', Math.round(C.num(d.min) * C.num(d.rpe)), 'UA') + '</div>' : '');
+  }
+  if (t.type === 'time') { var sec = C.parseTime(d.time), pts = sec ? C.waPoints(d.event, sec, TMP.s.sex, d.course) : null; if (sec) h = '<div class="grid g3">' + kpi(T('time'), F(sec, 2), '') + kpi(T('points'), pts != null ? pts : '—', '') + kpi(T('pace'), F(sec * 100 / parseInt(d.event, 10), 1), '') + '</div>'; }
   var el = $('#res'); if (el) el.innerHTML = h ? '<h3>' + T('results') + '</h3>' + h + '<hr style="border:none;border-top:1px solid var(--line);margin:12px 0">' : '';
 }
 
@@ -695,10 +927,10 @@ function fStep(box) {
   $$('#form-body input').forEach(function (i) { keep[i.name] = i.value; });
   var h = '<div class="card"><div class="fr"><div class="f"><label>' + T('protocol') + '</label><select name="protocol" id="proto">' + Object.keys(C.PROTOCOLS).map(function (k) { return '<option value="' + k + '"' + (k === pid ? ' selected' : '') + '>' + C.PROTOCOLS[k].label + '</option>'; }).join('') + '</select></div>' +
     '<div class="f"><label>' + T('hrmaxOverride') + '</label><input name="hrmax" class="num mono" inputmode="numeric" value="' + esc(keep.hrmax != null ? keep.hrmax : d.hrmax) + '"></div>' +
-    '<div class="f"><label>' + T('hr60') + '</label><input name="hr60" class="num mono" inputmode="numeric" value="' + esc(keep.hr60 != null ? keep.hr60 : d.hr60) + '"></div></div>' +
+    '<div class="f"><label>' + T('hr60') + '<span class="hint">' + T('hr60H') + '</span></label><input name="hr60" class="num mono" inputmode="numeric" value="' + esc(keep.hr60 != null ? keep.hr60 : d.hr60) + '"></div></div>' +
     '<label>' + T('hrSrc') + '</label>' + srcTabs(TMP.src) + '<div id="src-box"></div><p class="small muted">' + T('lacHint') + '</p>' +
     '<input type="hidden" name="peak" value="' + esc(keep.peak != null ? keep.peak : d.peak) + '"><input type="hidden" name="offset" value="' + esc(keep.offset != null ? keep.offset : d.offset) + '">' +
-    '<div class="tbl-wrap"><table><tr><th>' + T('rep') + '</th><th>' + T('time') + '</th><th>' + T('pace') + '</th><th>' + T('hr') + '</th><th>' + T('lac') + '</th><th>' + T('rpe') + '</th></tr>';
+    '<div class="tbl-wrap"><table><tr><th>' + T('rep') + '</th><th>' + T('time') + '<small>' + T('repTimeH') + '</small></th><th>' + T('pace') + '</th><th>' + T('hr') + '<small>' + T('repHrH') + '</small></th><th>' + T('lac') + '<small>' + T('repLacH') + '</small></th><th>' + T('rpe') + '<small>' + T('rpeH') + '</small></th></tr>';
   for (var i = 0; i < P.reps; i++) {
     var r = (d.reps || [])[i] || {};
     var g = function (k, def) { return esc(keep[k + i] != null ? keep[k + i] : def); };
@@ -794,21 +1026,39 @@ function drawCsv() {
   csvChart = new Chart(el, { type: 'scatter', data: { datasets: ds }, options: o }); charts.push(csvChart);
 }
 
+
+/* --- récupération du jour --- */
+function fDay(box) {
+  var d = TMP.t.data;
+  var rc = '<div class="f"><label>' + T('recharge') + '<span class="hint">' + T('rechargeHint') + '</span></label><select name="recharge"><option value="">—</option>' + [5, 4, 3, 2, 1].map(function (n) { return '<option value="' + n + '"' + (String(d.recharge) === String(n) ? ' selected' : '') + '>' + T('rc' + n) + '</option>'; }).join('') + '</select></div>';
+  box.innerHTML = guideHtml('day') + '<div class="card"><h3>' + T('sleepSec') + '</h3><div class="fr">' + rc + '</div>' +
+    fieldsHtml([['hrv', T('hrvN'), 'numeric', '', 'hrvHint'], ['rhr', T('rhrN'), 'numeric', '', 'rhrHint'], ['sleepH', T('sleepH'), 'decimal', '9.5', 'sleepHint'], ['sleepScore', T('sleepScore'), 'numeric', '', 'sleepScoreHint']]) +
+    fieldsHtml([['br', T('br') + ' (' + T('optional') + ')', 'decimal'], ['ans', T('ans') + ' (' + T('optional') + ')', 'decimal']]) + '</div>' +
+    '<div class="card"><h3>' + T('trainSec') + '</h3>' + fieldsHtml([['min', T('trainMin'), 'numeric', '75', 'trainHint'], ['rpe', T('sRpe'), 'numeric', '0–10', 'sRpeHint'], ['polar', T('polarLoad') + ' (' + T('optional') + ')', 'numeric']]) + '</div>';
+}
+/* --- temps de compétition --- */
+function fTime(box) {
+  var d = TMP.t.data;
+  box.innerHTML = guideHtml('time') + '<div class="card"><div class="fr"><div class="f"><label>' + T('event') + '</label><select name="event">' + C.EVENTS.map(function (e) { return '<option value="' + e + '"' + ((d.event || '400FR') === e ? ' selected' : '') + '>' + evName(e) + '</option>'; }).join('') + '</select></div>' +
+    '<div class="f"><label>' + T('course') + '</label><select name="course"><option value="SCM">25 m</option><option value="LCM"' + (d.course === 'LCM' ? ' selected' : '') + '>50 m</option></select></div></div>' +
+    fieldsHtml([['time', T('time'), 'decimal', '5:15.32', 'timeHint']]) + '<div class="f"><label>' + T('meet') + '</label><input name="meet" value="' + esc(d.meet) + '"></div></div>';
+  $$('#tf select').forEach(function (x) { x.addEventListener('change', liveResults); });
+}
 /* --- 400 m --- */
 function f400(box) {
   TMP.src = TMP.src || TMP.t.data.hrSrc || 'manual';
   if (!TMP.t.data.dist) TMP.t.data.dist = 400;
   var keep = {}; $$('#form-body input').forEach(function (i) { keep[i.name] = i.value; }); Object.assign(TMP.t.data, keep);
-  box.innerHTML = '<div class="card">' + fieldsHtml([['dist', T('dist') + ' (m)', 'numeric'], ['time', T('time'), 'decimal', '5:15.0'], ['sr', T('sr'), 'decimal']]) +
-    '<label>' + T('hrSrc') + '</label>' + srcTabs(TMP.src) + '<div id="src-box"></div>' + fieldsHtml([['hrEnd', T('hrEnd'), 'numeric'], ['hr60', T('hr60'), 'numeric']]) + '</div>';
+  box.innerHTML = '<div class="card">' + fieldsHtml([['dist', T('dist') + ' (m)', 'numeric', '', 'distH'], ['time', T('time'), 'decimal', '5:15.0', 'repTimeH'], ['sr', T('sr'), 'decimal', '', 'srH']]) +
+    '<label>' + T('hrSrc') + '</label>' + srcTabs(TMP.src) + '<div id="src-box"></div>' + fieldsHtml([['hrEnd', T('hrEnd'), 'numeric', '', 'hrEndH'], ['hr60', T('hr60'), 'numeric', '', 'hr60H']]) + '</div>';
   bindSrc(function () { f400(box); liveResults(); }); srcBox('400');
 }
 /* --- CSS --- */
 function fCss(box) {
   var d = TMP.t.data; if (!d.d1) { d.d1 = 400; d.d2 = 200; }
   box.innerHTML = '<div class="card"><div class="info small" style="margin-bottom:10px">400 m + 200 m · 15–20 min</div>' +
-    fieldsHtml([['d1', T('dist') + ' 1 (m)', 'numeric'], ['t1', T('time') + ' 1', 'decimal', '5:15.0'], ['hr1', T('hr') + ' 1', 'numeric']]) +
-    fieldsHtml([['d2', T('dist') + ' 2 (m)', 'numeric'], ['t2', T('time') + ' 2', 'decimal', '2:30.0'], ['hr2', T('hr') + ' 2', 'numeric']]) + '</div>';
+    fieldsHtml([['d1', T('dist') + ' 1 (m)', 'numeric'], ['t1', T('time') + ' 1', 'decimal', '5:15.0', 't1H'], ['hr1', T('hr') + ' 1 (' + T('optional') + ')', 'numeric', '', 'repHrH']]) +
+    fieldsHtml([['d2', T('dist') + ' 2 (m)', 'numeric'], ['t2', T('time') + ' 2', 'decimal', '2:30.0', 't2H'], ['hr2', T('hr') + ' 2 (' + T('optional') + ')', 'numeric', '', 'repHrH']]) + '</div>';
 }
 /* --- Léger --- */
 function fLeger(box) {
@@ -817,7 +1067,7 @@ function fLeger(box) {
     '<div class="card runner" id="runner"><div class="small muted">' + T('stage') + '</div><div class="stage num" id="r-stage">1</div>' +
     '<div class="meta"><div><span class="small muted">' + T('shuttle') + '</span><b class="num" id="r-sh">0 / 7</b></div><div><span class="small muted">' + T('speed') + '</span><b class="num" id="r-sp">8.5</b></div><div><span class="small muted">' + T('elapsed') + '</span><b class="num" id="r-t">0:00</b></div><div><span class="small muted">FC</span><b class="num" id="r-hr" style="color:var(--bad)">--</b></div></div>' +
     '<div class="prog"><i id="r-pg" style="width:0"></i></div><div class="row" style="justify-content:center;margin-top:16px"><button type="button" class="btn pri big" id="r-go">▶ ' + T('run') + '</button></div></div>' +
-    '<div class="card"><h3>' + T('manualRes') + '</h3>' + fieldsHtml([['stage', T('stage'), 'numeric'], ['shuttle', T('shuttle'), 'numeric'], ['hrmax', T('hrmax'), 'numeric'], ['hr60', T('hr60'), 'numeric']]) +
+    '<div class="card"><h3>' + T('manualRes') + '</h3>' + fieldsHtml([['stage', T('stage'), 'numeric', '', 'stageH'], ['shuttle', T('shuttle'), 'numeric', '', 'shuttleH'], ['hrmax', T('hrmax'), 'numeric', '', 'hrmaxLH'], ['hr60', T('hr60'), 'numeric', '', 'hr60H']]) +
     '<label>' + T('csv') + '</label>' + '<div id="src-box"></div></div>';
   bindBt(); TMP.src = 'csv'; srcBox('leger'); TMP.src = 'run';
   $('#r-go').onclick = function () { RUN.on ? RUN.stop() : RUN.start(); };
@@ -874,7 +1124,7 @@ function stopRunner() { if (RUN.on) { clearInterval(RUN.iv); RUN.on = false; kee
 function fRest(box) {
   var rows = (TMP.t.data.rows || []).slice(); while (rows.length < 3) rows.push({});
   box.innerHTML = '<div class="card"><div class="info small">' + T('restHelp') + '</div></div>' + btPanel('<div class="row" style="margin-top:10px"><button type="button" class="btn pri" id="rec5">⏺ ' + T('rec5') + '</button><span class="num" id="rec-t" style="font-size:24px"></span></div>') +
-    '<div class="card"><table id="rest-rows"><tr><th>' + T('morning') + '</th><th>' + T('date') + '</th><th>bpm</th><th>RMSSD</th></tr></table><button type="button" class="btn sm" id="addr" style="margin-top:8px">' + T('addRow') + '</button>' +
+    '<div class="card"><table id="rest-rows"><tr><th>' + T('morning') + '</th><th>' + T('date') + '</th><th>bpm<small>' + T('restBpmH') + '</small></th><th>RMSSD<small>' + T('optional') + '</small></th></tr></table><button type="button" class="btn sm" id="addr" style="margin-top:8px">' + T('addRow') + '</button>' +
     '<div style="margin-top:10px"><label>' + T('csv') + '</label><div id="src-box"></div></div></div>';
   rows.forEach(function (r) { addRestRow(r.bpm, r.date, r.rmssd, true); });
   $('#addr').onclick = function () { addRestRow('', '', '', true); };
@@ -906,14 +1156,46 @@ function addRestRow(bpm, date, rmssd, initial) {
 
 /* ======================= paramètres ======================= */
 function vSettings(app) {
-  app.innerHTML = '<button class="btn sm" id="bk">← ' + T('back') + '</button><h1>' + T('settings') + '</h1>' +
-    '<form class="card" id="pwf"><h3>' + T('changePw') + '</h3><div class="fr"><div class="f"><label>' + T('oldPw') + '</label><input type="password" name="o"></div><div class="f"><label>' + T('newPw') + '</label><input type="password" name="n"></div></div><button class="btn pri">' + T('save') + '</button></form>' +
-    '<div class="card"><h3>' + T('apiUrl') + '</h3><p class="small ltr muted" style="word-break:break-all">' + esc(API.url()) + '</p><div class="row"><button class="btn" id="bkp">⬇ ' + T('backup') + '</button><button class="btn" id="chg">' + T('apiUrl') + ' ✎</button><span class="sp"></span><button class="btn dan" id="lo">' + T('logout') + '</button></div></div>';
+  var h = '<button class="btn sm" id="bk">← ' + T('back') + '</button><h1>⚙ ' + T('settings') + '</h1>';
+  if (isAdmin()) {
+    h += '<div class="card"><div class="row" style="margin-bottom:8px"><h3 class="sp" style="margin:0">👥 ' + T('coaches') + '</h3><button class="btn pri sm" id="addc">＋ ' + T('addCoach') + '</button></div><div id="cform"></div>';
+    var cs = DB.coaches || [];
+    if (!cs.length) h += '<p class="muted">—</p>';
+    else h += '<div class="tbl-wrap"><table><tr><th>' + T('name') + '</th><th>' + T('phone') + '</th><th>' + T('code') + '</th><th>' + T('swimmers') + '</th><th></th><th></th></tr>' + cs.map(function (c) {
+      var n = DB.swimmers.filter(function (s) { return s.coachId === c.id; }).length;
+      return '<tr><td style="text-align:start"><b>' + esc(c.name) + '</b></td><td class="num">' + esc(c.phone || '') + '</td><td><span class="chip mono">' + esc(c.code) + '</span></td><td class="num">' + n + '</td><td><span class="chip ' + (c.active === false ? 'bad' : 'ok') + '">' + T(c.active === false ? 'inactive' : 'active') + '</span></td>' +
+        '<td style="white-space:nowrap"><button class="btn sm" data-view="' + c.id + '" title="' + T('viewAs') + '">👁</button> <button class="btn sm" data-ec="' + c.id + '">✎</button></td></tr>';
+    }).join('') + '</table></div>';
+    h += '</div><form class="card" id="pwf"><h3>🔑 ' + T('changePw') + '</h3><div class="fr"><div class="f"><label>' + T('oldPw') + '</label><input type="password" name="o"></div><div class="f"><label>' + T('newPw') + '</label><input type="password" name="n"></div></div><button class="btn pri">' + T('save') + '</button></form>';
+  }
+  h += '<div class="card"><h3>🔗 ' + T('apiUrl') + '</h3><p class="small ltr muted" style="word-break:break-all">' + esc(API.url()) + '</p><div class="row">' + (isAdmin() ? '<button class="btn" id="bkp">⬇ ' + T('backup') + '</button>' : '') + '<button class="btn" id="chg">' + T('apiUrl') + ' ✎</button><span class="sp"></span><button class="btn dan" id="lo">🚪 ' + T('logout') + '</button></div></div>';
+  app.innerHTML = h;
   $('#bk').onclick = function () { route('home'); };
-  $('#pwf').onsubmit = function (e) { e.preventDefault(); API.call('changePw', { old: e.target.o.value, nw: e.target.n.value }).then(function (r) { toast(r.ok ? T('saved') : T(r.err)); if (r.ok) e.target.reset(); }).catch(function () { toast(T('neterr')); }); };
-  $('#lo').onclick = function () { ls('vo2_tk', null); BT.disconnect(); render(); };
+  $('#lo').onclick = function () { $('#out-btn').click(); };
   $('#chg').onclick = function () { if (confirm(T('apiUrl') + ' ?')) { ls('vo2_api', null); ls('vo2_tk', null); render(); } };
+  if (!isAdmin()) return;
+  $('#pwf').onsubmit = function (e) { e.preventDefault(); API.call('changePw', { old: e.target.o.value, nw: e.target.n.value }).then(function (r) { toast(r.ok ? T('saved') : T(r.err)); if (r.ok) e.target.reset(); }).catch(function () { toast(T('neterr')); }); };
   $('#bkp').onclick = function () { var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(DB, null, 1)], { type: 'application/json' })); a.download = 'vo2max-wathba-' + today() + '.json'; a.click(); };
+  $('#addc').onclick = function () { coachForm({}); };
+  $$('[data-ec]').forEach(function (b) { b.onclick = function () { coachForm(DB.coaches.find(function (c) { return c.id === b.dataset.ec; })); }; });
+  $$('[data-view]').forEach(function (b) { b.onclick = function () { VIEWAS = b.dataset.view; ls('vo2_viewas', VIEWAS); route('home'); }; });
+}
+function coachForm(c) {
+  var box = $('#cform');
+  box.innerHTML = '<form class="kbox" id="cf" style="margin-bottom:12px"><div class="fr"><div class="f"><label>' + T('name') + '</label><input name="name" required value="' + esc(c.name) + '"></div>' +
+    '<div class="f"><label>' + T('phone') + '</label><input name="phone" inputmode="tel" class="ltr" value="' + esc(c.phone) + '"></div>' +
+    '<div class="f"><label>' + T('code') + '<span class="hint">' + T('codeHint') + '</span></label><input name="code" required minlength="4" class="mono ltr" value="' + esc(c.code) + '"></div>' +
+    '<div class="f"><label>' + T('active') + '</label><select name="active"><option value="1">' + T('active') + '</option><option value="0"' + (c.active === false ? ' selected' : '') + '>' + T('inactive') + '</option></select></div></div>' +
+    '<div class="row"><button class="btn pri">' + T('save') + '</button><button type="button" class="btn" id="cc">' + T('cancel') + '</button><span class="sp"></span>' + (c.id ? '<button type="button" class="btn dan" id="cd">' + T('del') + '</button>' : '') + '</div></form>';
+  $('#cf [name=name]').focus();
+  $('#cc').onclick = function () { box.innerHTML = ''; };
+  if (c.id) $('#cd').onclick = function () { if (confirm(T('confirmDel'))) { API.call('delCoach', { id: c.id }).then(function (r) { if (!r.ok) return toast(T(r.err) || r.err); toast(T('deleted')); load().then(render); }); } };
+  $('#cf').onsubmit = function (e) {
+    e.preventDefault(); var f = e.target, rec = Object.assign({}, c, { name: f.name.value.trim(), phone: f.phone.value.trim(), code: f.code.value.trim(), active: f.active.value === '1' });
+    if (rec.code.length < 4) return toast(T('codeHint'));
+    f.querySelector('.pri').disabled = true;
+    API.call('saveCoach', { rec: rec }).then(function (r) { if (!r.ok) { f.querySelector('.pri').disabled = false; return toast(T(r.err) || r.err); } toast(T('saved')); load().then(render); }).catch(function () { f.querySelector('.pri').disabled = false; toast(T('neterr')); });
+  };
 }
 
 /* ======================= impression ======================= */
@@ -934,5 +1216,5 @@ function printCard(s) {
 /* ======================= démarrage ======================= */
 render();
 if (API.tk()) flush();
-window.VO2APP = { DB: function () { return DB; }, profile: profile, computeTest: computeTest, route: route, BT: BT };
+window.VO2APP = { load: load,  DB: function () { return DB; }, profile: profile, computeTest: computeTest, route: route, BT: BT };
 })();
