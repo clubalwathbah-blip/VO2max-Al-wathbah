@@ -194,6 +194,11 @@ var D = {
   distH: ['مسافة الاختبار', 'Distance du test'],
   stats_sw: ['السباحين', 'Nageurs'], stats_month: ['اختبارات هذا الشهر', 'Tests ce mois'], stats_ready: ['جاهزية اليوم', 'Forme du jour'],
   by: ['سجّلو', 'Saisi par'],
+  home: ['الرئيسية', 'Accueil'], gm: ['صباح الخير', 'Bonjour'], ga: ['مساء الخير', 'Bon après-midi'], ge: ['مساء الخير', 'Bonsoir'],
+  authSub: ['قياس اللياقة الهوائية · نادي الوثبة', 'Aptitude aérobie · Club Al-Wathba'],
+  failsAlert: ['محاولات دخول غالطة في آخر 24 ساعة. شوف سجل الدخول في الإعدادات.', 'tentatives de connexion échouées en 24 h. Voir le journal dans Paramètres.'],
+  weakCode: ['الكود لازم 6 خانات على الأقل فيه أرقام وحروف', 'Code : 6 caractères min., lettres et chiffres'],
+  logT: ['سجل الدخول', 'Journal des connexions'], okLogin: ['دخول', 'Connexion'], failLogin: ['غالط', 'Échec'], when: ['الوقت', 'Quand'], who: ['شكون', 'Qui'],
   acwrNeed: ['يتحسب بعد 3 أسابيع من إدخال الحصص', 'Calculé après 3 semaines de saisies'],
   hrrR: { exc: ['ممتاز', 'Excellent'], good: ['جيد', 'Bon'], avg: ['متوسط', 'Moyen'], low: ['ضعيف', 'Faible'], poor: ['ضعيف جداً', 'Très faible'] }
 };
@@ -271,8 +276,10 @@ var Local = {
     var d = Local.db();
     if (p.a === 'login') {
       if (!d.pw) { if (String(p.pw || '').length < 6) return { ok: false, err: 'short' }; d.pw = p.pw; Local.put(d); ls('vo2_demo_who', 'admin'); return { ok: true, tk: 'demo-admin', first: true, role: 'admin' }; }
+      d.log = d.log || [];
+      var c = p.pw === d.pw ? null : d.c.find(function (x) { return x.code === p.pw && x.active !== false; });
+      var okk = p.pw === d.pw || !!c; d.log.push({ t: new Date().toISOString(), who: okk ? (c ? c.name : 'Administration') : '', ok: okk }); Local.put(d);
       if (p.pw === d.pw) return { ok: true, tk: 'demo-admin', role: 'admin' };
-      var c = d.c.find(function (x) { return x.code === p.pw && x.active !== false; });
       return c ? { ok: true, tk: 'demo-coach-' + c.id, role: 'coach' } : { ok: false, err: 'bad' };
     }
     var tk = p.tk || '', w = tk === 'demo-admin' ? { role: 'admin', name: 'Administration' } : null;
@@ -287,12 +294,14 @@ var Local = {
       r.swimmers = ss; r.tests = d.t.filter(function (t) { return ids[t.swimmerId]; });
       r.coaches = w.role === 'admin' ? d.c : d.c.filter(function (c) { return c.id === w.id; }).map(function (c) { return { id: c.id, name: c.name }; });
       r.me = { role: w.role, id: w.id || null, name: w.name };
+      if (w.role === 'admin') r.fails24 = (d.log || []).filter(function (x) { return !x.ok && Date.now() - new Date(x.t) < 864e5; }).length;
     }
     else if (p.a === 'saveSwimmer') { var old = S_(p.rec.id); if (old && !own(old)) return { ok: false, err: 'forbidden' }; if (w.role !== 'admin') p.rec.coachId = w.id; r.rec = up(d.s, p.rec); }
     else if (p.a === 'saveTest') { if (!own(S_(p.rec.swimmerId))) return { ok: false, err: 'forbidden' }; p.rec.by = p.rec.by || w.name; r.rec = up(d.t, p.rec); }
     else if (p.a === 'delSwimmer') { if (!own(S_(p.id))) return { ok: false, err: 'forbidden' }; d.s = d.s.filter(function (x) { return x.id !== p.id; }); d.t = d.t.filter(function (x) { return x.swimmerId !== p.id; }); }
     else if (p.a === 'delTest') d.t = d.t.filter(function (x) { return x.id !== p.id; });
-    else if (p.a === 'saveCoach') { if (w.role !== 'admin') return { ok: false, err: 'forbidden' }; if (String(p.rec.code || '').length < 4) return { ok: false, err: 'code' }; if (d.c.some(function (c) { return c.code === p.rec.code && c.id !== p.rec.id; }) || p.rec.code === d.pw) return { ok: false, err: 'dupcode' }; r.rec = up(d.c, p.rec); }
+    else if (p.a === 'log') { r.log = (d.log || []).slice().reverse(); }
+    else if (p.a === 'saveCoach') { if (w.role !== 'admin') return { ok: false, err: 'forbidden' }; if (!/^(?=.*[0-9])(?=.*[A-Za-z]).{6,}$/.test(String(p.rec.code || ''))) return { ok: false, err: 'weakCode' }; if (d.c.some(function (c) { return c.code === p.rec.code && c.id !== p.rec.id; }) || p.rec.code === d.pw) return { ok: false, err: 'dupcode' }; r.rec = up(d.c, p.rec); }
     else if (p.a === 'delCoach') { if (w.role !== 'admin') return { ok: false, err: 'forbidden' }; d.c = d.c.filter(function (c) { return c.id !== p.id; }); }
     else if (p.a === 'changePw') { if (p.old !== d.pw) return { ok: false, err: 'bad' }; if (String(p.nw).length < 6) return { ok: false, err: 'short' }; d.pw = p.nw; }
     Local.put(d);
@@ -312,7 +321,7 @@ function persist() { ls('vo2_cache', JSON.stringify(DB)); ls('vo2_queue', JSON.s
 
 function load() {
   return API.call('all').then(function (r) {
-    if (r.ok) { DB = { swimmers: r.swimmers || [], tests: r.tests || [], coaches: r.coaches || [], me: r.me || null }; applyQueueLocal(); persist(); }
+    if (r.ok) { DB = { swimmers: r.swimmers || [], tests: r.tests || [], coaches: r.coaches || [], me: r.me || null, fails24: r.fails24 || 0 }; applyQueueLocal(); persist(); }
     return r;
   });
 }
@@ -504,6 +513,10 @@ function render() {
   $('#set-lbl').textContent = T('settings'); $('#out-lbl').textContent = T('logout');
   $('#hd-sub').textContent = logged && DB.me ? (DB.me.role === 'admin' ? T('admin') : T('coach') + ' · ' + DB.me.name) : T('sub');
   var app = $('#app');
+  document.body.classList.toggle('auth', !logged);
+  var nav = [['home', '🏠', T('home')], ['add', '＋', T('addSw')], ['settings', '⚙', T('settings')], ['out', '🚪', T('logout')]];
+  $('#bnav').innerHTML = nav.map(function (n) { return '<button data-nav="' + n[0] + '" class="' + ((S.view === n[0] || (n[0] === 'home' && (S.view === 'swimmer' || S.view === 'test'))) ? 'on' : '') + '"><b>' + n[1] + '</b>' + n[2] + '</button>'; }).join('');
+  $$('#bnav [data-nav]').forEach(function (b) { b.onclick = function () { var k = b.dataset.nav; if (k === 'out') $('#out-btn').click(); else if (k === 'add') route('swForm', { sid: null }); else route(k); }; });
   if (!API.url()) return vSetup(app);
   if (!API.tk()) return vLogin(app);
   ({ home: vHome, swimmer: vSwimmer, swForm: vSwForm, test: vTest, settings: vSettings })[S.view](app);
@@ -513,26 +526,37 @@ $('#set-btn').onclick = function () { route('settings'); };
 $('#out-btn').onclick = function () { ls('vo2_tk', null); ls('vo2_viewas', null); VIEWAS = ''; DB = { swimmers: [], tests: [], coaches: [], me: null }; persist(); BT.disconnect(); vHome.loaded = false; route('home'); };
 
 /* ---------- setup & login ---------- */
+function authShell(inner) {
+  var bub = ''; for (var i = 0; i < 14; i++) bub += '<i style="left:' + (Math.random() * 100).toFixed(1) + '%;width:' + (4 + Math.random() * 8).toFixed(0) + 'px;height:' + (4 + Math.random() * 8).toFixed(0) + 'px;animation-duration:' + (8 + Math.random() * 12).toFixed(1) + 's;animation-delay:-' + (Math.random() * 12).toFixed(1) + 's"></i>';
+  var wave = function (cls, fill, d) { return '<svg class="' + cls + '" viewBox="0 0 2400 200" preserveAspectRatio="none"><path d="' + d + '" fill="' + fill + '"/></svg>'; };
+  var d1 = 'M0 100 C200 40 400 160 600 100 S1000 40 1200 100 S1600 160 1800 100 S2200 40 2400 100 V200 H0Z', d2 = 'M0 120 C300 70 500 170 800 120 S1300 70 1600 120 S2100 170 2400 120 V200 H0Z';
+  return '<div class="auth-wrap"><button class="hbtn auth-lang" id="auth-lang" type="button">' + (LANG === 'fr' ? 'ع' : 'FR') + '</button><div class="bubbles">' + bub + '</div>' +
+    '<div class="waves">' + wave('w3', 'rgba(91,155,255,.35)', d2) + wave('w1', 'rgba(47,212,240,.28)', d1) + wave('w2', 'rgba(59,123,255,.45)', d2) + '</div>' +
+    '<div class="auth-card"><img class="logo" src="logo.png" alt=""><div class="brand">VO2max</div><div class="sub">' + T('authSub') + '</div>' + inner + '</div></div>';
+}
+function bindAuthLang() { $('#auth-lang').onclick = function () { $('#lang-btn').click(); }; }
 function vSetup(app) {
-  app.innerHTML = '<div class="login card"><img src="logo.png" alt=""><h2>' + T('setupT') + '</h2><p class="small muted">' + T('setupP') + '</p>' +
-    '<div class="f"><label>' + T('apiUrl') + '</label><input id="api" class="ltr" placeholder="https://script.google.com/macros/s/…/exec"></div>' +
-    '<button class="btn pri" id="go" style="width:100%">' + T('next') + '</button>' +
-    '<p><a href="#" id="demo" class="small">' + T('demo') + '</a></p></div>';
+  app.innerHTML = authShell('<p class="small muted">' + T('setupP') + '</p>' +
+    '<div class="f"><input id="api" class="ltr" style="font-size:14px;letter-spacing:0" placeholder="https://script.google.com/macros/s/…/exec"></div>' +
+    '<button class="btn pri big" id="go" style="width:100%;justify-content:center">' + T('next') + '</button>' +
+    '<p><a href="#" id="demo" class="small">' + T('demo') + '</a></p>');
+  bindAuthLang();
   $('#go').onclick = function () { var u = $('#api').value.trim(); if (!/^https:\/\/script\.google\.com\/.+\/exec$/.test(u)) { toast(T('apiUrl') + ' ✗'); return; } ls('vo2_api', u); render(); };
   $('#demo').onclick = function (e) { e.preventDefault(); ls('vo2_api', 'demo'); render(); };
 }
 function vLogin(app) {
-  app.innerHTML = '<form class="login card" id="lf"><img src="logo.png" alt=""><h2>VO2max · Al-Wathba</h2><p class="small muted">' + T('coachLogin') + '</p>' +
-    '<div class="f"><label>' + T('pwOrCode') + '</label><input type="password" id="pw" autocomplete="current-password" class="ltr" style="text-align:center;font-size:20px"></div>' +
-    '<button class="btn pri big" style="width:100%">' + T('login') + '</button><p class="small muted">' + T('pwFirst') + '</p>' +
-    '<p><a href="#" id="chg" class="small">' + T('apiUrl') + ' ✎</a></p></form>';
+  app.innerHTML = authShell('<form id="lf"><div class="f"><input type="password" id="pw" autocomplete="current-password" class="ltr" placeholder="••••••"></div>' +
+    '<button class="btn pri big" style="width:100%;justify-content:center">' + T('login') + ' →</button>' +
+    '<p class="small muted" style="margin:14px 0 4px">' + T('coachLogin') + '</p>' +
+    '<p style="margin:0"><a href="#" id="chg" class="small" style="opacity:.6">' + T('apiUrl') + ' ✎</a></p></form>');
+  bindAuthLang();
   $('#pw').focus();
   $('#chg').onclick = function (e) { e.preventDefault(); ls('vo2_api', null); render(); };
   $('#lf').onsubmit = function (e) {
     e.preventDefault(); var b = $('#lf button'); b.disabled = true;
     API.call('login', { pw: $('#pw').value }).then(function (r) {
       b.disabled = false;
-      if (!r.ok) { toast(T(r.err) || r.err); return; }
+      if (!r.ok) { toast(T(r.err) || r.err); $('.auth-card').animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-10px)' }, { transform: 'translateX(10px)' }, { transform: 'translateX(0)' }], { duration: 300 }); return; }
       ls('vo2_tk', r.tk); if (r.first) toast(T('first'));
       return load().then(function () { vHome.loaded = true; route('home'); });
     }).catch(function () { b.disabled = false; toast(T('neterr')); });
@@ -551,20 +575,24 @@ function vHome(app) {
   // statistiques
   var month = today().slice(0, 7), nT = 0, rd = { green: 0, yellow: 0, red: 0 };
   list.forEach(function (s) { nT += testsOf(s.id).filter(function (t) { return (t.date || '').slice(0, 7) === month; }).length; var r = readyOf(s); if (r) rd[r.level]++; });
-  h += '<div class="statbar"><div class="card kpi"><div class="l">' + T('stats_sw') + '</div><div class="v">' + list.length + '</div></div>' +
-    '<div class="card kpi"><div class="l">' + T('stats_month') + '</div><div class="v">' + nT + '</div></div>' +
-    '<div class="card kpi"><div class="l">' + T('stats_ready') + '</div><div class="row" style="gap:12px;font:700 22px Rubik"><span><span class="dot green"></span> ' + rd.green + '</span><span><span class="dot yellow"></span> ' + rd.yellow + '</span><span><span class="dot red"></span> ' + rd.red + '</span></div></div>' +
-    (isAdmin() ? '<div class="card kpi"><div class="l">' + T('coaches') + '</div><div class="v">' + (DB.coaches || []).length + '</div></div>' : '') + '</div>';
+  var hr_ = new Date().getHours(), greet = hr_ < 12 ? T('gm') : hr_ < 18 ? T('ga') : T('ge');
+  h = '<div class="welcome"><h1>' + greet + (DB.me ? ' ' + esc(DB.me.role === 'admin' ? T('admin') : DB.me.name) + ' 👋' : '') + '</h1><div class="muted">' + fmtDate(today()) + ' · Club Sportif Al-Wathba · Batna</div>' +
+    '<svg viewBox="0 0 1200 60" preserveAspectRatio="none"><path d="M0 30 C150 5 300 55 450 30 S750 5 900 30 S1100 55 1200 30 V60 H0Z" fill="rgba(47,212,240,.18)"/><path d="M0 40 C200 20 350 60 600 40 S950 20 1200 40 V60 H0Z" fill="rgba(91,155,255,.18)"/></svg></div>' + h;
+  if (isAdmin() && DB.fails24 >= 3) h += '<div class="alert" style="margin-bottom:14px">🔐 ' + DB.fails24 + ' ' + T('failsAlert') + '</div>';
+  var si = function (ic, bg, l, v) { return '<div class="card"><div class="si" style="background:' + bg + '">' + ic + '</div><div class="kpi"><div class="l">' + l + '</div><div class="v">' + v + '</div></div></div>'; };
+  h += '<div class="statbar">' + si('🏊', 'rgba(91,155,255,.18)', T('stats_sw'), list.length) + si('🧪', 'rgba(47,212,240,.15)', T('stats_month'), nT) +
+    '<div class="card"><div class="si" style="background:rgba(43,209,143,.15)">💚</div><div class="kpi"><div class="l">' + T('stats_ready') + '</div><div class="row" style="gap:12px;font:700 20px Rubik"><span><span class="dot green"></span> ' + rd.green + '</span><span><span class="dot yellow"></span> ' + rd.yellow + '</span><span><span class="dot red"></span> ' + rd.red + '</span></div></div></div>' +
+    (isAdmin() ? si('👥', 'rgba(246,196,83,.15)', T('coaches'), (DB.coaches || []).length) : '') + '</div>';
   h += '<div class="row"><h1 class="sp">' + T('swimmers') + '</h1><button class="btn pri" id="add">＋ ' + T('addSw') + '</button></div>';
   if (QUEUE.length) h += '<div class="note" style="margin-bottom:12px">⏳ ' + QUEUE.length + ' ' + T('pending') + '</div>';
   if (!list.length) h += '<div class="card empty">' + T('noSw') + '</div>';
   h += '<div class="grid g3">';
   list.forEach(function (s) {
     var P = profile(s), a = P.age, r = P.ready;
-    h += '<div class="card sw" data-id="' + s.id + '"><div class="av">' + esc(initials(s.name)) + '</div><div class="sp" style="min-width:0"><b style="font-size:17px">' + esc(s.name) + '</b><div class="small muted">' +
+    h += '<div class="card sw" data-id="' + s.id + '"><div class="av ' + (r ? r.level : '') + '">' + esc(initials(s.name)) + '</div><div class="sp" style="min-width:0"><b style="font-size:17px">' + esc(s.name) + '</b><div class="small muted">' +
       (a ? Math.floor(a) + ' ' + T('yrs') : '') + (s.level ? ' · ' + (s.level == 7 ? T('comp') : T('level') + ' ' + s.level) : '') + (s.group ? ' · ' + esc(s.group) : '') + '</div>' +
       '<div class="small muted">' + (isAdmin() && !VIEWAS ? '👤 ' + esc(coachName(s.coachId) || T('noCoach')) + ' · ' : '') + '<span class="dot ' + (r ? r.level : 'none') + '" style="vertical-align:middle"></span> ' + (r ? T(r.level).split(':')[0] : '—') + '</div></div>' +
-      '<div class="kpi" style="text-align:center"><div class="v" style="font-size:28px">' + (P.final ? R(P.final.vo2, 1) : '—') + '</div><div class="l">VO2max</div></div></div>';
+      gauge(P.final ? P.final.vo2 : null, 84) + '</div>';
   });
   h += '</div>';
   app.innerHTML = h;
@@ -665,7 +693,7 @@ function drawRecovery(s) {
   var base = days.map(function (d) { var r = C.readiness(daysOf(s.id), d.date); return r && r.hrvBase ? R(r.hrvBase, 0) : null; });
   mk('ch-hrv', { type: 'line', data: { labels: lab, datasets: [{ label: 'HRV', data: days.map(function (d) { return C.num(d.hrv); }), borderColor: CH.blue, backgroundColor: CH.blue, borderWidth: 2.5 }, { label: T('base28'), data: base, borderColor: CH.grey, borderDash: [5, 4], pointRadius: 0 }, { label: T('rhrN'), data: days.map(function (d) { return C.num(d.rhr); }), borderColor: CH.red, backgroundColor: CH.red, yAxisID: 'y2' }] }, options: o });
   var o2 = chartBase(); o2.scales = { y: { title: { display: true, text: 'h' }, min: 0 }, y2: { position: 'right', grid: { display: false }, title: { display: true, text: T('load') } } };
-  mk('ch-sleep', { type: 'bar', data: { labels: lab, datasets: [{ type: 'bar', label: T('sleepH'), data: days.map(function (d) { return C.num(d.sleepH); }), backgroundColor: '#8ab8ec' }, { type: 'line', label: T('load'), data: days.map(function (d) { return d.load; }), borderColor: CH.gold, backgroundColor: CH.gold, yAxisID: 'y2', spanGaps: true }] }, options: o2 });
+  mk('ch-sleep', { type: 'bar', data: { labels: lab, datasets: [{ type: 'bar', label: T('sleepH'), data: days.map(function (d) { return C.num(d.sleepH); }), backgroundColor: 'rgba(91,155,255,.45)' }, { type: 'line', label: T('load'), data: days.map(function (d) { return d.load; }), borderColor: CH.gold, backgroundColor: CH.gold, yAxisID: 'y2', spanGaps: true }] }, options: o2 });
 }
 
 /* ---------- temps de compétition ---------- */
@@ -689,7 +717,7 @@ function timesHtml(s) {
 function summaryHtml(P) {
   var h = '', f = P.final;
   // héros VO2max
-  h += '<div class="card hero"><div class="row"><div class="kpi sp"><div class="l">' + T('estFinal') + ' · VO2max</div><div class="v num">' + (f ? R(f.vo2, 1) : '—') + ' <small style="color:rgba(255,255,255,.8)">' + T('unit') + '</small></div></div>';
+  h += '<div class="card hero"><div class="row" style="gap:18px">' + gauge(f ? f.vo2 : null, 170, f ? f.ci95 : null) + '<div class="kpi sp"><div class="l">' + T('estFinal') + ' · VO2max</div><div class="v num">' + (f ? R(f.vo2, 1) : '—') + ' <small style="color:rgba(255,255,255,.8)">' + T('unit') + '</small></div></div>';
   if (f) {
     h += '<div class="kpi" style="text-align:center"><div class="l">' + T('margin') + '</div><div class="v num" style="font-size:30px">± ' + R(f.se, 1) + '</div><div class="l">' + R(f.pct, 1) + ' %</div></div></div>';
     var lo = 25, hi = 75, pos = function (x) { return Math.max(0, Math.min(100, (x - lo) / (hi - lo) * 100)); };
@@ -777,10 +805,26 @@ function testsHtml(P) {
   return h + '</div>';
 }
 
+
+/* ---------- jauge VO2max ---------- */
+function gauge(v, size, ci) {
+  size = size || 180; var lo = 25, hi = 75, r = size * 0.4, cx = size / 2, cy = size / 2, a0 = 135, sweep = 270;
+  function pt(val) { var f = Math.max(0, Math.min(1, (val - lo) / (hi - lo))), a = (a0 + sweep * f) * Math.PI / 180; return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; }
+  function arc(v1, v2) { var p1 = pt(v1), p2 = pt(v2), large = ((Math.min(v2, hi) - Math.max(v1, lo)) / (hi - lo)) * sweep > 180 ? 1 : 0; return 'M' + p1[0].toFixed(1) + ' ' + p1[1].toFixed(1) + ' A' + r + ' ' + r + ' 0 ' + large + ' 1 ' + p2[0].toFixed(1) + ' ' + p2[1].toFixed(1); }
+  var id = 'g' + Math.random().toString(36).slice(2, 7), sw = size * 0.075;
+  var h = '<svg class="gauge" width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '"><defs><linearGradient id="' + id + '" x1="0" x2="1"><stop offset="0" stop-color="#2fd4f0"/><stop offset=".6" stop-color="#5b9bff"/><stop offset="1" stop-color="#f6c453"/></linearGradient></defs>' +
+    '<path class="trk" d="' + arc(lo, hi) + '" fill="none" stroke-width="' + sw + '" stroke-linecap="round"/>';
+  if (ci) h += '<path d="' + arc(Math.max(lo, ci[0]), Math.min(hi, ci[1])) + '" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="' + (sw * 1.9) + '" stroke-linecap="round"/>';
+  if (v != null) { var p = pt(v); h += '<path d="' + arc(lo, Math.max(lo + 0.01, Math.min(hi, v))) + '" fill="none" stroke="url(#' + id + ')" stroke-width="' + sw + '" stroke-linecap="round" style="filter:drop-shadow(0 0 6px rgba(91,155,255,.7))"/><circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="' + (sw * 0.75) + '" fill="#fff"/>'; }
+  h += '<text x="' + cx + '" y="' + (cy + size * 0.06) + '" text-anchor="middle" fill="#fff" font-family="Rubik" font-weight="700" font-size="' + (size * 0.24) + '">' + (v != null ? R(v, 1) : '—') + '</text>' +
+    '<text x="' + cx + '" y="' + (cy + size * 0.2) + '" text-anchor="middle" fill="#9fb3d9" font-family="Tajawal" font-weight="700" font-size="' + Math.max(9, size * 0.075) + '">VO2max</text></svg>';
+  return h;
+}
 /* ---------- graphiques ---------- */
-var CH = { blue: '#1557c0', red: '#d23c3c', gold: '#d4a017', green: '#11875d', grey: '#9aa8bc' };
+var CH = { blue: '#5b9bff', red: '#ff6b6b', gold: '#f6c453', green: '#2bd18f', grey: '#7183a6' };
 function chartBase() {
-  Chart.defaults.font.family = '"Barlow Condensed","IBM Plex Sans Arabic",sans-serif'; Chart.defaults.font.size = 13; Chart.defaults.color = '#5b6b82';
+  Chart.defaults.font.family = '"Rubik","Tajawal",sans-serif'; Chart.defaults.font.size = 12; Chart.defaults.color = '#8ea3c9';
+  if (Chart.defaults.borderColor !== undefined) Chart.defaults.borderColor = 'rgba(148,178,255,.12)';
   return { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { labels: { boxWidth: 12 } } } };
 }
 function paceAxis(title) { return { title: { display: true, text: title }, ticks: { callback: function (v) { return F(100 / v, 0); } } }; }
@@ -824,7 +868,7 @@ function drawHistory(s) {
   var o2 = chartBase(); o2.spanGaps = true; o2.scales = { y: { reverse: true, ticks: { callback: function (v) { return F(v, 0); } }, title: { display: true, text: T('pace') } } };
   mk('ch-pace', { type: 'line', data: { labels: pl, datasets: [{ label: 'CSS', data: css, borderColor: CH.blue }, { label: '400', data: p4, borderColor: CH.red }] }, options: o2 });
   // toutes les courbes FC/vitesse
-  var cols = ['#c7d3e6', '#9db4d8', '#6f93cb', '#4072be', '#1557c0', '#0b3d91'], k = 0, ds = [];
+  var cols = ['#2a3a5e', '#34548f', '#3f6fc0', '#4f8bf0', '#6fb0ff', '#2fd4f0'], k = 0, ds = [];
   var steps = all.filter(function (t) { return t.type === 'step'; });
   steps.forEach(function (t, i) { var st = computeTest(t, s).step; if (!st || !st.rows) return; ds.push({ label: fmtDate(t.date), data: st.rows.filter(function (r) { return r.hr; }).map(function (r) { return { x: r.v, y: r.hr }; }), borderColor: cols[Math.max(0, cols.length - steps.length + i)], backgroundColor: cols[Math.max(0, cols.length - steps.length + i)], showLine: true }); });
   var o3 = chartBase(); o3.scales = { x: Object.assign({ type: 'linear' }, paceAxis(T('pace'))), y: { title: { display: true, text: 'bpm' } } };
@@ -964,7 +1008,7 @@ function srcBox(kind) {
     return;
   }
   // CSV
-  b.innerHTML = '<div class="card" style="background:#f7f9fc"><div class="small muted">' + T('csvHelp') + '</div><input type="file" id="csvf" accept=".csv,text/csv" style="margin:8px 0">' +
+  b.innerHTML = '<div class="kbox" style="margin-bottom:12px"><div class="small muted">' + T('csvHelp') + '</div><input type="file" id="csvf" accept=".csv,text/csv" style="margin:8px 0">' +
     '<div id="csv-info" class="small"></div>' + (kind === 'step' ? '<div class="fr" id="off-row" style="display:none"><div class="f"><label>' + T('offset') + '</label><input id="offs" class="num mono" placeholder="mm:ss"></div><div class="f" style="align-self:end"><button type="button" class="btn pri" id="applyc">' + T('apply') + '</button></div></div>' : '') +
     '<div class="chart" id="csv-ch-w" style="display:none;height:220px"><canvas id="csv-ch"></canvas></div></div>';
   $('#csvf').onchange = function (e) {
@@ -1166,7 +1210,7 @@ function vSettings(app) {
       return '<tr><td style="text-align:start"><b>' + esc(c.name) + '</b></td><td class="num">' + esc(c.phone || '') + '</td><td><span class="chip mono">' + esc(c.code) + '</span></td><td class="num">' + n + '</td><td><span class="chip ' + (c.active === false ? 'bad' : 'ok') + '">' + T(c.active === false ? 'inactive' : 'active') + '</span></td>' +
         '<td style="white-space:nowrap"><button class="btn sm" data-view="' + c.id + '" title="' + T('viewAs') + '">👁</button> <button class="btn sm" data-ec="' + c.id + '">✎</button></td></tr>';
     }).join('') + '</table></div>';
-    h += '</div><form class="card" id="pwf"><h3>🔑 ' + T('changePw') + '</h3><div class="fr"><div class="f"><label>' + T('oldPw') + '</label><input type="password" name="o"></div><div class="f"><label>' + T('newPw') + '</label><input type="password" name="n"></div></div><button class="btn pri">' + T('save') + '</button></form>';
+    h += '</div><div class="card"><h3>🔐 ' + T('logT') + '</h3><div id="loglist" class="small muted">…</div></div><form class="card" id="pwf"><h3>🔑 ' + T('changePw') + '</h3><div class="fr"><div class="f"><label>' + T('oldPw') + '</label><input type="password" name="o"></div><div class="f"><label>' + T('newPw') + '</label><input type="password" name="n"></div></div><button class="btn pri">' + T('save') + '</button></form>';
   }
   h += '<div class="card"><h3>🔗 ' + T('apiUrl') + '</h3><p class="small ltr muted" style="word-break:break-all">' + esc(API.url()) + '</p><div class="row">' + (isAdmin() ? '<button class="btn" id="bkp">⬇ ' + T('backup') + '</button>' : '') + '<button class="btn" id="chg">' + T('apiUrl') + ' ✎</button><span class="sp"></span><button class="btn dan" id="lo">🚪 ' + T('logout') + '</button></div></div>';
   app.innerHTML = h;
@@ -1177,6 +1221,13 @@ function vSettings(app) {
   $('#pwf').onsubmit = function (e) { e.preventDefault(); API.call('changePw', { old: e.target.o.value, nw: e.target.n.value }).then(function (r) { toast(r.ok ? T('saved') : T(r.err)); if (r.ok) e.target.reset(); }).catch(function () { toast(T('neterr')); }); };
   $('#bkp').onclick = function () { var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(DB, null, 1)], { type: 'application/json' })); a.download = 'vo2max-wathba-' + today() + '.json'; a.click(); };
   $('#addc').onclick = function () { coachForm({}); };
+  API.call('log').then(function (r) {
+    var el = $('#loglist'); if (!el) return;
+    if (!r.ok || !r.log || !r.log.length) { el.textContent = '—'; return; }
+    el.innerHTML = '<div class="tbl-wrap" style="max-height:320px;overflow:auto"><table><tr><th>' + T('when') + '</th><th>' + T('who') + '</th><th></th></tr>' + r.log.map(function (x) {
+      var d = new Date(x.t); return '<tr><td class="num">' + fmtDate(d.toISOString().slice(0, 10)) + ' ' + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2) + '</td><td>' + esc(x.who || '—') + '</td><td><span class="chip ' + (x.ok ? 'ok' : 'bad') + '">' + T(x.ok ? 'okLogin' : 'failLogin') + '</span></td></tr>';
+    }).join('') + '</table></div>';
+  }).catch(function () {});
   $$('[data-ec]').forEach(function (b) { b.onclick = function () { coachForm(DB.coaches.find(function (c) { return c.id === b.dataset.ec; })); }; });
   $$('[data-view]').forEach(function (b) { b.onclick = function () { VIEWAS = b.dataset.view; ls('vo2_viewas', VIEWAS); route('home'); }; });
 }
@@ -1184,7 +1235,7 @@ function coachForm(c) {
   var box = $('#cform');
   box.innerHTML = '<form class="kbox" id="cf" style="margin-bottom:12px"><div class="fr"><div class="f"><label>' + T('name') + '</label><input name="name" required value="' + esc(c.name) + '"></div>' +
     '<div class="f"><label>' + T('phone') + '</label><input name="phone" inputmode="tel" class="ltr" value="' + esc(c.phone) + '"></div>' +
-    '<div class="f"><label>' + T('code') + '<span class="hint">' + T('codeHint') + '</span></label><input name="code" required minlength="4" class="mono ltr" value="' + esc(c.code) + '"></div>' +
+    '<div class="f"><label>' + T('code') + '<span class="hint">' + T('codeHint') + '</span></label><input name="code" required minlength="6" class="mono ltr" value="' + esc(c.code) + '"></div>' +
     '<div class="f"><label>' + T('active') + '</label><select name="active"><option value="1">' + T('active') + '</option><option value="0"' + (c.active === false ? ' selected' : '') + '>' + T('inactive') + '</option></select></div></div>' +
     '<div class="row"><button class="btn pri">' + T('save') + '</button><button type="button" class="btn" id="cc">' + T('cancel') + '</button><span class="sp"></span>' + (c.id ? '<button type="button" class="btn dan" id="cd">' + T('del') + '</button>' : '') + '</div></form>';
   $('#cf [name=name]').focus();
@@ -1192,7 +1243,7 @@ function coachForm(c) {
   if (c.id) $('#cd').onclick = function () { if (confirm(T('confirmDel'))) { API.call('delCoach', { id: c.id }).then(function (r) { if (!r.ok) return toast(T(r.err) || r.err); toast(T('deleted')); load().then(render); }); } };
   $('#cf').onsubmit = function (e) {
     e.preventDefault(); var f = e.target, rec = Object.assign({}, c, { name: f.name.value.trim(), phone: f.phone.value.trim(), code: f.code.value.trim(), active: f.active.value === '1' });
-    if (rec.code.length < 4) return toast(T('codeHint'));
+    if (!/^(?=.*[0-9])(?=.*[A-Za-z]).{6,}$/.test(rec.code)) return toast(T('weakCode'));
     f.querySelector('.pri').disabled = true;
     API.call('saveCoach', { rec: rec }).then(function (r) { if (!r.ok) { f.querySelector('.pri').disabled = false; return toast(T(r.err) || r.err); } toast(T('saved')); load().then(render); }).catch(function () { f.querySelector('.pri').disabled = false; toast(T('neterr')); });
   };
