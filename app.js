@@ -717,7 +717,7 @@ function timesHtml(s) {
 function summaryHtml(P) {
   var h = '', f = P.final;
   // héros VO2max
-  h += '<div class="card hero"><div class="row" style="gap:18px">' + gauge(f ? f.vo2 : null, 170, f ? f.ci95 : null) + '<div class="kpi sp"><div class="l">' + T('estFinal') + ' · VO2max</div><div class="v num">' + (f ? R(f.vo2, 1) : '—') + ' <small style="color:rgba(255,255,255,.8)">' + T('unit') + '</small></div></div>';
+  h += '<div class="card hero"><div class="row" style="gap:18px">' + gauge(f ? f.vo2 : null, 170, f ? f.ci95 : null, true) + '<div class="kpi sp"><div class="l">' + T('estFinal') + ' · VO2max</div><div class="v num">' + (f ? R(f.vo2, 1) : '—') + ' <small style="color:rgba(255,255,255,.8)">' + T('unit') + '</small></div></div>';
   if (f) {
     h += '<div class="kpi" style="text-align:center"><div class="l">' + T('margin') + '</div><div class="v num" style="font-size:30px">± ' + R(f.se, 1) + '</div><div class="l">' + R(f.pct, 1) + ' %</div></div></div>';
     var lo = 25, hi = 75, pos = function (x) { return Math.max(0, Math.min(100, (x - lo) / (hi - lo) * 100)); };
@@ -807,7 +807,8 @@ function testsHtml(P) {
 
 
 /* ---------- jauge VO2max ---------- */
-function gauge(v, size, ci) {
+function gauge(v, size, ci, onDark) {
+  var fg = onDark ? '#fff' : '#0d2a6b', fg2 = onDark ? '#d4e3ff' : '#5c6f93';
   size = size || 180; var lo = 25, hi = 75, r = size * 0.4, cx = size / 2, cy = size / 2, a0 = 135, sweep = 270;
   function pt(val) { var f = Math.max(0, Math.min(1, (val - lo) / (hi - lo))), a = (a0 + sweep * f) * Math.PI / 180; return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; }
   function arc(v1, v2) { var p1 = pt(v1), p2 = pt(v2), large = ((Math.min(v2, hi) - Math.max(v1, lo)) / (hi - lo)) * sweep > 180 ? 1 : 0; return 'M' + p1[0].toFixed(1) + ' ' + p1[1].toFixed(1) + ' A' + r + ' ' + r + ' 0 ' + large + ' 1 ' + p2[0].toFixed(1) + ' ' + p2[1].toFixed(1); }
@@ -815,15 +816,15 @@ function gauge(v, size, ci) {
   var h = '<svg class="gauge" width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '"><defs><linearGradient id="' + id + '" x1="0" x2="1"><stop offset="0" stop-color="#2fd4f0"/><stop offset=".6" stop-color="#5b9bff"/><stop offset="1" stop-color="#f6c453"/></linearGradient></defs>' +
     '<path class="trk" d="' + arc(lo, hi) + '" fill="none" stroke-width="' + sw + '" stroke-linecap="round"/>';
   if (ci) h += '<path d="' + arc(Math.max(lo, ci[0]), Math.min(hi, ci[1])) + '" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="' + (sw * 1.9) + '" stroke-linecap="round"/>';
-  if (v != null) { var p = pt(v); h += '<path d="' + arc(lo, Math.max(lo + 0.01, Math.min(hi, v))) + '" fill="none" stroke="url(#' + id + ')" stroke-width="' + sw + '" stroke-linecap="round" style="filter:drop-shadow(0 0 6px rgba(91,155,255,.7))"/><circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="' + (sw * 0.75) + '" fill="#fff"/>'; }
-  h += '<text x="' + cx + '" y="' + (cy + size * 0.06) + '" text-anchor="middle" fill="#fff" font-family="Rubik" font-weight="700" font-size="' + (size * 0.24) + '">' + (v != null ? R(v, 1) : '—') + '</text>' +
-    '<text x="' + cx + '" y="' + (cy + size * 0.2) + '" text-anchor="middle" fill="#9fb3d9" font-family="Tajawal" font-weight="700" font-size="' + Math.max(9, size * 0.075) + '">VO2max</text></svg>';
+  if (v != null) { var p = pt(v); h += '<path d="' + arc(lo, Math.max(lo + 0.01, Math.min(hi, v))) + '" fill="none" stroke="url(#' + id + ')" stroke-width="' + sw + '" stroke-linecap="round" style="filter:drop-shadow(0 0 6px rgba(91,155,255,.7))"/><circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="' + (sw * 0.75) + '" fill="' + (onDark ? '#fff' : '#1d6bff') + '" stroke="#fff" stroke-width="2"/>'; }
+  h += '<text x="' + cx + '" y="' + (cy + size * 0.06) + '" text-anchor="middle" fill="' + fg + '" font-family="Rubik" font-weight="700" font-size="' + (size * 0.24) + '">' + (v != null ? R(v, 1) : '—') + '</text>' +
+    '<text x="' + cx + '" y="' + (cy + size * 0.2) + '" text-anchor="middle" fill="' + fg2 + '" font-family="PT Bold Heading, Lalezar, Tahoma" font-weight="700" font-size="' + Math.max(9, size * 0.075) + '">VO2max</text></svg>';
   return h;
 }
 /* ---------- graphiques ---------- */
 var CH = { blue: '#5b9bff', red: '#ff6b6b', gold: '#f6c453', green: '#2bd18f', grey: '#7183a6' };
 function chartBase() {
-  Chart.defaults.font.family = '"Rubik","Tajawal",sans-serif'; Chart.defaults.font.size = 12; Chart.defaults.color = '#8ea3c9';
+  Chart.defaults.font.family = '"Rubik","PT Bold Heading","Lalezar",sans-serif'; Chart.defaults.font.size = 12; Chart.defaults.color = '#8ea3c9';
   if (Chart.defaults.borderColor !== undefined) Chart.defaults.borderColor = 'rgba(148,178,255,.12)';
   return { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { labels: { boxWidth: 12 } } } };
 }
