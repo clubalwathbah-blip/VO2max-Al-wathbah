@@ -144,7 +144,7 @@ canvas{max-width:100%}
 .chart{position:relative;height:260px}
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#3b7bff,#5b4dff);color:#fff;padding:11px 20px;border-radius:14px;z-index:99;font-weight:700;box-shadow:0 10px 30px rgba(0,0,0,.45);animation:fadeUp .25s ease}
 .empty{text-align:center;color:var(--mute);padding:34px 10px}
-.ltr,td.num,span.num{direction:ltr;unicode-bidi:isolate}
+.ltr,td.num,span.num,div.num{direction:ltr;unicode-bidi:isolate}
 .hide{display:none!important}
 .ready{display:flex;align-items:center;gap:14px;border-radius:18px;padding:14px 16px;border:1px solid var(--line)}
 .ready.green{background:var(--okbg);color:#a6f0d0}.ready.yellow{background:var(--warnbg);color:#ffdfa3}.ready.red{background:var(--badbg);color:#ffc4c4}
@@ -295,6 +295,7 @@ body,button,input,select,textarea{font-family:"PT Bold Heading","Rubik","Lalezar
   <img src="logo.png" alt="">
   <div class="t"><b>VO2max · AL-WATHBA</b><span id="hd-sub"></span></div>
   <div id="bt-pill"><span class="heart">❤</span><span id="bt-hr" class="num">--</span></div>
+  <button class="hbtn hide" id="switch-btn" type="button"></button>
   <button class="hbtn" id="lang-btn" type="button">FR</button>
   <button class="hbtn hide" id="set-btn" type="button">⚙ <span class="lbl" id="set-lbl"></span></button>
   <button class="hbtn hide" id="out-btn" type="button">🚪 <span class="lbl" id="out-lbl"></span></button>

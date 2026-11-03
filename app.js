@@ -194,7 +194,7 @@ var D = {
   distH: ['مسافة الاختبار', 'Distance du test'],
   stats_sw: ['السباحين', 'Nageurs'], stats_month: ['اختبارات هذا الشهر', 'Tests ce mois'], stats_ready: ['جاهزية اليوم', 'Forme du jour'],
   by: ['سجّلو', 'Saisi par'],
-  home: ['الرئيسية', 'Accueil'], gm: ['صباح الخير', 'Bonjour'], ga: ['مساء الخير', 'Bon après-midi'], ge: ['مساء الخير', 'Bonsoir'],
+  home: ['الرئيسية', 'Accueil'], btTitle: ['الاختبارات · الوثبة', 'TESTS · AL-WATHBA'], btShort: ['الاختبارات', 'Tests'], gm: ['صباح الخير', 'Bonjour'], ga: ['مساء الخير', 'Bon après-midi'], ge: ['مساء الخير', 'Bonsoir'],
   authSub: ['قياس اللياقة الهوائية · نادي الوثبة', 'Aptitude aérobie · Club Al-Wathba'],
   failsAlert: ['محاولات دخول غالطة في آخر 24 ساعة. شوف سجل الدخول في الإعدادات.', 'tentatives de connexion échouées en 24 h. Voir le journal dans Paramètres.'],
   weakCode: ['الكود لازم 6 خانات على الأقل فيه أرقام وحروف', 'Code : 6 caractères min., lettres et chiffres'],
@@ -293,13 +293,14 @@ var Local = {
       var ss = d.s.filter(own), ids = {}; ss.forEach(function (x) { ids[x.id] = 1; });
       r.swimmers = ss; r.tests = d.t.filter(function (t) { return ids[t.swimmerId]; });
       r.coaches = w.role === 'admin' ? d.c : d.c.filter(function (c) { return c.id === w.id; }).map(function (c) { return { id: c.id, name: c.name }; });
-      r.me = { role: w.role, id: w.id || null, name: w.name };
+      r.me = { role: w.role, id: w.id || null, name: w.name }; r.settings = d.set || {};
       if (w.role === 'admin') r.fails24 = (d.log || []).filter(function (x) { return !x.ok && Date.now() - new Date(x.t) < 864e5; }).length;
     }
     else if (p.a === 'saveSwimmer') { var old = S_(p.rec.id); if (old && !own(old)) return { ok: false, err: 'forbidden' }; if (w.role !== 'admin') p.rec.coachId = w.id; r.rec = up(d.s, p.rec); }
     else if (p.a === 'saveTest') { if (!own(S_(p.rec.swimmerId))) return { ok: false, err: 'forbidden' }; p.rec.by = p.rec.by || w.name; r.rec = up(d.t, p.rec); }
     else if (p.a === 'delSwimmer') { if (!own(S_(p.id))) return { ok: false, err: 'forbidden' }; d.s = d.s.filter(function (x) { return x.id !== p.id; }); d.t = d.t.filter(function (x) { return x.swimmerId !== p.id; }); }
     else if (p.a === 'delTest') d.t = d.t.filter(function (x) { return x.id !== p.id; });
+    else if (p.a === 'saveSetting') { if (w.role !== 'admin') return { ok: false, err: 'forbidden' }; d.set = d.set || {}; d.set[p.key] = p.value; }
     else if (p.a === 'log') { r.log = (d.log || []).slice().reverse(); }
     else if (p.a === 'saveCoach') { if (w.role !== 'admin') return { ok: false, err: 'forbidden' }; if (!/^(?=.*[0-9])(?=.*[A-Za-z]).{6,}$/.test(String(p.rec.code || ''))) return { ok: false, err: 'weakCode' }; if (d.c.some(function (c) { return c.code === p.rec.code && c.id !== p.rec.id; }) || p.rec.code === d.pw) return { ok: false, err: 'dupcode' }; r.rec = up(d.c, p.rec); }
     else if (p.a === 'delCoach') { if (w.role !== 'admin') return { ok: false, err: 'forbidden' }; d.c = d.c.filter(function (c) { return c.id !== p.id; }); }
@@ -321,7 +322,7 @@ function persist() { ls('vo2_cache', JSON.stringify(DB)); ls('vo2_queue', JSON.s
 
 function load() {
   return API.call('all').then(function (r) {
-    if (r.ok) { DB = { swimmers: r.swimmers || [], tests: r.tests || [], coaches: r.coaches || [], me: r.me || null, fails24: r.fails24 || 0 }; applyQueueLocal(); persist(); }
+    if (r.ok) { DB = { swimmers: r.swimmers || [], tests: r.tests || [], coaches: r.coaches || [], me: r.me || null, fails24: r.fails24 || 0, settings: r.settings || {} }; applyQueueLocal(); persist(); }
     return r;
   });
 }
@@ -355,7 +356,7 @@ window.addEventListener('online', flush);
 /* ======================= aides ======================= */
 function toast(m) { var t = document.createElement('div'); t.className = 'toast'; t.textContent = m; document.body.appendChild(t); setTimeout(function () { t.remove(); }, 2600); }
 function sw(id) { return DB.swimmers.find(function (s) { return s.id === id; }); }
-function testsOf(id, all) { return DB.tests.filter(function (t) { return t.swimmerId === id && (all || (t.type !== 'day' && t.type !== 'time')); }).sort(function (a, b) { return (b.date || '').localeCompare(a.date || '') || (b.updated || '').localeCompare(a.updated || ''); }); }
+function testsOf(id, all) { return DB.tests.filter(function (t) { return t.swimmerId === id && (all || (t.type !== 'day' && t.type !== 'time' && t.type !== 'bt')); }).sort(function (a, b) { return (b.date || '').localeCompare(a.date || '') || (b.updated || '').localeCompare(a.updated || ''); }); }
 function ageOf(s, date) { return C.ageAt(s && s.dob, date); }
 function paceStr(p) { return p ? F(p, 1) : '—'; }
 function vPace(v) { return v ? F(100 / v, 1) : '—'; }
@@ -511,6 +512,8 @@ function render() {
   var logged = !!(API.url() && API.tk());
   $('#set-btn').classList.toggle('hide', !logged); $('#out-btn').classList.toggle('hide', !logged);
   $('#set-lbl').textContent = T('settings'); $('#out-lbl').textContent = T('logout');
+  var tb = document.querySelector('.hd .t b'); if (tb) tb.textContent = window.APP_MODE === 'bt' ? T('btTitle') : 'VO2max · AL-WATHBA';
+  var sb = $('#switch-btn'); if (sb) { sb.classList.toggle('hide', !logged); sb.textContent = window.APP_MODE === 'bt' ? '🫁 VO2max' : '🧪 ' + T('btShort'); sb.onclick = function () { location.href = window.APP_MODE === 'bt' ? 'index.html' : 'tests.html'; }; }
   $('#hd-sub').textContent = logged && DB.me ? (DB.me.role === 'admin' ? T('admin') : T('coach') + ' · ' + DB.me.name) : T('sub');
   var app = $('#app');
   document.body.classList.toggle('auth', !logged);
@@ -519,7 +522,9 @@ function render() {
   $$('#bnav [data-nav]').forEach(function (b) { b.onclick = function () { var k = b.dataset.nav; if (k === 'out') $('#out-btn').click(); else if (k === 'add') route('swForm', { sid: null }); else route(k); }; });
   if (!API.url()) return vSetup(app);
   if (!API.tk()) return vLogin(app);
-  ({ home: vHome, swimmer: vSwimmer, swForm: vSwForm, test: vTest, settings: vSettings })[S.view](app);
+  var V = { home: vHome, swimmer: vSwimmer, swForm: vSwForm, test: vTest, settings: vSettings };
+  if (window.APP_MODE === 'bt' && window.BTV) Object.keys(window.BTV.views).forEach(function (k) { V[k] = window.BTV.views[k]; });
+  (V[S.view] || V.home)(app);
 }
 $('#lang-btn').onclick = function () { LANG = LANG === 'fr' ? 'ar' : 'fr'; ls('vo2_lang', LANG); render(); };
 $('#set-btn').onclick = function () { route('settings'); };
@@ -532,7 +537,7 @@ function authShell(inner) {
   var d1 = 'M0 100 C200 40 400 160 600 100 S1000 40 1200 100 S1600 160 1800 100 S2200 40 2400 100 V200 H0Z', d2 = 'M0 120 C300 70 500 170 800 120 S1300 70 1600 120 S2100 170 2400 120 V200 H0Z';
   return '<div class="auth-wrap"><button class="hbtn auth-lang" id="auth-lang" type="button">' + (LANG === 'fr' ? 'ع' : 'FR') + '</button><div class="bubbles">' + bub + '</div>' +
     '<div class="waves">' + wave('w3', 'rgba(91,155,255,.35)', d2) + wave('w1', 'rgba(47,212,240,.28)', d1) + wave('w2', 'rgba(59,123,255,.45)', d2) + '</div>' +
-    '<div class="auth-card"><img class="logo" src="logo.png" alt=""><div class="brand">VO2max</div><div class="sub">' + T('authSub') + '</div>' + inner + '</div></div>';
+    '<div class="auth-card"><img class="logo" src="logo.png" alt=""><div class="brand">' + (window.APP_MODE === 'bt' ? 'TESTS' : 'VO2max') + '</div><div class="sub">' + T('authSub') + '</div>' + inner + '</div></div>';
 }
 function bindAuthLang() { $('#auth-lang').onclick = function () { $('#lang-btn').click(); }; }
 function vSetup(app) {
@@ -1213,9 +1218,11 @@ function vSettings(app) {
     }).join('') + '</table></div>';
     h += '</div><div class="card"><h3>🔐 ' + T('logT') + '</h3><div id="loglist" class="small muted">…</div></div><form class="card" id="pwf"><h3>🔑 ' + T('changePw') + '</h3><div class="fr"><div class="f"><label>' + T('oldPw') + '</label><input type="password" name="o"></div><div class="f"><label>' + T('newPw') + '</label><input type="password" name="n"></div></div><button class="btn pri">' + T('save') + '</button></form>';
   }
+  if (window.BTV && window.BTV.settingsExtra && isAdmin()) h += window.BTV.settingsExtra();
   h += '<div class="card"><h3>🔗 ' + T('apiUrl') + '</h3><p class="small ltr muted" style="word-break:break-all">' + esc(API.url()) + '</p><div class="row">' + (isAdmin() ? '<button class="btn" id="bkp">⬇ ' + T('backup') + '</button>' : '') + '<button class="btn" id="chg">' + T('apiUrl') + ' ✎</button><span class="sp"></span><button class="btn dan" id="lo">🚪 ' + T('logout') + '</button></div></div>';
   app.innerHTML = h;
   $('#bk').onclick = function () { route('home'); };
+  if (window.BTV && window.BTV.settingsBind && isAdmin()) window.BTV.settingsBind();
   $('#lo').onclick = function () { $('#out-btn').click(); };
   $('#chg').onclick = function () { if (confirm(T('apiUrl') + ' ?')) { ls('vo2_api', null); ls('vo2_tk', null); render(); } };
   if (!isAdmin()) return;
@@ -1266,7 +1273,13 @@ function printCard(s) {
 }
 
 /* ======================= démarrage ======================= */
-render();
-if (API.tk()) flush();
+window.VO2CORE = {
+  $: $, $$: $$, esc: esc, ls: ls, today: today, uid: uid, T: T, Tv: Tv, D: D, C: C, R: R, F: F, API: API, S: S,
+  db: function () { return DB; }, lang: function () { return LANG; }, viewAs: function () { return VIEWAS; },
+  route: route, render: render, mutate: mutate, load: load, toast: toast, sw: sw, isAdmin: isAdmin, coachName: coachName,
+  visibleSwimmers: visibleSwimmers, ageOf: ageOf, fmtDate: fmtDate, kpi: kpi, chartBase: chartBase, mk: mk, CH: CH,
+  initials: initials, readyOf: readyOf, n0: n0, n1: n1, lab: lab
+};
+document.addEventListener('DOMContentLoaded', function () { render(); if (API.tk()) flush(); });
 window.VO2APP = { load: load,  DB: function () { return DB; }, profile: profile, computeTest: computeTest, route: route, BT: BT };
 })();
