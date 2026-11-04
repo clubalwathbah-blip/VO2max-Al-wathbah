@@ -257,8 +257,11 @@ var GUIDE = {
 function guideHtml(k) { var g = GUIDE[k]; return g ? '<details class="guide"' + (k === 'day' || k === 'time' ? '' : ' open') + '><summary>' + T('guide') + '</summary><div class="gb">' + (LANG === 'fr' ? g[1] : g[0]) + '</div></details>' : ''; }
 
 /* ======================= backend ======================= */
+// serveur du club : l'entraîneur n'a qu'à saisir son code
+var DEFAULT_API = 'https://script.google.com/macros/s/AKfycbzB_IabVM98T4knvuH67efkmvNgg27gp_t3ot9Q9pLlK4dGjbma4yaqrQiux9V9gBEY/exec';
+(function () { try { var q = new URLSearchParams(location.search).get('api'); if (q && /^https:\/\/script\.google\.com\/.+\/exec$/.test(q)) localStorage.setItem('vo2_api', q); } catch (e) {} })();
 var API = {
-  url: function () { return ls('vo2_api') || ''; },
+  url: function () { return ls('vo2_api') || DEFAULT_API; },
   tk: function () { return ls('vo2_tk') || ''; },
   call: function (a, p) {
     p = p || {}; p.a = a; p.tk = API.tk();

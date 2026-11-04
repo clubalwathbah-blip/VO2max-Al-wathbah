@@ -1,0 +1,206 @@
+/**
+ * VO2max Al-Wathba — serveur de données (Google Sheet privé) · v2
+ * Rôles : administration (mot de passe) · entraîneurs (code personnel).
+ * Déploiement : Gérer les déploiements ▸ ✏️ ▸ Nouvelle version (même URL).
+ */
+const SH_SW = 'Nageurs', SH_TE = 'Tests', SH_CO = 'Entraineurs', SH_LOG = 'Connexions';
+const TOKEN_TTL = 21600; // 6 h
+
+function doGet() { return ContentService.createTextOutput('VO2max Al-Wathba API OK'); }
+
+function doPost(e) {
+  let res;
+  try {
+    const q = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    res = route_(q);
+  } catch (err) {
+    res = { ok: false, err: String(err && err.message || err) };
+  }
+  return ContentService.createTextOutput(JSON.stringify(res)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function route_(q) {
+  if (q.a === 'login') return login_(q.pw);
+  if (q.a === 'ping') return { ok: true };
+  const w = who_(q.tk);
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    switch (q.a) {
+      case 'all': return all_(w);
+      case 'saveSwimmer': return { ok: true, rec: saveSwimmer_(w, q.rec) };
+      case 'delSwimmer': {
+        const s = find_(SH_SW, q.id); if (!s) return { ok: true };
+        mustOwn_(w, s);
+        remove_(SH_SW, q.id);
+        readAll_(SH_TE).filter(t => t.swimmerId === q.id).forEach(t => remove_(SH_TE, t.id));
+        return { ok: true };
+      }
+      case 'saveTest': {
+        const s = find_(SH_SW, q.rec && q.rec.swimmerId); if (!s) throw new Error('nageur introuvable');
+        mustOwn_(w, s);
+        q.rec.by = q.rec.by || w.name;
+        return { ok: true, rec: upsert_(SH_TE, q.rec) };
+      }
+      case 'delTest': {
+        const t = find_(SH_TE, q.id); if (!t) return { ok: true };
+        mustOwn_(w, find_(SH_SW, t.swimmerId) || {});
+        remove_(SH_TE, q.id); return { ok: true };
+      }
+      case 'saveCoach': admin_(w); return { ok: true, rec: saveCoach_(q.rec) };
+      case 'delCoach': admin_(w); remove_(SH_CO, q.id); return { ok: true };
+      case 'changePw': admin_(w); return changePw_(q.old, q.nw);
+      case 'log': admin_(w); return { ok: true, log: readLog_(150) };
+    }
+  } finally { lock.releaseLock(); }
+  throw new Error('action inconnue');
+}
+
+/* ---------- identité ---------- */
+function who_(tk) {
+  const v = tk && CacheService.getScriptCache().get('tk_' + tk);
+  if (!v) throw new Error('auth');
+  const w = JSON.parse(v);
+  if (w.role === 'coach') { // compte désactivé ou code changé -> déconnexion
+    const c = find_(SH_CO, w.id);
+    if (!c || c.active === false || c.code !== w.code) { CacheService.getScriptCache().remove('tk_' + tk); throw new Error('auth'); }
+    w.name = c.name;
+  }
+  return w;
+}
+function admin_(w) { if (w.role !== 'admin') throw new Error('forbidden'); }
+function mustOwn_(w, s) { if (w.role !== 'admin' && s.coachId !== w.id) throw new Error('forbidden'); }
+
+function all_(w) {
+  let sw = readAll_(SH_SW), te = readAll_(SH_TE), co = readAll_(SH_CO);
+  if (w.role !== 'admin') {
+    sw = sw.filter(s => s.coachId === w.id);
+    const ids = {}; sw.forEach(s => ids[s.id] = 1);
+    te = te.filter(t => ids[t.swimmerId]);
+    co = co.filter(c => c.id === w.id).map(c => ({ id: c.id, name: c.name }));
+  }
+  const out = { ok: true, me: { role: w.role, id: w.id || null, name: w.name }, swimmers: sw, tests: te, coaches: co };
+  if (w.role === 'admin') { const lim = Date.now() - 864e5; out.fails24 = readLog_(500).filter(x => !x.ok && new Date(x.t).getTime() > lim).length; }
+  return out;
+}
+function saveSwimmer_(w, rec) {
+  if (!rec) throw new Error('données vides');
+  const old = rec.id ? find_(SH_SW, rec.id) : null;
+  if (old) mustOwn_(w, old);
+  if (w.role !== 'admin') rec.coachId = w.id; // l'entraîneur ne peut créer que pour lui-même
+  return upsert_(SH_SW, rec);
+}
+function saveCoach_(rec) {
+  rec.name = String(rec.name || '').trim();
+  rec.code = String(rec.code || '').trim();
+  if (!rec.name) throw new Error('name');
+  if (!/^(?=.*[0-9])(?=.*[A-Za-z]).{6,}$/.test(rec.code)) throw new Error('weakCode');
+  const dup = readAll_(SH_CO).some(c => c.code === rec.code && c.id !== rec.id);
+  if (dup) throw new Error('dupcode');
+  const P = PropertiesService.getScriptProperties();
+  if (P.getProperty('PW_HASH') && hash_(rec.code, P.getProperty('PW_SALT')) === P.getProperty('PW_HASH')) throw new Error('dupcode');
+  return upsert_(SH_CO, rec);
+}
+
+/* ---------- authentification ---------- */
+function hash_(pw, salt) {
+  const b = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, salt + '|' + pw, Utilities.Charset.UTF_8);
+  return b.map(x => ('0' + (x & 255).toString(16)).slice(-2)).join('');
+}
+function login_(pw) {
+  pw = String(pw || '').trim();
+  const P = PropertiesService.getScriptProperties(), C = CacheService.getScriptCache();
+  const fails = +(C.get('fails') || 0);
+  if (fails >= 8) return { ok: false, err: 'locked' };
+  let h = P.getProperty('PW_HASH'), salt = P.getProperty('PW_SALT'), first = false, w = null;
+  if (!h) {
+    if (pw.length < 6) return { ok: false, err: 'short' };
+    salt = Utilities.getUuid(); h = hash_(pw, salt);
+    P.setProperties({ PW_HASH: h, PW_SALT: salt }); first = true;
+  }
+  if (hash_(pw, salt) === h) w = { role: 'admin', name: 'Administration' };
+  else {
+    const c = readAll_(SH_CO).find(x => x.code === pw && x.active !== false);
+    if (c) w = { role: 'coach', id: c.id, name: c.name, code: c.code };
+  }
+  if (!w) {
+    C.put('fails', String(fails + 1), 900);
+    log_('', false);
+    Utilities.sleep(Math.min(1000 * (fails + 1), 6000)); // délai croissant
+    return { ok: false, err: 'bad' };
+  }
+  C.remove('fails');
+  log_(w.role === 'admin' ? 'Administration' : w.name, true);
+  const tk = Utilities.getUuid() + Utilities.getUuid();
+  C.put('tk_' + tk, JSON.stringify(w), TOKEN_TTL);
+  return { ok: true, tk: tk, first: first, role: w.role };
+}
+function changePw_(oldPw, nw) {
+  const P = PropertiesService.getScriptProperties();
+  if (hash_(String(oldPw || ''), P.getProperty('PW_SALT')) !== P.getProperty('PW_HASH')) return { ok: false, err: 'bad' };
+  if (String(nw || '').length < 6) return { ok: false, err: 'short' };
+  const salt = Utilities.getUuid();
+  P.setProperties({ PW_HASH: hash_(nw, salt), PW_SALT: salt });
+  return { ok: true };
+}
+/** En cas d'oubli : exécuter depuis l'éditeur ; la prochaine connexion définit le nouveau mot de passe. */
+function resetPassword() {
+  PropertiesService.getScriptProperties().deleteProperty('PW_HASH');
+  CacheService.getScriptCache().remove('fails');
+  Logger.log('✅ Mot de passe effacé : la prochaine connexion définit le nouveau.');
+}
+
+/* ---------- stockage : une ligne = un enregistrement JSON ---------- */
+const HEAD_ = { Nageurs: ['id', 'nom', 'entraineur', 'json', 'maj'], Tests: ['id', 'nageur', 'date', 'type', 'json', 'maj'], Entraineurs: ['id', 'nom', 'code', 'json', 'maj'] };
+function sheet_(name) {
+  const ss = SpreadsheetApp.getActive();
+  let sh = ss.getSheetByName(name);
+  if (!sh) { sh = ss.insertSheet(name); sh.appendRow(HEAD_[name]); sh.setFrozenRows(1); }
+  else if (name === SH_SW && sh.getRange(1, 3).getValue() === 'json') { // migration v1 -> v2
+    sh.insertColumnAfter(2); sh.getRange(1, 3).setValue('entraineur');
+  }
+  return sh;
+}
+function jsonCol_(name) { return name === SH_TE ? 5 : 4; }
+function rowOf_(name, row) {
+  const r = row;
+  if (name === SH_SW) return [r.id, r.name || '', r.coachId || '', JSON.stringify(r), r.updated];
+  if (name === SH_CO) return [r.id, r.name || '', r.code || '', JSON.stringify(r), r.updated];
+  return [r.id, r.swimmerId || '', r.date || '', r.type || '', JSON.stringify(r), r.updated];
+}
+function readAll_(name) {
+  const sh = sheet_(name), n = sh.getLastRow() - 1;
+  if (n < 1) return [];
+  return sh.getRange(2, jsonCol_(name), n, 1).getValues().map(r => { try { return JSON.parse(r[0]); } catch (e) { return null; } }).filter(Boolean);
+}
+function find_(name, id) { return id ? readAll_(name).find(x => String(x.id) === String(id)) || null : null; }
+function idx_(sh, id) {
+  const n = sh.getLastRow() - 1; if (n < 1) return -1;
+  const ids = sh.getRange(2, 1, n, 1).getValues();
+  for (let i = 0; i < ids.length; i++) if (String(ids[i][0]) === String(id)) return i + 2;
+  return -1;
+}
+function upsert_(name, rec) {
+  if (!rec || typeof rec !== 'object') throw new Error('données vides');
+  if (!rec.id) rec.id = Utilities.getUuid().slice(0, 8);
+  rec.updated = new Date().toISOString();
+  const sh = sheet_(name), row = rowOf_(name, rec), r = idx_(sh, rec.id);
+  if (r > 0) sh.getRange(r, 1, 1, row.length).setValues([row]); else sh.appendRow(row);
+  return rec;
+}
+function remove_(name, id) { const sh = sheet_(name), r = idx_(sh, id); if (r > 0) sh.deleteRow(r); }
+
+/* ---------- journal des connexions ---------- */
+function log_(who, ok) {
+  try {
+    const sh = SpreadsheetApp.getActive().getSheetByName(SH_LOG) || (function () { const x = SpreadsheetApp.getActive().insertSheet(SH_LOG); x.appendRow(['date', 'qui', 'ok']); x.setFrozenRows(1); return x; })();
+    sh.appendRow([new Date().toISOString(), who, ok ? 1 : 0]);
+    if (sh.getLastRow() > 1200) sh.deleteRows(2, 200);
+  } catch (e) {}
+}
+function readLog_(n) {
+  const sh = SpreadsheetApp.getActive().getSheetByName(SH_LOG); if (!sh) return [];
+  const last = sh.getLastRow(); if (last < 2) return [];
+  const k = Math.min(n, last - 1);
+  return sh.getRange(last - k + 1, 1, k, 3).getValues().reverse().map(r => ({ t: r[0], who: r[1], ok: r[2] == 1 }));
+}
