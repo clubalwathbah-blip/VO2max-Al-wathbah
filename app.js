@@ -273,7 +273,7 @@ var API = {
 };
 // serveur local (mode essai / tests) — mêmes règles que le serveur
 var Local = {
-  db: function () { try { var d = JSON.parse(ls('vo2_demo') || '{}'); d.s = d.s || []; d.t = d.t || []; d.c = d.c || []; return d; } catch (e) { return { s: [], t: [], c: [] }; } },
+  db: function () { try { var d = JSON.parse(ls('vo2_demo') || '{}'); d.s = d.s || []; d.t = d.t || []; d.c = d.c || []; d.p = d.p || []; d.au = d.au || []; return d; } catch (e) { return { s: [], t: [], c: [], p: [], au: [] }; } },
   put: function (d) { ls('vo2_demo', JSON.stringify(d)); },
   call: function (p) {
     var d = Local.db();
@@ -292,17 +292,20 @@ var Local = {
     function up(arr, rec) { if (!rec.id) rec.id = uid(); rec.updated = new Date().toISOString(); var i = arr.findIndex(function (x) { return x.id === rec.id; }); if (i >= 0) arr[i] = rec; else arr.push(rec); return rec; }
     function S_(id) { return d.s.find(function (x) { return x.id === id; }); }
     var r = { ok: true };
+    function audit(act, det) { d.au.push({ t: new Date().toISOString(), who: w.name, act: act, det: det }); if (d.au.length > 1000) d.au.splice(0, 200); }
     if (p.a === 'all') {
       var ss = d.s.filter(own), ids = {}; ss.forEach(function (x) { ids[x.id] = 1; });
       r.swimmers = ss; r.tests = d.t.filter(function (t) { return ids[t.swimmerId]; });
       r.coaches = w.role === 'admin' ? d.c : d.c.filter(function (c) { return c.id === w.id; }).map(function (c) { return { id: c.id, name: c.name }; });
-      r.me = { role: w.role, id: w.id || null, name: w.name }; r.settings = d.set || {};
+      r.me = { role: w.role, id: w.id || null, name: w.name }; r.settings = d.set || {}; r.protos = d.p;
       if (w.role === 'admin') r.fails24 = (d.log || []).filter(function (x) { return !x.ok && Date.now() - new Date(x.t) < 864e5; }).length;
     }
     else if (p.a === 'saveSwimmer') { var old = S_(p.rec.id); if (old && !own(old)) return { ok: false, err: 'forbidden' }; if (w.role !== 'admin') p.rec.coachId = w.id; r.rec = up(d.s, p.rec); }
-    else if (p.a === 'saveTest') { if (!own(S_(p.rec.swimmerId))) return { ok: false, err: 'forbidden' }; p.rec.by = p.rec.by || w.name; r.rec = up(d.t, p.rec); }
+    else if (p.a === 'saveTest') { if (!own(S_(p.rec.swimmerId))) return { ok: false, err: 'forbidden' }; var ex0 = d.t.find(function (x) { return x.id === p.rec.id; }); p.rec.by = p.rec.by || w.name; r.rec = up(d.t, p.rec); if (p.rec.type === 'bt') audit(ex0 ? 'résultat modifié' : 'résultat', (S_(p.rec.swimmerId) || {}).name + ' · ' + (p.rec.data.proto ? p.rec.data.proto.name : p.rec.data.test) + ' · ' + p.rec.date + (p.rec.data.retest ? ' · re-test' : '')); }
+    else if (p.a === 'saveProto') { var op = d.p.find(function (x) { return x.id === p.rec.id; }); if (op && w.role !== 'admin' && op.byId !== w.id) return { ok: false, err: 'forbidden' }; if (!op) { p.rec.by = w.name; p.rec.byId = w.id || 'admin'; } else { p.rec.by = op.by; p.rec.byId = op.byId; } r.rec = up(d.p, p.rec); audit(op ? (p.rec.active === false ? 'protocole archivé' : 'protocole modifié') : 'protocole créé', p.rec.name); }
+    else if (p.a === 'audit') { if (w.role !== 'admin') return { ok: false, err: 'forbidden' }; r.log = d.au.slice().reverse(); }
     else if (p.a === 'delSwimmer') { if (!own(S_(p.id))) return { ok: false, err: 'forbidden' }; d.s = d.s.filter(function (x) { return x.id !== p.id; }); d.t = d.t.filter(function (x) { return x.swimmerId !== p.id; }); }
-    else if (p.a === 'delTest') d.t = d.t.filter(function (x) { return x.id !== p.id; });
+    else if (p.a === 'delTest') { var dt = d.t.find(function (x) { return x.id === p.id; }); if (dt && !own(S_(dt.swimmerId))) return { ok: false, err: 'forbidden' }; if (dt && dt.type === 'bt') audit('résultat supprimé', (S_(dt.swimmerId) || {}).name + ' · ' + dt.date); d.t = d.t.filter(function (x) { return x.id !== p.id; }); }
     else if (p.a === 'saveSetting') { if (w.role !== 'admin') return { ok: false, err: 'forbidden' }; d.set = d.set || {}; d.set[p.key] = p.value; }
     else if (p.a === 'log') { r.log = (d.log || []).slice().reverse(); }
     else if (p.a === 'saveCoach') { if (w.role !== 'admin') return { ok: false, err: 'forbidden' }; if (!/^(?=.*[0-9])(?=.*[A-Za-z]).{6,}$/.test(String(p.rec.code || ''))) return { ok: false, err: 'weakCode' }; if (d.c.some(function (c) { return c.code === p.rec.code && c.id !== p.rec.id; }) || p.rec.code === d.pw) return { ok: false, err: 'dupcode' }; r.rec = up(d.c, p.rec); }
@@ -325,13 +328,13 @@ function persist() { ls('vo2_cache', JSON.stringify(DB)); ls('vo2_queue', JSON.s
 
 function load() {
   return API.call('all').then(function (r) {
-    if (r.ok) { DB = { swimmers: r.swimmers || [], tests: r.tests || [], coaches: r.coaches || [], me: r.me || null, fails24: r.fails24 || 0, settings: r.settings || {} }; applyQueueLocal(); persist(); }
+    if (r.ok) { DB = { swimmers: r.swimmers || [], tests: r.tests || [], coaches: r.coaches || [], me: r.me || null, fails24: r.fails24 || 0, settings: r.settings || {}, protos: r.protos || [] }; applyQueueLocal(); persist(); }
     return r;
   });
 }
 function applyQueueLocal() {
   QUEUE.forEach(function (q) {
-    var arr = q.a.indexOf('Swimmer') > 0 ? DB.swimmers : q.a.indexOf('Coach') > 0 ? (DB.coaches = DB.coaches || []) : DB.tests;
+    var arr = q.a.indexOf('Swimmer') > 0 ? DB.swimmers : q.a.indexOf('Coach') > 0 ? (DB.coaches = DB.coaches || []) : q.a.indexOf('Proto') > 0 ? (DB.protos = DB.protos || []) : DB.tests;
     if (q.a.indexOf('save') === 0) { var i = arr.findIndex(function (x) { return x.id === q.rec.id; }); if (i >= 0) arr[i] = q.rec; else arr.push(q.rec); }
     else { var j = arr.findIndex(function (x) { return x.id === q.id; }); if (j >= 0) arr.splice(j, 1); }
   });
@@ -556,10 +559,9 @@ function vLogin(app) {
   app.innerHTML = authShell('<form id="lf"><div class="f"><input type="password" id="pw" autocomplete="current-password" class="ltr" placeholder="••••••"></div>' +
     '<button class="btn pri big" style="width:100%;justify-content:center">' + T('login') + ' →</button>' +
     '<p class="small muted" style="margin:14px 0 4px">' + T('coachLogin') + '</p>' +
-    '<p style="margin:0"><a href="#" id="chg" class="small" style="opacity:.6">' + T('apiUrl') + ' ✎</a></p></form>');
+    '</form>');
   bindAuthLang();
   $('#pw').focus();
-  $('#chg').onclick = function (e) { e.preventDefault(); ls('vo2_api', null); render(); };
   $('#lf').onsubmit = function (e) {
     e.preventDefault(); var b = $('#lf button'); b.disabled = true;
     API.call('login', { pw: $('#pw').value }).then(function (r) {
@@ -1222,12 +1224,13 @@ function vSettings(app) {
     h += '</div><div class="card"><h3>🔐 ' + T('logT') + '</h3><div id="loglist" class="small muted">…</div></div><form class="card" id="pwf"><h3>🔑 ' + T('changePw') + '</h3><div class="fr"><div class="f"><label>' + T('oldPw') + '</label><input type="password" name="o"></div><div class="f"><label>' + T('newPw') + '</label><input type="password" name="n"></div></div><button class="btn pri">' + T('save') + '</button></form>';
   }
   if (window.BTV && window.BTV.settingsExtra && isAdmin()) h += window.BTV.settingsExtra();
-  h += '<div class="card"><h3>🔗 ' + T('apiUrl') + '</h3><p class="small ltr muted" style="word-break:break-all">' + esc(API.url()) + '</p><div class="row">' + (isAdmin() ? '<button class="btn" id="bkp">⬇ ' + T('backup') + '</button>' : '') + '<button class="btn" id="chg">' + T('apiUrl') + ' ✎</button><span class="sp"></span><button class="btn dan" id="lo">🚪 ' + T('logout') + '</button></div></div>';
+  if (isAdmin()) h += '<div class="card"><h3>🔗 ' + T('apiUrl') + '</h3><p class="small ltr muted" style="word-break:break-all">' + esc(API.url()) + '</p><div class="row"><button class="btn" id="bkp">⬇ ' + T('backup') + '</button><button class="btn" id="chg">' + T('apiUrl') + ' ✎</button><span class="sp"></span><button class="btn dan" id="lo">🚪 ' + T('logout') + '</button></div></div>';
+  else h += '<div class="card"><div class="row"><span class="sp muted">' + esc(DB.me ? DB.me.name : '') + '</span><button class="btn dan" id="lo">🚪 ' + T('logout') + '</button></div></div>';
   app.innerHTML = h;
   $('#bk').onclick = function () { route('home'); };
   if (window.BTV && window.BTV.settingsBind && isAdmin()) window.BTV.settingsBind();
   $('#lo').onclick = function () { $('#out-btn').click(); };
-  $('#chg').onclick = function () { if (confirm(T('apiUrl') + ' ?')) { ls('vo2_api', null); ls('vo2_tk', null); render(); } };
+  if ($('#chg')) $('#chg').onclick = function () { if (confirm(T('apiUrl') + ' ?')) { ls('vo2_api', null); ls('vo2_tk', null); render(); } };
   if (!isAdmin()) return;
   $('#pwf').onsubmit = function (e) { e.preventDefault(); API.call('changePw', { old: e.target.o.value, nw: e.target.n.value }).then(function (r) { toast(r.ok ? T('saved') : T(r.err)); if (r.ok) e.target.reset(); }).catch(function () { toast(T('neterr')); }); };
   $('#bkp').onclick = function () { var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(DB, null, 1)], { type: 'application/json' })); a.download = 'vo2max-wathba-' + today() + '.json'; a.click(); };
