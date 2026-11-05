@@ -138,7 +138,7 @@ var D = {
   vVO2: ['سرعة VO2max (vVO2max)', 'Vitesse VO2max (vVO2max)'],
   fromStep: ['من التصاعدي', 'du progressif'], from400: ['من 400 م', 'du 400 m'],
   settings2: ['الإعدادات', 'Paramètres'],
-  admin: ['الإدارة', 'Administration'], coach: ['المدرب', 'Entraîneur'], coaches: ['المدربون', 'Entraîneurs'],
+  admin: ['الإدارة', 'Administration'], coach: ['المدرب', 'Entraîneur'], coaches: ['المدربون', 'Entraîneurs'], headC: ['مدرب رئيسي (الاختبارات)', 'Entraîneur principal (tests)'], headS: ['⭐ رئيسي', '⭐ Principal'], noBt: ['الاختبارات خاصة بالإدارة والمدربين الرئيسيين.', 'Les tests sont réservés à l’administration et aux entraîneurs principaux.'],
   addCoach: ['مدرب جديد', 'Nouvel entraîneur'], code: ['الكود', 'Code'], phone: ['الهاتف', 'Téléphone'], active: ['نشط', 'Actif'], inactive: ['موقوف', 'Désactivé'],
   codeHint: ['4 خانات على الأقل، يدخل بيه المدرب. أنت وحدك تبدّلو.', '4 caractères min. Code de connexion de l’entraîneur, modifiable par vous seul.'],
   dupcode: ['هذا الكود مستعمل', 'Code déjà utilisé'], forbidden: ['ماعندكش الصلاحية', 'Action non autorisée'],
@@ -286,26 +286,28 @@ var Local = {
       return c ? { ok: true, tk: 'demo-coach-' + c.id, role: 'coach' } : { ok: false, err: 'bad' };
     }
     var tk = p.tk || '', w = tk === 'demo-admin' ? { role: 'admin', name: 'Administration' } : null;
-    if (!w && tk.indexOf('demo-coach-') === 0) { var co = d.c.find(function (x) { return x.id === tk.slice(11) && x.active !== false; }); if (co) w = { role: 'coach', id: co.id, name: co.name }; }
+    if (!w && tk.indexOf('demo-coach-') === 0) { var co = d.c.find(function (x) { return x.id === tk.slice(11) && x.active !== false; }); if (co) w = { role: 'coach', id: co.id, name: co.name, head: co.head === true }; }
     if (!w) return { ok: false, err: 'auth' };
     var own = function (s) { return w.role === 'admin' || (s && s.coachId === w.id); };
+    var btT = function (ty) { return ty === 'bt' || ty === 'va'; }, canT = function (s, ty) { return own(s) || (w.head && s && btT(ty)); };
     function up(arr, rec) { if (!rec.id) rec.id = uid(); rec.updated = new Date().toISOString(); var i = arr.findIndex(function (x) { return x.id === rec.id; }); if (i >= 0) arr[i] = rec; else arr.push(rec); return rec; }
     function S_(id) { return d.s.find(function (x) { return x.id === id; }); }
     var r = { ok: true };
     function audit(act, det) { d.au.push({ t: new Date().toISOString(), who: w.name, act: act, det: det }); if (d.au.length > 1000) d.au.splice(0, 200); }
     if (p.a === 'all') {
-      var ss = d.s.filter(own), ids = {}; ss.forEach(function (x) { ids[x.id] = 1; });
-      r.swimmers = ss; r.tests = d.t.filter(function (t) { return ids[t.swimmerId]; });
+      var ss = w.head ? d.s : d.s.filter(own), ids = {}; d.s.filter(own).forEach(function (x) { ids[x.id] = 1; });
+      r.swimmers = ss; r.tests = d.t.filter(function (t) { return ids[t.swimmerId] || (w.head && btT(t.type)); });
       r.coaches = w.role === 'admin' ? d.c : d.c.filter(function (c) { return c.id === w.id; }).map(function (c) { return { id: c.id, name: c.name }; });
-      r.me = { role: w.role, id: w.id || null, name: w.name }; r.settings = d.set || {}; r.protos = d.p;
+      r.me = { role: w.role, id: w.id || null, name: w.name, head: !!w.head }; r.settings = d.set || {}; r.protos = d.p;
       if (w.role === 'admin') r.fails24 = (d.log || []).filter(function (x) { return !x.ok && Date.now() - new Date(x.t) < 864e5; }).length;
     }
     else if (p.a === 'saveSwimmer') { var old = S_(p.rec.id); if (old && !own(old)) return { ok: false, err: 'forbidden' }; if (w.role !== 'admin') p.rec.coachId = w.id; r.rec = up(d.s, p.rec); }
-    else if (p.a === 'saveTest') { if (!own(S_(p.rec.swimmerId))) return { ok: false, err: 'forbidden' }; var ex0 = d.t.find(function (x) { return x.id === p.rec.id; }); p.rec.by = p.rec.by || w.name; r.rec = up(d.t, p.rec); if (p.rec.type === 'bt') audit(ex0 ? 'résultat modifié' : 'résultat', (S_(p.rec.swimmerId) || {}).name + ' · ' + (p.rec.data.proto ? p.rec.data.proto.name : p.rec.data.test) + ' · ' + p.rec.date + (p.rec.data.retest ? ' · re-test' : '')); }
-    else if (p.a === 'saveProto') { var op = d.p.find(function (x) { return x.id === p.rec.id; }); if (op && w.role !== 'admin' && op.byId !== w.id) return { ok: false, err: 'forbidden' }; if (!op) { p.rec.by = w.name; p.rec.byId = w.id || 'admin'; } else { p.rec.by = op.by; p.rec.byId = op.byId; } r.rec = up(d.p, p.rec); audit(op ? (p.rec.active === false ? 'protocole archivé' : 'protocole modifié') : 'protocole créé', p.rec.name); }
+    else if (p.a === 'saveTest') { if (!canT(S_(p.rec.swimmerId), p.rec.type)) return { ok: false, err: 'forbidden' }; if (btT(p.rec.type) && w.role !== 'admin' && !w.head) return { ok: false, err: 'forbidden' }; var ex0 = d.t.find(function (x) { return x.id === p.rec.id; }); p.rec.by = p.rec.by || w.name; r.rec = up(d.t, p.rec); if (btT(p.rec.type)) audit(ex0 ? 'résultat modifié' : 'résultat', (S_(p.rec.swimmerId) || {}).name + ' · ' + (p.rec.type === 'va' ? '🎥 ' + ((p.rec.data.cfg || {}).dist || '') + 'm' : p.rec.data.proto ? p.rec.data.proto.name : p.rec.data.test) + ' · ' + p.rec.date + (p.rec.data.retest ? ' · re-test' : '')); }
+    else if (p.a === 'saveProto') { if (w.role !== 'admin' && !w.head) return { ok: false, err: 'forbidden' }; var op = d.p.find(function (x) { return x.id === p.rec.id; }); if (op && w.role !== 'admin' && op.byId !== w.id) return { ok: false, err: 'forbidden' }; if (!op) { p.rec.by = w.name; p.rec.byId = w.id || 'admin'; } else { p.rec.by = op.by; p.rec.byId = op.byId; } r.rec = up(d.p, p.rec); audit(op ? (p.rec.active === false ? 'protocole archivé' : 'protocole modifié') : 'protocole créé', p.rec.name); }
+    else if (p.a === 'saveProgram') { if (w.role !== 'admin' && !w.head) return { ok: false, err: 'forbidden' }; d.set = d.set || {}; var pk = 'prog_' + p.camp; d.set[pk] = d.set[pk] || {}; d.set[pk][p.cat] = p.tests || []; audit('programme', p.camp + ' · ' + p.cat + ' · ' + (p.tests || []).length + ' tests'); }
     else if (p.a === 'audit') { if (w.role !== 'admin') return { ok: false, err: 'forbidden' }; r.log = d.au.slice().reverse(); }
     else if (p.a === 'delSwimmer') { if (!own(S_(p.id))) return { ok: false, err: 'forbidden' }; d.s = d.s.filter(function (x) { return x.id !== p.id; }); d.t = d.t.filter(function (x) { return x.swimmerId !== p.id; }); }
-    else if (p.a === 'delTest') { var dt = d.t.find(function (x) { return x.id === p.id; }); if (dt && !own(S_(dt.swimmerId))) return { ok: false, err: 'forbidden' }; if (dt && dt.type === 'bt') audit('résultat supprimé', (S_(dt.swimmerId) || {}).name + ' · ' + dt.date); d.t = d.t.filter(function (x) { return x.id !== p.id; }); }
+    else if (p.a === 'delTest') { var dt = d.t.find(function (x) { return x.id === p.id; }); if (dt && !canT(S_(dt.swimmerId), dt.type)) return { ok: false, err: 'forbidden' }; if (dt && btT(dt.type)) audit('résultat supprimé', (S_(dt.swimmerId) || {}).name + ' · ' + dt.date); d.t = d.t.filter(function (x) { return x.id !== p.id; }); }
     else if (p.a === 'saveSetting') { if (w.role !== 'admin') return { ok: false, err: 'forbidden' }; d.set = d.set || {}; d.set[p.key] = p.value; }
     else if (p.a === 'log') { r.log = (d.log || []).slice().reverse(); }
     else if (p.a === 'saveCoach') { if (w.role !== 'admin') return { ok: false, err: 'forbidden' }; if (!/^(?=.*[0-9])(?=.*[A-Za-z]).{6,}$/.test(String(p.rec.code || ''))) return { ok: false, err: 'weakCode' }; if (d.c.some(function (c) { return c.code === p.rec.code && c.id !== p.rec.id; }) || p.rec.code === d.pw) return { ok: false, err: 'dupcode' }; r.rec = up(d.c, p.rec); }
@@ -372,7 +374,8 @@ function initials(n) { return String(n || '?').trim().split(/\s+/).slice(0, 2).m
 var ICON = { step: '📈', '400': '🏊', css: '⏱', leger: '🏃', rest: '😴', day: '🌙', time: '🏅' };
 function daysOf(id) { return DB.tests.filter(function (t) { return t.swimmerId === id && t.type === 'day'; }).map(function (t) { var d = t.data || {}; return { id: t.id, date: t.date, hrv: d.hrv, rhr: d.rhr, sleepH: d.sleepH, sleepScore: d.sleepScore, recharge: d.recharge, br: d.br, ans: d.ans, min: d.min, rpe: d.rpe, load: C.num(d.min) && C.num(d.rpe) != null ? C.num(d.min) * C.num(d.rpe) : null, polar: d.polar }; }).sort(function (a, b) { return a.date < b.date ? -1 : 1; }); }
 function readyOf(s, date) { return C.readiness(daysOf(s.id), date || today(), ageOf(s, date)); }
-function visibleSwimmers() { return DB.swimmers.filter(function (s) { return !isAdmin() || !VIEWAS || s.coachId === VIEWAS; }); }
+function isHead() { return DB.me && DB.me.role === 'coach' && DB.me.head; }
+function visibleSwimmers() { return DB.swimmers.filter(function (s) { if (isHead() && window.APP_MODE !== 'bt') return s.coachId === DB.me.id; return !isAdmin() || !VIEWAS || s.coachId === VIEWAS; }); }
 function fmtDate(d) { if (!d) return ''; var p = d.split('-'); return p[2] + '/' + p[1] + '/' + p[0]; }
 
 /* ======================= analyse d'un nageur ======================= */
@@ -519,7 +522,8 @@ function render() {
   $('#set-btn').classList.toggle('hide', !logged); $('#out-btn').classList.toggle('hide', !logged);
   $('#set-lbl').textContent = T('settings'); $('#out-lbl').textContent = T('logout');
   var tb = document.querySelector('.hd .t b'); if (tb) tb.textContent = window.APP_MODE === 'bt' ? T('btTitle') : 'VO2max · AL-WATHBA';
-  var sb = $('#switch-btn'); if (sb) { sb.classList.toggle('hide', !logged); sb.textContent = window.APP_MODE === 'bt' ? '🫁 VO2max' : '🧪 ' + T('btShort'); sb.onclick = function () { location.href = window.APP_MODE === 'bt' ? 'index.html' : 'tests.html'; }; }
+  document.body.classList.toggle('wide', S.view === 'btVideo');
+  var sb = $('#switch-btn'); if (sb) { sb.classList.toggle('hide', !logged || (window.APP_MODE !== 'bt' && DB.me && DB.me.role === 'coach' && !DB.me.head)); sb.textContent = window.APP_MODE === 'bt' ? '🫁 VO2max' : '🧪 ' + T('btShort'); sb.onclick = function () { location.href = window.APP_MODE === 'bt' ? 'index.html' : 'tests.html'; }; }
   $('#hd-sub').textContent = logged && DB.me ? (DB.me.role === 'admin' ? T('admin') : T('coach') + ' · ' + DB.me.name) : T('sub');
   var app = $('#app');
   document.body.classList.toggle('auth', !logged);
@@ -528,6 +532,7 @@ function render() {
   $$('#bnav [data-nav]').forEach(function (b) { b.onclick = function () { var k = b.dataset.nav; if (k === 'out') $('#out-btn').click(); else if (k === 'add') route('swForm', { sid: null }); else route(k); }; });
   if (!API.url()) return vSetup(app);
   if (!API.tk()) return vLogin(app);
+  if (window.APP_MODE === 'bt' && DB.me && DB.me.role === 'coach' && !DB.me.head && S.view !== 'settings') { app.innerHTML = '<div class="card empty" style="margin-top:30px">🔒 ' + T('noBt') + '<div style="margin-top:14px"><a class="btn pri" href="index.html">🫁 VO2max</a></div></div>'; load().then(function (r) { if (r && r.ok && DB.me && DB.me.head) render(); }).catch(function () {}); return; }
   var V = { home: vHome, swimmer: vSwimmer, swForm: vSwForm, test: vTest, settings: vSettings };
   if (window.APP_MODE === 'bt' && window.BTV) Object.keys(window.BTV.views).forEach(function (k) { V[k] = window.BTV.views[k]; });
   (V[S.view] || V.home)(app);
@@ -1218,7 +1223,7 @@ function vSettings(app) {
     if (!cs.length) h += '<p class="muted">—</p>';
     else h += '<div class="tbl-wrap"><table><tr><th>' + T('name') + '</th><th>' + T('phone') + '</th><th>' + T('code') + '</th><th>' + T('swimmers') + '</th><th></th><th></th></tr>' + cs.map(function (c) {
       var n = DB.swimmers.filter(function (s) { return s.coachId === c.id; }).length;
-      return '<tr><td style="text-align:start"><b>' + esc(c.name) + '</b></td><td class="num">' + esc(c.phone || '') + '</td><td><span class="chip mono">' + esc(c.code) + '</span></td><td class="num">' + n + '</td><td><span class="chip ' + (c.active === false ? 'bad' : 'ok') + '">' + T(c.active === false ? 'inactive' : 'active') + '</span></td>' +
+      return '<tr><td style="text-align:start"><b>' + esc(c.name) + '</b>' + (c.head ? ' <span class="chip warn">' + T('headS') + '</span>' : '') + '</td><td class="num">' + esc(c.phone || '') + '</td><td><span class="chip mono">' + esc(c.code) + '</span></td><td class="num">' + n + '</td><td><span class="chip ' + (c.active === false ? 'bad' : 'ok') + '">' + T(c.active === false ? 'inactive' : 'active') + '</span></td>' +
         '<td style="white-space:nowrap"><button class="btn sm" data-view="' + c.id + '" title="' + T('viewAs') + '">👁</button> <button class="btn sm" data-ec="' + c.id + '">✎</button></td></tr>';
     }).join('') + '</table></div>';
     h += '</div><div class="card"><h3>🔐 ' + T('logT') + '</h3><div id="loglist" class="small muted">…</div></div><form class="card" id="pwf"><h3>🔑 ' + T('changePw') + '</h3><div class="fr"><div class="f"><label>' + T('oldPw') + '</label><input type="password" name="o"></div><div class="f"><label>' + T('newPw') + '</label><input type="password" name="n"></div></div><button class="btn pri">' + T('save') + '</button></form>';
@@ -1251,12 +1256,13 @@ function coachForm(c) {
     '<div class="f"><label>' + T('phone') + '</label><input name="phone" inputmode="tel" class="ltr" value="' + esc(c.phone) + '"></div>' +
     '<div class="f"><label>' + T('code') + '<span class="hint">' + T('codeHint') + '</span></label><input name="code" required minlength="6" class="mono ltr" value="' + esc(c.code) + '"></div>' +
     '<div class="f"><label>' + T('active') + '</label><select name="active"><option value="1">' + T('active') + '</option><option value="0"' + (c.active === false ? ' selected' : '') + '>' + T('inactive') + '</option></select></div></div>' +
+    '<label class="row" style="gap:8px;margin:0 0 10px"><input type="checkbox" name="head"' + (c.head ? ' checked' : '') + ' style="width:auto"> ' + T('headC') + '</label>' +
     '<div class="row"><button class="btn pri">' + T('save') + '</button><button type="button" class="btn" id="cc">' + T('cancel') + '</button><span class="sp"></span>' + (c.id ? '<button type="button" class="btn dan" id="cd">' + T('del') + '</button>' : '') + '</div></form>';
   $('#cf [name=name]').focus();
   $('#cc').onclick = function () { box.innerHTML = ''; };
   if (c.id) $('#cd').onclick = function () { if (confirm(T('confirmDel'))) { API.call('delCoach', { id: c.id }).then(function (r) { if (!r.ok) return toast(T(r.err) || r.err); toast(T('deleted')); load().then(render); }); } };
   $('#cf').onsubmit = function (e) {
-    e.preventDefault(); var f = e.target, rec = Object.assign({}, c, { name: f.name.value.trim(), phone: f.phone.value.trim(), code: f.code.value.trim(), active: f.active.value === '1' });
+    e.preventDefault(); var f = e.target, rec = Object.assign({}, c, { name: f.name.value.trim(), phone: f.phone.value.trim(), code: f.code.value.trim(), active: f.active.value === '1', head: f.head.checked });
     if (!/^(?=.*[0-9])(?=.*[A-Za-z]).{6,}$/.test(rec.code)) return toast(T('weakCode'));
     f.querySelector('.pri').disabled = true;
     API.call('saveCoach', { rec: rec }).then(function (r) { if (!r.ok) { f.querySelector('.pri').disabled = false; return toast(T(r.err) || r.err); } toast(T('saved')); load().then(render); }).catch(function () { f.querySelector('.pri').disabled = false; toast(T('neterr')); });

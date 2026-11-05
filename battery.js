@@ -80,6 +80,10 @@ var TESTS = [
   { id: 'f800', sys: 'AER', w: 1, cats: from('min'), name: ['800 م حرة', '800 m NL'], unit: 's', better: 'low',
     inputs: [tm('t', tv(['الزمن', 'Temps']), H.touch)], calc: function (d) { var x = C.parseTime(d.t); return x ? { v: x, disp: F(x, 2), extra: pace(800, x) } : null; },
     g: ['800 م حرة بأقصى جهد متوازن، الانطلاق من الماء. <b>النتيجة:</b> الزمن.', '800 m crawl à fond, départ dans l’eau. <b>Résultat :</b> temps.'] },
+  { id: 'cs3', sys: 'AER', w: 1, cats: from('ben'), name: ['3 دقايق بأقصى جهد (السرعة الحرجة)', '3 min all-out (vitesse critique)'], unit: 'm/s', better: 'high',
+    inputs: [nm('d150', tv(['المسافة في 2:30', 'Distance à 2:30']), 'm', ['بالمتر (علامة كل 5 م)', 'En mètres (repère tous les 5 m)']), nm('d180', tv(['المسافة في 3:00', 'Distance à 3:00']), 'm', ['المسافة الكلية بالمتر', 'Distance totale en mètres'])],
+    calc: function (d) { var a = C.num(d.d150), b = C.num(d.d180); if (!a || !b || b <= a) return null; var cs = (b - a) / 30, dp = b - cs * 180; return { v: cs, disp: R(cs, 2) + ' m/s', extra: 'CS ' + F(100 / cs, 1) + ' /100 · D′ ' + Math.round(dp) + ' m', cs: cs }; },
+    g: ['إحماء 15–20 د. انطلاق بالدفع من الحائط، ويسبح <b>3 دقايق كاملين بأقصى جهد من البداية</b>، بلا ما يقسّم المجهود (السرعة تطيح وحدها). المدرب يعلّم <b>المسافة في 2:30</b> و <b>في 3:00</b> (حط علامات كل 5 م على الحافة). <b>السرعة الحرجة</b> = متوسط السرعة في آخر 30 ث = حد الجهد الهوائي. <b>D′</b> = الاحتياطي اللاهوائي بالمتر. منها تخرج مناطق التدريب.', 'Échauffement 15–20 min. Départ poussé, <b>3 min à fond dès le départ</b>, sans gestion d’allure. Noter la <b>distance à 2:30</b> et <b>à 3:00</b> (repères tous les 5 m). <b>Vitesse critique</b> = vitesse moyenne des 30 dernières s. <b>D′</b> = réserve anaérobie (m). Zones d’entraînement calculées.'] },
   // ---- lactique
   { id: 'm100', sys: 'LAC', w: 1, cats: from('ben'), name: ['100 م بأقصى جهد', '100 m maximal'], unit: 's', better: 'low',
     inputs: [tm('t', tv(['الزمن', 'Temps']), H.touch)], calc: function (d) { var x = C.parseTime(d.t); return x ? { v: x, disp: F(x, 2), extra: pace(100, x) } : null; },
@@ -101,6 +105,17 @@ var TESTS = [
   { id: 'rs', sys: 'ALA', w: 1, cats: from('ben'), name: ['6×25 كل 1:00 (تكرار السرعة)', '6×25 départ 1:00 (sprints répétés)'], unit: 's', better: 'low',
     inputs: repsInputs(6, '25'), calc: function (d) { var s = timesStats(d, 6); return s && s.a.length >= 4 ? { v: s.best, disp: F(s.best, 2), extra: T('mean') + ' ' + F(s.mean, 2) + ' · ' + T('dec') + ' ' + R(s.dec, 1) + '%' } : null; },
     g: ['6×25 <b>بأقصى سرعة</b>، كل 25 تبدا كل دقيقة. <b>اكتب كل زمن</b>. النتيجة: الأحسن، ونسبة الهبوط (أقل = يسترجع أحسن).', '6×25 <b>vitesse max</b>, départ 1:00. Noter chaque temps. Meilleur + décrément.'] },
+  { id: 'lv', sys: 'ALA', w: 1, cats: from('min'), name: ['قوة-سرعة في الماء (Semi-tethered)', 'Charge-vitesse en semi-tethered'], unit: 'm/s', better: 'high',
+    inputs: [nm('l1', tv(['الحمل 1', 'Charge 1']), 'kg', ['مثلاً 1', 'ex. 1']), tm('t1', tv(['زمن 10 م', 'Temps 10 m']), ['بالحمل 1', 'avec charge 1']), nm('l2', tv(['الحمل 2', 'Charge 2']), 'kg', ['مثلاً 5', 'ex. 5']), tm('t2', tv(['زمن 10 م', 'Temps 10 m']), ['بالحمل 2', 'avec charge 2']), nm('l3', tv(['الحمل 3', 'Charge 3']), 'kg', ['مثلاً 9', 'ex. 9']), tm('t3', tv(['زمن 10 م', 'Temps 10 m']), ['بالحمل 3', 'avec charge 3'])],
+    calc: function (d) {
+      var P = []; [1, 2, 3].forEach(function (i) { var l = C.num(d['l' + i]), t = C.parseTime(d['t' + i]); if (l != null && t) P.push([l, 10 / t]); });
+      if (P.length < 2) return null;
+      var n = P.length, mx = P.reduce(function (a, p) { return a + p[0]; }, 0) / n, my = P.reduce(function (a, p) { return a + p[1]; }, 0) / n, sxy = 0, sxx = 0;
+      P.forEach(function (p) { sxy += (p[0] - mx) * (p[1] - my); sxx += (p[0] - mx) * (p[0] - mx); });
+      if (!sxx) return null; var b = sxy / sxx, a = my - b * mx; if (b >= 0) return null;
+      return { v: a, disp: R(a, 2) + ' m/s', extra: 'V0 ' + R(a, 2) + ' m/s · L0 ' + R(-a / b, 1) + ' kg · ' + (L() === 'fr' ? 'pente ' : 'الميل ') + R(b, 3) };
+    },
+    g: ['حزام في الوسط مربوط بخيط يمرّ على <b>بكرة</b> فوق المكعب، وفي اللخر أوزان. السباح يسبح <b>10 م بأقصى سرعة</b> (بعد 5 م انطلاق في الماء) بـ <b>3 أحمال</b> (مثلاً 1، 5، 9 كغ للذكور · 1، 3، 5 كغ للإناث)، راحة 3 د. الزمن بالكرونو ولا بالفيديو. <b>V0</b> = السرعة القصوى النظرية (السرعة)، <b>L0</b> = الحمل الأقصى النظري (القوة في الماء). يستعمل للمتابعة مع الوقت.', 'Ceinture reliée à une <b>poulie</b> et des charges. <b>10 m à fond</b> (après 5 m lancés) avec <b>3 charges</b> (ex. 1, 5, 9 kg garçons · 1, 3, 5 kg filles), récup 3 min. <b>V0</b> = vitesse max théorique, <b>L0</b> = charge max théorique. Pour le suivi dans le temps.'] },
   // ---- endurance de force
   { id: 'push', sys: 'END', w: 0, cats: CATS.map(function (c) { return c[0]; }), name: ['Pompes في 30 ث', 'Pompes en 30 s'], unit: 'rep', better: 'high',
     inputs: [nm('n', tv(['العدد', 'Nombre']), 'rep', H.reps)], calc: function (d) { var x = C.num(d.n); return x != null ? { v: x, disp: x } : null; },
@@ -165,22 +180,23 @@ function result(s, tid, camp) {
   var c = t.calc(best.data || {}, s); return c ? Object.assign({ rec: best }, c) : null;
 }
 // score 0–100 dans la catégorie (même sexe si ≥3, sinon mixte)
-function score(s, tid, camp) {
+function score(s, tid, camp, mode) {
   var me = result(s, tid, camp); if (!me) return null;
   var cat = catOf(s, me.rec.date), t = testById(tid);
   var pool = DB().swimmers.filter(function (x) { return catOf(x, me.rec.date) === cat; });
+  if (mode === 'mat') { var mm = matOf(s, me.rec.date); if (!mm) return null; pool = DB().swimmers.filter(function (x) { var q = matOf(x, me.rec.date); return q && Math.abs(q.mo - mm.mo) <= 1 && (x.sex || 'M') === (s.sex || 'M'); }); }
   var same = pool.filter(function (x) { return (x.sex || 'M') === (s.sex || 'M'); });
   var sg = t.proto && me.rec.data.proto ? pSig(me.rec.data.proto) : null;
   var vals = function (list) { return list.map(function (x) { var r = result(x, tid, camp); return r && (!sg || (r.rec.data.proto && pSig(r.rec.data.proto) === sg)) ? r.v : null; }).filter(function (v) { return v != null; }); };
-  var v = vals(same); if (v.length < 3) v = vals(pool);
+  var v = vals(same); if (v.length < 3 && mode !== 'mat') v = vals(pool);
   if (v.length < 3) return null;
   var st = C.stats(v); if (!st.sd) return 50;
   var z = (me.v - st.m) / st.sd; if (t.better === 'low') z = -z;
   return Math.max(0, Math.min(100, Math.round(50 + 15 * z)));
 }
-function sysScores(s, camp) {
+function sysScores(s, camp, mode) {
   var cat = catOf(s), o = {};
-  SYS.forEach(function (k) { var a = testsForCat(cat).filter(function (t) { return t.sys === k; }).map(function (t) { return score(s, t.id, camp); }).filter(function (x) { return x != null; }); o[k] = a.length ? Math.round(a.reduce(function (p, q) { return p + q; }, 0) / a.length) : null; });
+  SYS.forEach(function (k) { var a = testsForCat(cat).filter(function (t) { return t.sys === k; }).map(function (t) { return score(s, t.id, camp, mode); }).filter(function (x) { return x != null; }); o[k] = a.length ? Math.round(a.reduce(function (p, q) { return p + q; }, 0) / a.length) : null; });
   return o;
 }
 function camps() { var set = {}; set[campOf(new Date())] = 1; recs().forEach(function (r) { set[campOf(r.date)] = 1; }); return Object.keys(set).sort().reverse(); }
@@ -216,20 +232,20 @@ var EXO = {
   POW: ['CMJ (saut contre-mouvement)', 'Squat jump', 'Saut en longueur sans élan', 'Triple bond', 'Lancer médecine-ball poitrine', 'Lancer arrière par-dessus la tête', 'Lancer médecine-ball au-dessus de la tête', 'Sprint 10 m']
 };
 var PRESETS = [
-  { name: 'هوائي 2×(4×100) R20″/2′', sys: 'AER', sets: 2, reps: 4, dist: 100, restRep: 20, restSet: 120, intensity: '85%', hr: true, stroke: 'NL', start: 'eau' },
-  { name: 'هوائي 8×100 R15″', sys: 'AER', sets: 1, reps: 8, dist: 100, restRep: 15, restSet: 0, intensity: '85%', hr: true, stroke: 'NL', start: 'eau' },
-  { name: 'لاكتيك 6×50 R30″ أقصى', sys: 'LAC', sets: 1, reps: 6, dist: 50, restRep: 30, restSet: 0, intensity: 'max', hr: true, stroke: 'NL', start: 'plot' },
-  { name: 'لاكتيك 2×(3×100) R1′/4′ أقصى', sys: 'LAC', sets: 2, reps: 3, dist: 100, restRep: 60, restSet: 240, intensity: 'max', hr: true, stroke: 'NL', start: 'plot' },
-  { name: 'ألاكتيك 4×25 R2′ أقصى', sys: 'ALA', sets: 1, reps: 4, dist: 25, restRep: 120, restSet: 0, intensity: 'max', stroke: 'NL', start: 'plot' },
-  { name: 'ألاكتيك 2×(3×15) R1′30/4′', sys: 'ALA', sets: 2, reps: 3, dist: 15, restRep: 90, restSet: 240, intensity: 'max', stroke: 'NL', start: 'plot' },
-  { name: 'Pompes 3×30″ R30″', sys: 'END', mode: 'count', exercise: 'Pompes', sets: 3, work: 30, restSet: 30 },
-  { name: 'Squats 3×45″ R15″', sys: 'END', mode: 'count', exercise: 'Squats', sets: 3, work: 45, restSet: 15 },
-  { name: 'Gainage 3× أقصى R1′', sys: 'END', mode: 'measure', exercise: 'Gainage', sets: 3, reps: 1, restSet: 60, unit: 's', agg: 'total', better: 'high' },
-  { name: 'Squat 1RM مقدّر', sys: 'MAX', mode: 'rm', exercise: 'Squat', sets: 3, restSet: 180, cats: ['cad', 'jun', 'sen'] },
-  { name: 'Développé couché 1RM مقدّر', sys: 'MAX', mode: 'rm', exercise: 'Développé couché', sets: 3, restSet: 180, cats: ['cad', 'jun', 'sen'] },
-  { name: 'Tirage horizontal 1RM مقدّر', sys: 'MAX', mode: 'rm', exercise: 'Tirage horizontal (rowing)', sets: 3, restSet: 180, cats: ['cad', 'jun', 'sen'] },
-  { name: 'CMJ فيديو 5 قفزات R1′', sys: 'POW', mode: 'jump', exercise: 'CMJ (saut contre-mouvement)', sets: 1, reps: 5, restRep: 60, fps: 240 },
-  { name: 'Médecine-ball 3 كغ ×3', sys: 'POW', mode: 'measure', exercise: 'Lancer médecine-ball poitrine', sets: 1, reps: 3, restRep: 60, unit: 'm', agg: 'best', better: 'high', intensity: '3 kg' }
+  { name: ['هوائي 2×(4×100) R20″/2′', 'Aérobie 2×(4×100) R20″/2′'], sys: 'AER', sets: 2, reps: 4, dist: 100, restRep: 20, restSet: 120, intensity: '85%', hr: true, stroke: 'NL', start: 'eau' },
+  { name: ['هوائي 8×100 R15″', 'Aérobie 8×100 R15″'], sys: 'AER', sets: 1, reps: 8, dist: 100, restRep: 15, restSet: 0, intensity: '85%', hr: true, stroke: 'NL', start: 'eau' },
+  { name: ['لاكتيك 6×50 R30″ أقصى', 'Lactique 6×50 R30″ max'], sys: 'LAC', sets: 1, reps: 6, dist: 50, restRep: 30, restSet: 0, intensity: 'max', hr: true, stroke: 'NL', start: 'plot' },
+  { name: ['لاكتيك 2×(3×100) R1′/4′ أقصى', 'Lactique 2×(3×100) R1′/4′ max'], sys: 'LAC', sets: 2, reps: 3, dist: 100, restRep: 60, restSet: 240, intensity: 'max', hr: true, stroke: 'NL', start: 'plot' },
+  { name: ['ألاكتيك 4×25 R2′ أقصى', 'Alactique 4×25 R2′ max'], sys: 'ALA', sets: 1, reps: 4, dist: 25, restRep: 120, restSet: 0, intensity: 'max', stroke: 'NL', start: 'plot' },
+  { name: ['ألاكتيك 2×(3×15) R1′30/4′', 'Alactique 2×(3×15) R1′30/4′'], sys: 'ALA', sets: 2, reps: 3, dist: 15, restRep: 90, restSet: 240, intensity: 'max', stroke: 'NL', start: 'plot' },
+  { name: ['Pompes 3×30″ R30″', 'Pompes 3×30″ R30″'], sys: 'END', mode: 'count', exercise: 'Pompes', sets: 3, work: 30, restSet: 30 },
+  { name: ['Squats 3×45″ R15″', 'Squats 3×45″ R15″'], sys: 'END', mode: 'count', exercise: 'Squats', sets: 3, work: 45, restSet: 15 },
+  { name: ['Gainage 3× أقصى R1′', 'Gainage 3× max R1′'], sys: 'END', mode: 'measure', exercise: 'Gainage', sets: 3, reps: 1, restSet: 60, unit: 's', agg: 'total', better: 'high' },
+  { name: ['Squat 1RM مقدّر', 'Squat 1RM estimé'], sys: 'MAX', mode: 'rm', exercise: 'Squat', sets: 3, restSet: 180, cats: ['cad', 'jun', 'sen'] },
+  { name: ['Développé couché 1RM مقدّر', 'Développé couché 1RM estimé'], sys: 'MAX', mode: 'rm', exercise: 'Développé couché', sets: 3, restSet: 180, cats: ['cad', 'jun', 'sen'] },
+  { name: ['Tirage horizontal 1RM مقدّر', 'Tirage horizontal 1RM estimé'], sys: 'MAX', mode: 'rm', exercise: 'Tirage horizontal (rowing)', sets: 3, restSet: 180, cats: ['cad', 'jun', 'sen'] },
+  { name: ['CMJ فيديو 5 قفزات R1′', 'CMJ vidéo 5 sauts R1′'], sys: 'POW', mode: 'jump', exercise: 'CMJ (saut contre-mouvement)', sets: 1, reps: 5, restRep: 60, fps: 240 },
+  { name: ['Médecine-ball 3 كغ ×3', 'Médecine-ball 3 kg ×3'], sys: 'POW', mode: 'measure', exercise: 'Lancer médecine-ball poitrine', sets: 1, reps: 3, restRep: 60, unit: 'm', agg: 'best', better: 'high', intensity: '3 kg' }
 ];
 function protos(all) { return (DB().protos || []).filter(function (p) { return all || p.active !== false; }); }
 function protoById(id) { return (DB().protos || []).find(function (p) { return p.id === id; }); }
@@ -326,12 +342,12 @@ function verdictChip(vd) {
   return '<span class="chip ' + cls + '" title="' + T(vd.k) + ' · ' + T('mdc') + ' ' + R(vd.mdc, 1) + '%">' + (up ? '▲ ' : '▼ ') + R(Math.abs(vd.ch), 1) + '% · ' + T(vd.k) + '</span>';
 }
 /* --- vue : liste + éditeur de protocoles --- */
-var ACT = { 'résultat': ['نتيجة جديدة', 'Nouveau résultat'], 'résultat modifié': ['تعديل نتيجة', 'Résultat modifié'], 'résultat supprimé': ['حذف نتيجة', 'Résultat supprimé'], 'protocole créé': ['بروتوكول جديد', 'Protocole créé'], 'protocole modifié': ['تعديل بروتوكول', 'Protocole modifié'], 'protocole archivé': ['أرشفة بروتوكول', 'Protocole archivé'] };
+var ACT = { 'résultat': ['نتيجة جديدة', 'Nouveau résultat'], 'résultat modifié': ['تعديل نتيجة', 'Résultat modifié'], 'résultat supprimé': ['حذف نتيجة', 'Résultat supprimé'], 'protocole créé': ['بروتوكول جديد', 'Protocole créé'], 'protocole modifié': ['تعديل بروتوكول', 'Protocole modifié'], 'protocole archivé': ['أرشفة بروتوكول', 'Protocole archivé'], 'programme': ['برنامج الحملة', 'Programme de campagne'] };
 function canEdit(p) { var me = DB().me || {}; return K.isAdmin() || p.byId === me.id; }
 function vProtos(app) {
   var all = protos(true), ed = ST.pedit, h = '<div class="row"><button class="btn sm" id="bk">← ' + T('home') + '</button><span class="sp"></span>' + (ed ? '' : '<button class="btn pri" id="pnew">' + T('protoNew') + '</button>') + '</div>';
   if (ed) { app.innerHTML = h + protoForm(ed); bindProtoForm(); $('#bk').onclick = function () { ST.pedit = null; K.render(); }; return; }
-  h += '<h1>' + T('protos') + '</h1>';
+  h += '<h1>' + T('myProtos') + '</h1>';
   SYS.forEach(function (k) {
     var g = all.filter(function (p) { return p.sys === k; }); if (!g.length) return;
     h += '<h2>' + T(k) + '</h2><div class="grid g2" style="margin-bottom:12px">' + g.map(function (p) {
@@ -343,6 +359,7 @@ function vProtos(app) {
     }).join('') + '</div>';
   });
   if (!all.length) h += '<div class="card empty">' + T('protoNew') + '</div>';
+  h += '<h1 style="margin-top:18px">' + T('builtin') + '</h1>' + SYS.concat(['FLX']).map(function (k) { var g = TESTS.filter(function (t) { return t.sys === k; }); return g.length ? '<div class="card"><h3>' + T(k) + '</h3><div class="tlist">' + g.map(function (t) { return '<div class="it"><div class="sp"><b>' + esc(tv(t.name)) + '</b> <span class="chip">📌</span><div class="small muted">' + (t.cats.length === ALLC.length ? T('allCats') : t.cats.map(function (c) { return (CATS.find(function (x) { return x[0] === c; }) || [])[L() === 'fr' ? 1 : 2]; }).join('، ')) + '</div></div><button class="btn sm pri" data-useb="' + t.id + '">📝 ' + T('useIt') + '</button></div>'; }).join('') + '</div></div>' : ''; }).join('');
   // fiabilité
   var rel = all.filter(function (p) { return p.active !== false; }).map(function (p) { var t = protoTest(p), r = teOf(t); return '<tr><td style="text-align:start">' + esc(p.name) + '</td><td class="num">' + R(r.te, 1) + '%</td><td class="num"><b>' + R(2.77 * r.te, 1) + '%</b></td><td class="small muted">' + (r.ref ? T('refVal') + ' (' + r.n + ' ' + T('pairs') + ')' : r.n + ' ' + T('pairs')) + '</td></tr>'; }).join('');
   if (rel) h += '<div class="card"><h3>' + T('relTitle') + '</h3><div class="tbl-wrap"><table><tr><th></th><th>' + T('te') + '</th><th>' + T('mdc') + '</th><th></th></tr>' + rel + '</table></div><p class="small muted">' + T('relNote') + '</p></div>';
@@ -352,6 +369,7 @@ function vProtos(app) {
   $('#pnew').onclick = function () { ST.pedit = { sys: 'AER', sets: 1, reps: 4, dist: 50, cats: [] }; K.render(); };
   $$('[data-pe]').forEach(function (b) { b.onclick = function () { ST.pedit = JSON.parse(JSON.stringify(protoById(b.dataset.pe))); K.render(); }; });
   $$('[data-pa]').forEach(function (b) { b.onclick = function () { var p = JSON.parse(JSON.stringify(protoById(b.dataset.pa))); p.active = p.active === false; saveProto(p); }; });
+  $$('[data-useb]').forEach(function (b) { b.onclick = function () { ST.test = b.dataset.useb; ST.one = null; ST.retest = false; ST.back = 'home'; K.route('btEntry'); }; });
   $$('[data-use]').forEach(function (b) { b.onclick = function () { ST.test = 'p:' + b.dataset.use; ST.one = null; ST.retest = false; K.route('btEntry'); }; });
   if (K.isAdmin()) K.API.call('audit').then(function (r) {
     var el = $('#audit'); if (!el) return;
@@ -363,7 +381,7 @@ function protoForm(p) {
   var opt = function (v, cur, l) { return '<option value="' + v + '"' + (String(cur) === String(v) ? ' selected' : '') + '>' + l + '</option>'; };
   var inp = function (k, l, v, type) { return '<div class="f"><label>' + l + '</label><input data-pf="' + k + '" ' + (type === 'n' ? 'inputmode="decimal" class="mono"' : '') + ' value="' + esc(v == null ? '' : v) + '"></div>'; };
   var h = '<h1>' + (p.id ? '✎ ' + esc(p.name) : T('protoNew')) + '</h1>';
-  if (!p.id) h += '<div class="card"><h3>' + T('pPresets') + '</h3><div class="row" style="flex-wrap:wrap;gap:6px">' + PRESETS.map(function (x, i) { return '<button class="btn sm" data-pre="' + i + '">' + esc(x.name) + '</button>'; }).join('') + '</div></div>';
+  if (!p.id) h += '<div class="card"><h3>' + T('pPresets') + '</h3><div class="row" style="flex-wrap:wrap;gap:6px">' + PRESETS.map(function (x, i) { return '<button class="btn sm" data-pre="' + i + '">' + esc(tv(x.name)) + '</button>'; }).join('') + '</div></div>';
   if (has) h += '<div class="note" style="margin-bottom:12px">' + T('pEditWarn') + '</div>';
   h += '<div class="card"><div class="fr">' + inp('name', T('pName'), p.name) + '<div class="f"><label>' + T('pSys') + '</label><select data-pf="sys">' + SYS.map(function (k) { return opt(k, p.sys, (WATER[k] ? '🏊 ' : '🏋 ') + T(k)); }).join('') + '</select></div></div>';
   h += '<label>' + T('pCats') + '</label><div class="seg" id="pcats">' + CATS.map(function (c) { var on = (p.cats || []).indexOf(c[0]) >= 0; return '<button class="btn sm' + (on ? ' on' : '') + '" data-pc="' + c[0] + '">' + (L() === 'fr' ? c[1] : c[2]) + '</button>'; }).join('') + '</div><div class="small muted" style="margin:4px 0 10px">' + (L() === 'fr' ? 'Aucune = toutes' : 'ما تختار والو = كل الفئات') + '</div>';
@@ -394,7 +412,7 @@ function readForm() {
 }
 function bindProtoForm() {
   var p = ST.pedit;
-  $$('[data-pre]').forEach(function (b) { b.onclick = function () { var x = JSON.parse(JSON.stringify(PRESETS[+b.dataset.pre])); ST.pedit = Object.assign({ cats: [] }, x); K.render(); }; });
+  $$('[data-pre]').forEach(function (b) { b.onclick = function () { var x = JSON.parse(JSON.stringify(PRESETS[+b.dataset.pre])); x.name = tv(x.name); ST.pedit = Object.assign({ cats: [] }, x); K.render(); }; });
   $$('[data-pc]').forEach(function (b) { b.onclick = function () { readForm(); var c = b.dataset.pc, a = p.cats = p.cats || [], i = a.indexOf(c); if (i >= 0) a.splice(i, 1); else a.push(c); K.render(); }; });
   $$('[data-pf]').forEach(function (i) {
     i.addEventListener(i.tagName === 'SELECT' ? 'change' : 'input', function () {
@@ -431,42 +449,128 @@ function bindCommon(rerender) {
   $$('[data-cat]').forEach(function (b) { b.onclick = function () { ST.cat = b.dataset.cat; ST.test = ''; rerender(); }; });
 }
 
+/* ================= organisation par catégorie ================= */
+Object.assign(K.D, {
+  prog: ['📋 برنامج الحملة', '📋 Programme de la campagne'], progEdit: ['✎ تحديد البرنامج', '✎ Définir le programme'], progEmpty: ['ما كاين حتى اختبار في البرنامج. المدرب الرئيسي يحددو.', 'Aucun test au programme. L’entraîneur principal le définit.'],
+  progCopy: ['نسخ من الحملة اللي فاتت', 'Copier la campagne précédente'], done: ['تعدّاو', 'testés'], results2: ['📊 النتائج', '📊 Résultats'], enter: ['📝 إدخال', '📝 Saisir'], tSw: ['👥 السباحين', '👥 Nageurs'],
+  builtin: ['📌 قوالب النادي (ثابتة)', '📌 Modèles du club (fixes)'], myProtos: ['🧩 بروتوكولات المدربين', '🧩 Protocoles des entraîneurs'], rank: ['المرتبة', 'Rang'],
+  scoreMode: ['النقطة', 'Score'], scNorm: ['عادية', 'Normale'], scMat: ['معدّلة بالنضج', 'Ajustée maturité'], matNote: ['معدّلة بالنضج: السباح يتقارن مع اللي في نفس مرحلة النضج (±1 سنة من ذروة النمو)، من نفس الجنس، مهما كانت الفئة. تحتاج الطول، الطول قاعد والوزن.', 'Ajustée : comparaison avec les nageurs de même maturité (±1 an du pic de croissance), même sexe, toutes catégories. Nécessite taille, taille assise et poids.'],
+  q: ['ربع الميلاد', 'Trimestre de naissance'], qNote: ['Q4 = مولود في آخر العام: أصغر من زملاء الفئة بقرابة عام. نتايجو تتقرا بعين الاعتبار.', 'Q4 = né en fin d’année : jusqu’à 1 an plus jeune que ses pairs.'],
+  matSt: ['النضج', 'Maturité'], early: ['بكري', 'précoce'], ontime: ['في الوقت', 'normal'], late: ['متأخر', 'tardif'], needSitH: ['زيد الطول قاعد', 'Ajouter taille assise'],
+  zones: ['مناطق التدريب (من السرعة الحرجة)', 'Zones d’entraînement (vitesse critique)'], zRec: ['استرجاع', 'Récup'], zA1: ['هوائي 1', 'Aérobie 1'], zA2: ['هوائي 2', 'Aérobie 2'], zTh: ['العتبة (CS)', 'Seuil (CS)'], zVo: ['VO2max', 'VO2max'],
+  progress: ['التقدم', 'Avancement'], st_pre: ['قبل ذروة النمو', 'avant le pic'], st_circa: ['حول الذروة', 'autour du pic'], st_post: ['بعد الذروة', 'après le pic'], allTests: ['كل الاختبارات', 'Tous les tests']
+});
+function progOf(camp) { var p = (DB().settings || {})['prog_' + camp]; return p && typeof p === 'object' ? p : {}; }
+function catProg(cat, camp) { return (progOf(camp)[cat] || []).filter(function (id) { return testById(id); }); }
+function swOfCat(cat, date) { return K.visibleSwimmers().filter(function (s) { return catOf(s, date) === cat; }); }
+function doneCount(tid, list, camp) { return list.filter(function (s) { return result(s, tid, camp); }).length; }
+function yrs(c) { var y = yearsOf(c); return c === 'eco' ? '≥' + y.born_from : (y.born_from ? y.born_from + '–' : '≤') + y.born_to; }
+function bar(p) { var c = p >= 100 ? 'var(--ok)' : p >= 50 ? 'var(--blue)' : 'var(--warn)'; return '<div style="height:7px;border-radius:4px;background:rgba(127,140,170,.2);overflow:hidden"><div style="height:100%;width:' + Math.min(100, p) + '%;background:' + c + '"></div></div>'; }
+
 function vHome(app) {
-  var list = K.visibleSwimmers().slice().sort(function (a, b) { return (a.name || '').localeCompare(b.name || ''); }), camp = curCamp();
+  var camp = curCamp();
   var h = '<div class="welcome"><h1>🧪 ' + T('btTitle') + '</h1><div class="muted">' + campName(camp) + ' · ' + K.fmtDate(K.today()) + '</div><svg viewBox="0 0 1200 60" preserveAspectRatio="none"><path d="M0 30 C150 5 300 55 450 30 S750 5 900 30 S1100 55 1200 30 V60 H0Z" fill="rgba(255,255,255,.15)"/></svg></div>';
-  if (K.isAdmin() && (DB().coaches || []).length) h += '<div class="coachbar"><span class="small muted">👁 ' + T('viewAs') + ' :</span><div class="seg"><button class="btn sm' + (!K.viewAs() ? ' on' : '') + '" data-va="">' + T('allCoaches') + '</button>' + DB().coaches.map(function (c) { return '<button class="btn sm' + (K.viewAs() === c.id ? ' on' : '') + '" data-va="' + c.id + '">' + esc(c.name) + '</button>'; }).join('') + '</div></div>';
-  h += '<div class="row" style="margin-bottom:12px">' + campSel() + '<span class="sp"></span><button class="btn pri" id="go-entry">' + T('entry') + '</button><button class="btn" id="go-report">' + T('report') + '</button><button class="btn" id="go-protos">' + T('protos') + '</button><button class="btn" id="add">＋ ' + T('addSw') + '</button></div>';
-  h += '<div style="margin-bottom:14px">' + catChips(ST.cat, true) + '</div>';
-  var shown = list.filter(function (s) { return !ST.cat || catOf(s) === ST.cat; });
-  if (!shown.length) h += '<div class="card empty">' + (list.length ? T('noSwCat') : T('noSw')) + '</div>';
-  CATS.forEach(function (c) {
-    var g = shown.filter(function (s) { return catOf(s) === c[0]; }); if (!g.length) return;
-    var y = yearsOf(c[0]);
-    h += '<h2 style="margin-top:8px">' + catName(c[0]) + ' <span class="small muted">(' + (y.born_from ? y.born_from + '–' : '≤') + y.born_to + (y.born_from ? '' : '') + ') · ' + g.length + ' ' + T('ofSwimmers') + '</span></h2><div class="grid g3" style="margin-bottom:16px">';
-    g.forEach(function (s) {
-      var sc = sysScores(s, camp), n = recsOf(s.id).filter(function (r) { return campOf(r.date) === camp; }).length;
-      h += '<div class="card sw" data-id="' + s.id + '"><div class="av">' + esc(K.initials(s.name)) + '</div><div class="sp" style="min-width:0"><b style="font-size:17px">' + esc(s.name) + '</b><div class="small muted">' + (s.group ? esc(s.group) + ' · ' : '') + n + ' ' + T('resultsOf').toLowerCase() + '</div>' +
-        '<div class="row" style="gap:4px;margin-top:4px">' + SYS.map(function (k) { var v = sc[k]; var col = v == null ? '#c9d5ea' : v >= 60 ? 'var(--ok)' : v >= 40 ? 'var(--blue)' : 'var(--warn)'; return '<span title="' + T(k) + '" style="flex:1;height:6px;border-radius:3px;background:' + col + '"></span>'; }).join('') + '</div></div></div>';
-    });
-    h += '</div>';
-  });
+  h += '<div class="row" style="margin-bottom:14px">' + campSel() + '<span class="sp"></span><button class="btn pri" id="go-entry">' + T('entry') + '</button><button class="btn" id="go-protos">' + T('protos') + '</button><button class="btn" id="go-report">' + T('report') + '</button><button class="btn" id="add">＋ ' + T('addSw') + '</button></div>';
+  h += '<div class="grid g3">' + CATS.map(function (c) {
+    var list = swOfCat(c[0]), y = yearsOf(c[0]), pr = catProg(c[0], camp), tot = pr.length * list.length, dn = 0;
+    pr.forEach(function (tid) { dn += doneCount(tid, list, camp); });
+    var pct = tot ? Math.round(dn / tot * 100) : 0;
+    return '<div class="card sw" data-cg="' + c[0] + '" style="cursor:pointer;display:block' + (list.length ? '' : ';opacity:.55') + '"><div class="row"><b style="font-size:19px" class="sp">' + (L() === 'fr' ? c[1] : c[2]) + '</b><span class="chip">' + list.length + ' 🏊</span></div>' +
+      '<div class="small muted" style="margin:2px 0 10px">' + (L() === 'fr' ? '' : c[1] + ' · ') + yrs(c[0]) + '</div>' +
+      (pr.length ? '<div class="row small" style="margin-bottom:4px"><span class="sp muted">' + T('prog').replace('📋 ', '') + ' · ' + pr.length + '</span><b class="num">' + pct + '%</b></div>' + bar(pct) : '<div class="small muted">' + (L() === 'fr' ? 'Pas de programme' : 'ما كاينش برنامج') + '</div>') + '</div>';
+  }).join('') + '</div>';
   app.innerHTML = h;
   bindCommon(function () { K.render(); });
-  $$('[data-va]').forEach(function (b) { b.onclick = function () { K.ls('vo2_viewas', b.dataset.va || null); location.reload(); }; });
-  $('#go-entry').onclick = function () { K.route('btEntry'); };
-  $('#go-report').onclick = function () { K.route('btReport'); };
+  $('#go-entry').onclick = function () { ST.back = 'home'; K.route('btEntry'); };
   $('#go-protos').onclick = function () { ST.pedit = null; K.route('btProtos'); };
+  $('#go-report').onclick = function () { K.route('btReport'); };
   $('#add').onclick = function () { K.route('swForm', { sid: null }); };
-  $$('.sw').forEach(function (el) { el.onclick = function () { K.route('swimmer', { sid: el.dataset.id }); }; });
+  $$('[data-cg]').forEach(function (el) { el.onclick = function () { ST.cat = el.dataset.cg; ST.ctab = ST.ctab || 'prog'; ST.pe = false; K.route('btCat'); }; });
   if (!vHome.loaded) { vHome.loaded = true; K.load().then(function (r) { if (r && r.ok && K.S.view === 'home') K.render(); }).catch(function () {}); }
+}
+function canProg() { var me = DB().me || {}; return K.isAdmin() || !!me.head; }
+function vCat(app) {
+  var cat = ST.cat || 'ben', camp = curCamp(), list = swOfCat(cat).sort(function (a, b) { return (a.name || '').localeCompare(b.name || ''); }), y = yearsOf(cat), tab = ST.ctab || 'prog';
+  var h = '<div class="row"><button class="btn sm" id="bk">← ' + T('home') + '</button><span class="sp"></span>' + campSel() + '</div>' +
+    '<div class="row" style="margin:12px 0"><h1 class="sp" style="margin:0">' + catName(cat) + ' <span class="small muted">(' + yrs(cat) + ') · ' + list.length + ' ' + T('ofSwimmers') + '</span></h1></div>' +
+    '<div class="seg" style="margin-bottom:14px">' + [['prog', T('prog')], ['water', T('water')], ['land', T('land')], ['sw', T('tSw')]].map(function (x) { return '<button class="btn sm' + (tab === x[0] ? ' on' : '') + '" data-ct="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div>';
+  var row = function (t) {
+    var n = doneCount(t.id, list, camp), p = list.length ? Math.round(n / list.length * 100) : 0;
+    return '<div class="it"><div class="sp"><b>' + esc(tv(t.name)) + '</b>' + (t.proto ? ' <span class="chip">🧩</span>' : '') + '<div class="small muted ltr">' + (t.proto ? esc(protoStr(t.proto)) : '') + '</div><div class="row small" style="margin-top:4px"><span class="num">' + n + '/' + list.length + '</span><span class="sp">' + bar(p) + '</span></div></div>' +
+      '<div class="row" style="gap:6px"><button class="btn sm pri" data-en="' + t.id + '">' + T('enter') + '</button><button class="btn sm" data-rs="' + t.id + '">' + T('results2') + '</button></div></div>';
+  };
+  if (tab === 'prog') {
+    var pr = catProg(cat, camp);
+    if (ST.pe) {
+      var all = testsForCat(cat), sel = {}; pr.forEach(function (id) { sel[id] = 1; });
+      h += '<div class="card"><h3>' + T('progEdit') + ' · ' + campName(camp) + '</h3>' + SYS.concat(['FLX']).map(function (k) { var g = all.filter(function (t) { return t.sys === k; }); return g.length ? '<h2 style="font-size:15px">' + (WATER[k] ? '🏊 ' : '🏋 ') + T(k) + '</h2>' + g.map(function (t) { return '<label class="row" style="gap:8px;margin:4px 0;font-weight:600"><input type="checkbox" data-pt="' + t.id + '"' + (sel[t.id] ? ' checked' : '') + ' style="width:auto"> ' + esc(tv(t.name)) + (t.proto ? ' <span class="small muted ltr">' + esc(protoStr(t.proto)) + '</span>' : '') + '</label>'; }).join('') : ''; }).join('') +
+        '<div class="row" style="margin-top:12px"><button class="btn pri" id="psv">💾 ' + T('save') + '</button><button class="btn" id="pcp">' + T('progCopy') + '</button><button class="btn" id="pcx">' + T('cancel') + '</button></div></div>';
+    } else {
+      h += '<div class="card"><div class="row" style="margin-bottom:6px"><h3 class="sp" style="margin:0">' + T('prog') + ' · ' + campName(camp) + '</h3>' + (canProg() ? '<button class="btn sm" id="pe">' + T('progEdit') + '</button>' : '') + '</div>' + (pr.length ? '<div class="tlist">' + pr.map(function (id) { return row(testById(id)); }).join('') + '</div>' : '<p class="muted">' + T('progEmpty') + '</p>') + '</div>';
+    }
+  } else if (tab === 'water' || tab === 'land') {
+    var ks = tab === 'water' ? ['AER', 'LAC', 'ALA'] : ['END', 'MAX', 'POW', 'FLX'];
+    ks.forEach(function (k) { var g = testsForCat(cat).filter(function (t) { return t.sys === k; }); if (g.length) h += '<div class="card"><h3>' + T(k) + '</h3><div class="tlist">' + g.map(row).join('') + '</div></div>'; });
+  } else {
+    if (!list.length) h += '<div class="card empty">' + T('noSwCat') + '</div>';
+    else h += '<div class="grid g3">' + list.map(function (s) {
+      var sc = sysScores(s, camp), n = recsOf(s.id).filter(function (r) { return campOf(r.date) === camp; }).length;
+      return '<div class="card sw" data-id="' + s.id + '"><div class="av">' + esc(K.initials(s.name)) + '</div><div class="sp" style="min-width:0"><b style="font-size:17px">' + esc(s.name) + '</b><div class="small muted">' + (s.group ? esc(s.group) + ' · ' : '') + n + ' ' + T('resultsOf').toLowerCase() + ' · Q' + quarter(s) + '</div>' +
+        '<div class="row" style="gap:4px;margin-top:4px">' + SYS.map(function (k) { var v = sc[k]; var col = v == null ? '#c9d5ea' : v >= 60 ? 'var(--ok)' : v >= 40 ? 'var(--blue)' : 'var(--warn)'; return '<span title="' + T(k) + '" style="flex:1;height:6px;border-radius:3px;background:' + col + '"></span>'; }).join('') + '</div></div></div>';
+    }).join('') + '</div>';
+  }
+  app.innerHTML = h;
+  bindCommon(function () { K.render(); });
+  $('#bk').onclick = function () { K.route('home'); };
+  $$('[data-ct]').forEach(function (b) { b.onclick = function () { ST.ctab = b.dataset.ct; ST.pe = false; K.render(); }; });
+  $$('[data-en]').forEach(function (b) { b.onclick = function () { ST.test = b.dataset.en; ST.one = null; ST.retest = false; ST.back = 'btCat'; K.route('btEntry'); }; });
+  $$('[data-rs]').forEach(function (b) { b.onclick = function () { ST.rtest = b.dataset.rs; K.route('btRes'); }; });
+  $$('.sw[data-id]').forEach(function (el) { el.onclick = function () { ST.back = 'btCat'; K.route('swimmer', { sid: el.dataset.id }); }; });
+  if ($('#pe')) $('#pe').onclick = function () { ST.pe = true; K.render(); };
+  if ($('#pcx')) $('#pcx').onclick = function () { ST.pe = false; K.render(); };
+  if ($('#pcp')) $('#pcp').onclick = function () { var prev = catProg(cat, prevCamp(camp)); $$('[data-pt]').forEach(function (i) { i.checked = prev.indexOf(i.dataset.pt) >= 0; }); };
+  if ($('#psv')) $('#psv').onclick = function () {
+    var ids = $$('[data-pt]').filter(function (i) { return i.checked; }).map(function (i) { return i.dataset.pt; });
+    var p = JSON.parse(JSON.stringify(progOf(camp))); p[cat] = ids;
+    DB().settings = DB().settings || {}; DB().settings['prog_' + camp] = p;
+    K.API.call('saveProgram', { camp: camp, cat: cat, tests: ids }).then(function (r) { if (!r.ok) return K.toast(T(r.err) || r.err); K.toast(T('saved')); }).catch(function () { K.toast(T('neterr')); });
+    ST.pe = false; K.render();
+  };
+}
+/* --- résultats d'un test pour la catégorie --- */
+function vRes(app) {
+  var cat = ST.cat, camp = curCamp(), t = testById(ST.rtest); if (!t) return K.route('btCat');
+  var list = swOfCat(cat).map(function (s) { var r = result(s, t.id, camp), p = result(s, t.id, prevCamp(camp)); return { s: s, r: r, p: p, sc: score(s, t.id, camp), sm: score(s, t.id, camp, 'mat') }; });
+  var vals = list.filter(function (x) { return x.r; }).map(function (x) { return x.r.v; });
+  list.sort(function (a, b) { if (!a.r) return 1; if (!b.r) return -1; return t.better === 'low' ? a.r.v - b.r.v : b.r.v - a.r.v; });
+  var h = '<div class="row"><button class="btn sm" id="bk">← ' + catName(cat) + '</button><span class="sp"></span>' + campSel() + '<button class="btn sm pri" id="en">' + T('enter') + '</button></div><h1 style="margin-top:12px">' + esc(tv(t.name)) + '</h1>' + (t.proto ? '<p class="ltr muted">' + esc(protoStr(t.proto)) + '</p>' : '');
+  h += '<div class="card"><div class="tbl-wrap"><table><tr><th>' + T('rank') + '</th><th style="text-align:start">' + T('name') + '</th><th>' + T('results') + '</th><th></th><th>' + T('score') + '</th><th>' + T('scMat') + '</th><th>' + T('delta') + '</th></tr>' +
+    list.map(function (x, i) { return '<tr><td class="num">' + (x.r ? i + 1 : '—') + '</td><td style="text-align:start"><b>' + esc(x.s.name) + '</b> <span class="small muted">Q' + quarter(x.s) + '</span></td><td class="num" style="font-weight:800">' + (x.r ? x.r.disp : '—') + '</td><td class="small muted" style="text-align:start">' + (x.r && x.r.extra ? x.r.extra.split(' · ').map(function (e) { return '<bdi>' + esc(e) + '</bdi>'; }).join(' · ') : '') + '</td><td class="num">' + (x.sc != null ? x.sc : '—') + '</td><td class="num">' + (x.sm != null ? x.sm : '—') + '</td><td>' + (x.r && x.p ? verdictChip(verdict(t, x.r, x.p, vals)) : '') + '</td></tr>'; }).join('') + '</table></div></div>';
+  app.innerHTML = h;
+  bindCommon(function () { K.render(); });
+  $('#bk').onclick = function () { K.route('btCat'); };
+  $('#en').onclick = function () { ST.test = t.id; ST.one = null; ST.back = 'btCat'; K.route('btEntry'); };
+}
+/* --- maturité & trimestre --- */
+function quarter(s) { if (!s || !s.dob) return '?'; return Math.floor(new Date(s.dob).getMonth() / 3) + 1; }
+function matOf(s, date) { if (!s) return null; var a = C.ageAt(s.dob, date), M = a ? C.maturity(s.sex, a, s.height, s.sitH, s.weight) : null; return M; }
+function matStage(mo) { return mo == null ? null : mo < -1 ? 'pre' : mo <= 1 ? 'circa' : 'post'; }
+// précoce / normal / tardif : âge au pic de croissance comparé à la moyenne (garçons 13,8 · filles 11,8)
+function matTiming(s, M) { if (!M || M.aphv == null) return null; var ref = (s.sex || 'M') === 'F' ? 11.8 : 13.8, d = M.aphv - ref; return d < -1 ? 'early' : d > 1 ? 'late' : 'ontime'; }
+function matLabel(s, M) { if (!M) return '—'; var st = matStage(M.mo), tm = matTiming(s, M); return '<span class="num">' + (M.mo > 0 ? '+' : '') + R(M.mo, 1) + '</span> ' + T('st_' + st) + ' · ' + T(tm); }
+/* --- zones à partir de la vitesse critique --- */
+function csZones(cs) {
+  var Z = [['zRec', 0.70, 0.80], ['zA1', 0.80, 0.88], ['zA2', 0.88, 0.95], ['zTh', 0.95, 1.02], ['zVo', 1.02, 1.08]];
+  return '<details class="rd"><summary class="small muted">' + T('zones') + '</summary><table class="small">' + Z.map(function (z) { return '<tr><td style="text-align:start"><b>' + T(z[0]) + '</b></td><td class="num ltr">' + F(100 / (cs * z[2]), 1) + ' – ' + F(100 / (cs * z[1]), 1) + ' /100</td><td class="muted num">' + Math.round(z[1] * 100) + '–' + Math.round(z[2] * 100) + '% CS</td></tr>'; }).join('') + '</table></details>';
 }
 
 /* --- fiche nageur --- */
 function vSwimmer(app) {
   var s = K.sw(K.S.sid); if (!s) return K.route('home');
-  var camp = curCamp(), pc = prevCamp(camp), cat = catOf(s), sc = sysScores(s, camp), sp = sysScores(s, pc);
+  var camp = curCamp(), pc = prevCamp(camp), cat = catOf(s), md = ST.mat ? 'mat' : '', sc = sysScores(s, camp, md), sp = sysScores(s, pc, md), M = matOf(s), st = M ? matStage(M.mo) : null;
   var h = '<div class="row"><button class="btn sm" id="bk">← ' + T('swimmers') + '</button><span class="sp"></span>' + campSel() + '<button class="btn sm" id="pr">🖨</button><button class="btn sm" id="ed">✎ ' + T('edit') + '</button></div>' +
-    '<div class="row" style="margin:12px 0"><div class="av" style="width:58px;height:58px;font-size:22px">' + esc(K.initials(s.name)) + '</div><div class="sp"><h1 style="margin:0">' + esc(s.name) + '</h1><div class="small muted"><span class="chip">' + catName(cat) + '</span> ' + (s.dob ? K.fmtDate(s.dob) : '') + (s.weight ? ' · <span class="ltr">' + esc(s.weight) + ' kg</span>' : '') + (s.group ? ' · ' + esc(s.group) : '') + '</div></div></div>';
+    '<div class="row" style="margin:12px 0"><div class="av" style="width:58px;height:58px;font-size:22px">' + esc(K.initials(s.name)) + '</div><div class="sp"><h1 style="margin:0">' + esc(s.name) + '</h1><div class="small muted"><span class="chip">' + catName(cat) + '</span> ' + (s.dob ? K.fmtDate(s.dob) : '') + (s.weight ? ' · <span class="ltr">' + esc(s.weight) + ' kg</span>' : '') + (s.group ? ' · ' + esc(s.group) : '') + '</div><div class="row small" style="gap:6px;margin-top:6px"><span class="chip' + (quarter(s) === 4 ? ' warn' : '') + '" title="' + esc(T('qNote')) + '">' + T('q') + ' Q' + quarter(s) + '</span>' + (M ? '<span class="chip" title="APHV ' + R(M.aphv, 1) + '">' + T('matSt') + ' : ' + matLabel(s, M) + '</span>' : '<span class="chip">' + T('needSitH') + '</span>') + '</div></div></div>' +
+    '<div class="row" style="margin-bottom:12px"><span class="small muted">' + T('scoreMode') + ' :</span><div class="seg"><button class="btn sm' + (!ST.mat ? ' on' : '') + '" data-md="">' + T('scNorm') + '</button><button class="btn sm' + (ST.mat ? ' on' : '') + '" data-md="mat">' + T('scMat') + '</button></div></div>' + (ST.mat ? '<p class="small muted">' + T('matNote') + '</p>' : '');
   h += '<div class="grid g2"><div class="card"><h3>🕸 ' + T('radar') + '</h3><div class="chart" style="height:300px"><canvas id="ch-radar"></canvas></div><p class="small muted">' + T('scoreNote') + '</p></div><div class="card"><h3>' + T('bt_sys') + '</h3><table><tr><th></th><th>' + campName(camp) + '</th><th>' + campName(pc) + '</th></tr>' +
     SYS.map(function (k) { return '<tr><td style="text-align:start"><b>' + T(k) + '</b></td><td class="num">' + (sc[k] != null ? sc[k] : '—') + '</td><td class="num muted">' + (sp[k] != null ? sp[k] : '—') + '</td></tr>'; }).join('') + '</table></div></div>';
   [['water', ['AER', 'LAC', 'ALA']], ['land', ['END', 'MAX', 'POW', 'FLX']]].forEach(function (grp) {
@@ -475,21 +579,24 @@ function vSwimmer(app) {
       var list = testsForCat(cat, true).filter(function (t) { return t.sys === k && (!t.proto || recsOf(s.id).some(function (r) { return r.data.test === t.id; })); }); if (!list.length) return;
       h += '<div class="card"><h3>' + T(k) + '</h3><div class="tlist">';
       list.forEach(function (t) {
-        var r = result(s, t.id, camp), p = result(s, t.id, pc), scv = score(s, t.id, camp), d = '';
+        var r = result(s, t.id, camp), p = result(s, t.id, pc), scv = score(s, t.id, camp, md), d = '';
         if (r && p) { var pool = DB().swimmers.filter(function (x) { return catOf(x, r.rec.date) === catOf(s, r.rec.date); }).map(function (x) { var q = result(x, t.id, camp); return q ? q.v : null; }).filter(function (v) { return v != null; }); d = verdictChip(verdict(t, r, p, pool)); }
         h += '<div class="it" data-test="' + t.id + '" style="cursor:pointer"><div class="sp"><b>' + tv(t.name) + '</b><div class="small muted">' + (r ? K.fmtDate(r.rec.date) + (r.extra ? ' · ' + r.extra.split(' · ').map(function (x) { return '<bdi>' + esc(x) + '</bdi>'; }).join(' · ') : '') : '＋ ' + T('addRes')) + (p ? ' · ' + T('before') + ' <span class="num">' + p.disp + '</span>' : '') + '</div></div>' +
-          '<div style="text-align:end"><div class="num" style="font-size:19px;font-weight:700">' + (r ? r.disp : '—') + '</div>' + d + (scv != null ? ' <span class="chip">' + scv + '</span>' : '') + '</div></div>' + (r && r.V ? repsDetail(r) : '');
+          '<div style="text-align:end"><div class="num" style="font-size:19px;font-weight:700">' + (r ? r.disp : '—') + '</div>' + d + (scv != null ? ' <span class="chip">' + scv + '</span>' : '') + '</div></div>' + (r && r.V ? repsDetail(r) : '') + (r && r.cs ? csZones(r.cs) : '');
       });
       h += '</div></div>';
     });
     h += '</div>';
   });
+  if (window.BTV.video) h += window.BTV.video.section(s);
   app.innerHTML = h;
+  if (window.BTV.video) window.BTV.video.bind();
   bindCommon(function () { K.render(); });
-  $('#bk').onclick = function () { K.route('home'); };
+  $('#bk').onclick = function () { K.route(ST.back === 'btCat' ? 'btCat' : 'home'); };
+  $$('[data-md]').forEach(function (b) { b.onclick = function () { ST.mat = !!b.dataset.md; K.render(); }; });
   $('#ed').onclick = function () { K.route('swForm'); };
   $('#pr').onclick = function () { window.print(); };
-  $$('[data-test]').forEach(function (b) { b.onclick = function () { ST.test = b.dataset.test; ST.one = s.id; K.route('btEntry'); }; });
+  $$('[data-test]').forEach(function (b) { b.onclick = function () { ST.test = b.dataset.test; ST.one = s.id; ST.retest = false; K.route('btEntry'); }; });
   // radar
   var o = K.chartBase(); o.scales = { r: { min: 0, max: 100, ticks: { stepSize: 25, display: false }, pointLabels: { font: { size: 13 } } } };
   K.mk('ch-radar', { type: 'radar', data: { labels: SYS.map(function (k) { return T(k); }), datasets: [
@@ -526,7 +633,7 @@ function vEntry(app) {
   if (ST.test && !avail.some(function (t) { return t.id === ST.test; })) { var tt = testById(ST.test); if (!(tt && tt.proto && tt.proto.active !== false)) ST.test = ''; else avail = avail.concat([tt]); }
   var t = testById(ST.test), P = t && t.proto;
   var groups = {}; K.visibleSwimmers().forEach(function (s) { if (s.group) groups[s.group] = 1; });
-  var h = '<button class="btn sm" id="bk">← ' + (one ? esc(one.name) : T('home')) + '</button><h1>' + (one ? '📝 ' + esc(one.name) : T('entry')) + '</h1>';
+  var h = '<button class="btn sm" id="bk">← ' + (one ? esc(one.name) : ST.back === 'btCat' && ST.cat ? catName(ST.cat) : T('home')) + '</button><h1>' + (one ? '📝 ' + esc(one.name) : T('entry')) + '</h1>';
   if (!one) h += '<div class="card"><div style="margin-bottom:10px">' + catChips(ST.cat, true) + '</div>' + (Object.keys(groups).length ? '<select id="grp" style="width:auto">' + '<option value="">' + T('allGroups') + '</option>' + Object.keys(groups).sort().map(function (g) { return '<option' + (ST.group === g ? ' selected' : '') + '>' + esc(g) + '</option>'; }).join('') + '</select>' : '') + '</div>';
   var opts = function (arr) { return arr.map(function (x) { return '<option value="' + x.id + '"' + (x.id === ST.test ? ' selected' : '') + '>' + esc(tv(x.name)) + '</option>'; }).join(''); };
   h += '<div class="card"><div class="fr"><div class="f"><label>' + T('chooseTest') + '</label><select id="tsel"><option value="">—</option>' +
@@ -566,7 +673,7 @@ function vEntry(app) {
     }
   }
   app.innerHTML = h;
-  $('#bk').onclick = function () { var o = ST.one; ST.one = null; ST.retest = false; o ? K.route('swimmer', { sid: o }) : K.route('home'); };
+  $('#bk').onclick = function () { var o = ST.one; ST.one = null; ST.retest = false; o ? K.route('swimmer', { sid: o }) : K.route(ST.back === 'btCat' && ST.cat ? 'btCat' : 'home'); };
   $$('[data-cat]').forEach(function (b) { b.onclick = function () { ST.cat = b.dataset.cat; K.render(); }; });
   if ($('#grp')) $('#grp').onchange = function () { ST.group = this.value; K.render(); };
   $('#tsel').onchange = function () { ST.test = this.value; ST.retest = false; K.render(); };
@@ -632,8 +739,8 @@ function vReport(app) {
   var h = '<div class="row"><button class="btn sm" id="bk">← ' + T('home') + '</button><span class="sp"></span>' + campSel() + '<button class="btn sm" id="pr">' + T('printReport') + '</button></div><h1>' + T('report') + ' · ' + catName(ST.cat) + '</h1><div style="margin-bottom:12px">' + catChips(ST.cat, false) + '</div>';
   if (!list.length) h += '<div class="card empty">' + T('noSwCat') + '</div>';
   else {
-    h += '<div class="card"><div class="tbl-wrap"><table><tr><th style="text-align:start">' + T('name') + '</th>' + SYS.map(function (k) { return '<th>' + T(k) + '</th>'; }).join('') + '</tr>' +
-      list.map(function (s) { var sc = sysScores(s, camp); return '<tr><td style="text-align:start"><b>' + esc(s.name) + '</b></td>' + SYS.map(function (k) { var v = sc[k]; return '<td class="num" style="font-weight:700;color:' + (v == null ? 'var(--mute)' : v >= 60 ? 'var(--ok)' : v >= 40 ? 'var(--ink)' : 'var(--warn)') + '">' + (v != null ? v : '—') + '</td>'; }).join('') + '</tr>'; }).join('') + '</table></div></div>';
+    h += '<div class="card"><div class="tbl-wrap"><table><tr><th style="text-align:start">' + T('name') + '</th><th>Q</th><th>' + T('matSt') + '</th>' + SYS.map(function (k) { return '<th>' + T(k) + '</th>'; }).join('') + '</tr>' +
+      list.map(function (s) { var sc = sysScores(s, camp), M = matOf(s), st = M ? matStage(M.mo) : null; return '<tr><td style="text-align:start"><b>' + esc(s.name) + '</b></td><td class="num">Q' + quarter(s) + '</td><td class="small">' + matLabel(s, M) + '</td>' + SYS.map(function (k) { var v = sc[k]; return '<td class="num" style="font-weight:700;color:' + (v == null ? 'var(--mute)' : v >= 60 ? 'var(--ok)' : v >= 40 ? 'var(--ink)' : 'var(--warn)') + '">' + (v != null ? v : '—') + '</td>'; }).join('') + '</tr>'; }).join('') + '</table></div></div>';
     h += '<div class="card"><h3>' + T('resultsOf') + ' · ' + campName(camp) + '</h3><div class="tbl-wrap"><table><tr><th style="text-align:start">' + T('name') + '</th>' + tests.map(function (t) { return '<th>' + tv(t.name) + '</th>'; }).join('') + '</tr>' +
       list.map(function (s) { return '<tr><td style="text-align:start;white-space:nowrap"><b>' + esc(s.name) + '</b></td>' + tests.map(function (t) { var r = result(s, t.id, camp); return '<td class="num">' + (r ? r.disp : '—') + '</td>'; }).join('') + '</tr>'; }).join('') +
       '<tr><td style="text-align:start"><b>' + T('mean') + '</b></td>' + tests.map(function (t) { var v = list.map(function (s) { var r = result(s, t.id, camp); return r ? r.v : null; }).filter(function (x) { return x != null; }); if (!v.length) return '<td>—</td>'; var m = v.reduce(function (a, b) { return a + b; }, 0) / v.length; return '<td class="num"><b>' + (t.unit === 's' || t.unit === '/100' ? F(m, 2) : R(m, 1)) + '</b></td>'; }).join('') + '</tr></table></div></div>';
@@ -662,5 +769,5 @@ function settingsBind() {
   };
 }
 
-window.BTV = { views: { home: vHome, swimmer: vSwimmer, btEntry: vEntry, btReport: vReport, btProtos: vProtos }, settingsExtra: settingsExtra, settingsBind: settingsBind, TESTS: TESTS, catOf: catOf, campOf: campOf };
+window.BTV = { views: { home: vHome, swimmer: vSwimmer, btEntry: vEntry, btReport: vReport, btProtos: vProtos, btCat: vCat, btRes: vRes }, settingsExtra: settingsExtra, settingsBind: settingsBind, TESTS: TESTS, catOf: catOf, campOf: campOf };
 })();
