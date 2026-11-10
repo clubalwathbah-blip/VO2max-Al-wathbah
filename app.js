@@ -670,7 +670,43 @@ function vSwimmer(app) {
   $$('[data-tid]').forEach(function (b) { b.onclick = function () { var t = DB.tests.find(function (x) { return x.id === b.dataset.tid; }); route('test', { tid: t.id, type: t.type }); }; });
   if (S.tab === 'sum') drawSummaryCharts(P);
   if (S.tab === 'history') drawHistory(s);
-  if (S.tab === 'recovery') drawRecovery(s);
+  if (S.tab === 'recovery') { drawRecovery(s); polarBind(s); }
+}
+
+/* ---------- 🔗 Polar (ربط مباشر) ---------- */
+var PL = { ar: { t: 'Polar Flow', link: '🔗 ربط Polar', sync: '🔄 جيب دوك', unlink: 'إلغاء الربط', on: '✅ مربوط', off: 'مازال ما تربطش', last: 'آخر جلب', none: 'ما تجلب والو', wait: 'نجيب من Polar…', got: 'تحدّثو الأيام', noCfg: 'لازم تحط POLAR_CLIENT_ID و POLAR_CLIENT_SECRET في Apps Script', back: 'كي يكمّل الربط في الصفحة لي تحلّت، ارجع هنا واضغط «جيب دوك»', auth: 'الربط مع Polar ما بقاش صالح: عاود «ربط Polar»', auto: 'يتجاب وحدو كل يوم 9:00 و13:00', unconf: 'نلغيو الربط مع Polar ؟' },
+           fr: { t: 'Polar Flow', link: '🔗 Connecter Polar', sync: '🔄 Synchroniser', unlink: 'Déconnecter', on: '✅ Connecté', off: 'Non connecté', last: 'Dernière synchro', none: 'jamais', wait: 'Synchronisation Polar…', got: 'jours mis à jour', noCfg: 'Ajoutez POLAR_CLIENT_ID et POLAR_CLIENT_SECRET dans Apps Script', back: 'Une fois la connexion terminée dans l’onglet ouvert, revenez et cliquez « Synchroniser »', auth: 'Connexion Polar expirée : reconnectez', auto: 'Synchro automatique chaque jour à 9:00 et 13:00', unconf: 'Déconnecter Polar ?' } };
+function PT(k) { return (PL[LANG === 'fr' ? 'fr' : 'ar'])[k]; }
+function polarBind(s) {
+  var box = $('#polar-bar'); if (!box || API.url() === 'demo') return;
+  API.call('polarStatus').then(function (r) {
+    if (!r || !r.ok) return;
+    var L = (r.linked || {})[s.id];
+    if (!L && !isAdmin()) return;
+    var when = L && L.last ? new Date(L.last).toLocaleString(LANG === 'fr' ? 'fr-FR' : 'ar-DZ', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : PT('none');
+    box.innerHTML = '<div class="card" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px"><div class="ic">⌚</div><div class="sp"><b>' + PT('t') + ' · ' + (L ? PT('on') : PT('off')) + '</b>' +
+      '<div class="small muted">' + (L ? PT('last') + ' : <span class="num">' + esc(when) + '</span> · ' + PT('auto') : (r.cfg ? '' : PT('noCfg'))) + '</div></div>' +
+      (L ? '<button class="btn pri sm" id="pl-sync">' + PT('sync') + '</button>' : '') +
+      (isAdmin() && r.cfg ? '<button class="btn sm" id="pl-link">' + PT('link') + '</button>' : '') +
+      (isAdmin() && L ? '<button class="btn sm dan" id="pl-un">' + PT('unlink') + '</button>' : '') + '</div>';
+    var b;
+    if ((b = $('#pl-sync'))) b.onclick = function () {
+      b.disabled = true; toast(PT('wait'));
+      API.call('polarSync', { sid: s.id }).then(function (x) {
+        if (!x.ok) { b.disabled = false; return toast(x.err === 'polarAuth' ? PT('auth') : (x.err || 'Polar ✗')); }
+        toast('✅ ' + x.days + ' ' + PT('got')); load().then(render);
+      }).catch(function () { b.disabled = false; toast(T('neterr')); });
+    };
+    if ((b = $('#pl-link'))) b.onclick = function () {
+      var win = window.open('about:blank', '_blank');
+      API.call('polarLink', { sid: s.id }).then(function (x) {
+        if (!x.ok) { if (win) win.close(); return toast(x.err === 'polarNoCfg' ? PT('noCfg') : x.err); }
+        if (win) win.location.href = x.url; else location.href = x.url;
+        toast(PT('back'));
+      }).catch(function () { if (win) win.close(); toast(T('neterr')); });
+    };
+    if ((b = $('#pl-un'))) b.onclick = function () { if (!confirm(PT('unconf'))) return; API.call('polarUnlink', { sid: s.id }).then(function () { polarBind(s); }); };
+  }).catch(function () {});
 }
 
 /* ---------- récupération ---------- */
@@ -684,7 +720,8 @@ function readyCard(r, s) {
 function recoveryHtml(s) {
   var days = daysOf(s.id), last = days[days.length - 1], r = last ? C.readiness(days, last.date, ageOf(s, last.date)) : null, ac = C.acwr(days, today());
   var h = '<div class="row" style="margin-bottom:12px"><h2 class="sp" style="margin:0">' + T('readyT') + (last ? ' <span class="small muted">' + fmtDate(last.date) + '</span>' : '') + '</h2><button class="btn pri" data-new="day">＋ ' + T('addDay') + '</button></div>';
-  h += readyCard(r, s);
+  h += '<div id="polar-bar"></div>';
+h += readyCard(r, s);
   h += '<div class="grid g4" style="margin-bottom:14px">';
   if (last) {
     h += '<div class="card">' + kpi(T('hrvN'), n0(C.num(last.hrv)), 'ms') + (r && r.hrvBase ? '<div class="small muted">' + T('base28') + ' : <span class="num">' + n0(r.hrvBase) + '</span></div>' : '') + '</div>';
