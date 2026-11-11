@@ -718,8 +718,8 @@ function dayReport(s, date) {
   }
   rep.zones = z; rep.zApprox = approx;
   // ── حمل 7 أيام من Polar
-  var w7 = 0, n7 = 0; days.forEach(function (x) { var k = (new Date(date) - new Date(x.date)) / 864e5; if (k >= 0 && k < 7) (x.ex || []).forEach(function (e) { if (e.load != null) { w7 += e.load; n7++; } }); });
-  rep.w7 = w7; rep.n7 = n7;
+  var w7 = 0, n7 = 0, a7 = 0, m7 = 0; days.forEach(function (x) { var k = (new Date(date) - new Date(x.date)) / 864e5; if (k >= 0 && k < 7) (x.ex || []).forEach(function (e) { if (isTraining(e)) { w7 += e.load || 0; n7++; } else { a7 += e.load || 0; m7++; } }); });
+  rep.w7 = w7; rep.n7 = n7; rep.a7 = a7; rep.m7 = m7;
   return rep;
 }
 function zr(rep, a, b) { var z = rep.zones; if (!z) return ''; return ' <span class="num ltr">(' + z[a - 1].lo + '–' + z[b - 1].hi + ' bpm)</span>'; }
@@ -783,15 +783,16 @@ function reportHtml(rep) {
     var L = g[0].slice().sort(function (a, b) { return String(a.start).localeCompare(String(b.start)); });
     var main = L.filter(isTraining), oth = L.filter(function (e) { return !isTraining(e); });
     main.forEach(function (e) { tr.push(exLine(e, g[1])); });
-    if (oth.length) tr.push('<span class="muted">' + g[1] + ' : ' + A('+ ' + oth.length + ' نشاط قصير (مشي، حركة…) — ', '+ ' + oth.length + ' activité(s) courte(s) (marche, déplacements…) — ') +
+    if (oth.length) tr.push('<span class="muted">' + g[1] + ' : ' + A('🚶 ' + oth.length + ' نشاط يومي من الـ Loop (لعب، جري، مشي) — ', '🚶 ' + oth.length + ' activité(s) quotidienne(s) Loop (jeu, course, marche) — ') +
       oth.map(function (e) { return esc(e.start) + ' (' + e.min + ' min, ♥' + (e.hrAvg || '—') + ')'; }).join(' · ') + '</span>');
   });
   if (!ex.length) tr.push(A('ما كاينش حصة مسجلة البارح ولا اليوم في Polar.', 'Aucune séance Polar hier ni aujourd’hui.'));
-  if (rep.n7) tr.push(A('<b>مجموع الحمل في 7 أيام:</b> <span class="num">' + Math.round(rep.w7) + '</span> (' + rep.n7 + ' حصص).', '<b>Charge 7 jours :</b> <span class="num">' + Math.round(rep.w7) + '</span> (' + rep.n7 + ' séances).'));
+  if (rep.n7 || rep.m7) tr.push(A('<b>الحمل في 7 أيام:</b> تدريب <span class="num">' + Math.round(rep.w7) + '</span> (' + rep.n7 + ' حصص) · نشاط يومي (لعب، جري، مشي) <span class="num">' + Math.round(rep.a7) + '</span> (' + rep.m7 + ').',
+    '<b>Charge 7 jours :</b> entraînement <span class="num">' + Math.round(rep.w7) + '</span> (' + rep.n7 + ' séances) · activité quotidienne (jeu, course, marche) <span class="num">' + Math.round(rep.a7) + '</span> (' + rep.m7 + ').'));
   if (rep.cat) {
     var K = CLC[rep.cat], cl = rep.cl;
     tr.push('<b>' + A('حالة الحمل (Polar):', 'Statut de charge (Polar) :') + '</b> ' + K.ic + ' <span class="chip ' + K.c + '">' + Tv(K.t) + '</span> ' + Tv(K.x) +
-      (C.num(cl.str) != null && C.num(cl.tol) != null ? '<div class="small muted">' + A('التعب (Strain) ', 'Fatigue ') + '<span class="num">' + n1(C.num(cl.str)) + '</span> · ' + A('التحمّل (Tolérance) ', 'Tolérance ') + '<span class="num">' + n1(C.num(cl.tol)) + '</span>' + (C.num(cl.clr) != null ? ' · ' + A('النسبة ', 'Ratio ') + '<span class="num">' + R(C.num(cl.clr), 2) + '</span>' : '') + '</div>' : '') + (C.num(cl.tol) != null && C.num(cl.tol) < 40 ? '<div class="small muted">ℹ️ ' + A('التحمّل مازال ناقص لأن Polar عندها غير أيام قلال من البيانات: النسبة مضخّمة شوية حتى يكمل قريب 4 أسابيع.', 'Tolérance encore basse faute d’historique : le ratio est surestimé pendant ~4 semaines.') + '</div>' : ''));
+      (C.num(cl.str) != null && C.num(cl.tol) != null ? '<div class="small muted">' + A('التعب (Strain) ', 'Fatigue ') + '<span class="num">' + n1(C.num(cl.str)) + '</span> · ' + A('التحمّل (Tolérance) ', 'Tolérance ') + '<span class="num">' + n1(C.num(cl.tol)) + '</span>' + (C.num(cl.clr) != null ? ' · ' + A('النسبة ', 'Ratio ') + '<span class="num">' + R(C.num(cl.clr), 2) + '</span>' : '') + '</div>' : '') + (rep.m7 ? '<div class="small muted">ℹ️ ' + A('Polar تحسب في هذي الحالة حتى النشاط اليومي لي يسجلو الـ Loop (لعب، جري، مشي للمدرسة). الحمل تاع التدريب وحدو هو لي فوق.', 'Polar inclut aussi l’activité quotidienne détectée par la Loop (jeu, course, trajets) ; la charge d’entraînement seule est indiquée ci-dessus.') + '</div>' : '') + (C.num(cl.tol) != null && C.num(cl.tol) < 40 ? '<div class="small muted">ℹ️ ' + A('التحمّل مازال ناقص لأن Polar عندها غير أيام قلال من البيانات: النسبة مضخّمة شوية حتى يكمل قريب 4 أسابيع.', 'Tolérance encore basse faute d’historique : le ratio est surestimé pendant ~4 semaines.') + '</div>' : ''));
   }
   out.push(rcard('🏊', A('التدريب والحمل', 'Entraînement et charge'), '<ul>' + tr.map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul>'));
 
@@ -828,7 +829,7 @@ function reportHtml(rep) {
   return out.join('');
 }
 function rcard(ic, t, body) { return '<div class="kbox" style="margin-bottom:10px"><h3 style="margin-bottom:6px">' + ic + ' ' + t + '</h3><div class="small" style="font-size:14.5px">' + body + '</div></div>'; }
-function isTraining(e) { var sp = String(e.sport || ''); if (/SWIM|NATATION|POOL/i.test(sp)) return true; if (/WALK|MARCHE|COMMUT|OTHER_INDOOR|DAILY/i.test(sp)) return (e.min || 0) >= 45; return (e.min || 0) >= 30 || (e.hrAvg || 0) >= 130 && (e.min || 0) >= 20; }
+function isTraining(e) { var sp = String(e.sport || ''); if (/SWIM|NATATION|POOL/i.test(sp)) return true; return (e.min || 0) >= 45; }
 function exLine(e, when) {
   return '⌚ <b>' + when + ' ' + esc(e.start || '') + '</b> — ' + A('المدة', 'durée') + ' <span class="num">' + (e.min || '—') + '</span> min · ' + A('النبض', 'FC') + ' <span class="num">' + (e.hrAvg || '—') + '</span> (max <span class="num">' + (e.hrMax || '—') + '</span>)' +
     (e.load != null ? ' · ' + A('الحمل', 'charge') + ' <span class="num">' + e.load + '</span>' : '');
