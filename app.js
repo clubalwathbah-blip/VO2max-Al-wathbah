@@ -779,14 +779,19 @@ function reportHtml(rep) {
 
   // 4) الحمل والحصص
   var tr = [], ex = (rep.y && rep.y.ex || []).concat(d.ex || []);
-  (rep.y && rep.y.ex || []).forEach(function (e) { tr.push(exLine(e, A('البارح', 'Hier'))); });
-  (d.ex || []).forEach(function (e) { tr.push(exLine(e, A('اليوم', 'Aujourd’hui'))); });
+  [[rep.y && rep.y.ex || [], A('البارح', 'Hier')], [d.ex || [], A('اليوم', 'Aujourd’hui')]].forEach(function (g) {
+    var L = g[0].slice().sort(function (a, b) { return String(a.start).localeCompare(String(b.start)); });
+    var main = L.filter(isTraining), oth = L.filter(function (e) { return !isTraining(e); });
+    main.forEach(function (e) { tr.push(exLine(e, g[1])); });
+    if (oth.length) tr.push('<span class="muted">' + g[1] + ' : ' + A('+ ' + oth.length + ' نشاط قصير (مشي، حركة…) — ', '+ ' + oth.length + ' activité(s) courte(s) (marche, déplacements…) — ') +
+      oth.map(function (e) { return esc(e.start) + ' (' + e.min + ' min, ♥' + (e.hrAvg || '—') + ')'; }).join(' · ') + '</span>');
+  });
   if (!ex.length) tr.push(A('ما كاينش حصة مسجلة البارح ولا اليوم في Polar.', 'Aucune séance Polar hier ni aujourd’hui.'));
   if (rep.n7) tr.push(A('<b>مجموع الحمل في 7 أيام:</b> <span class="num">' + Math.round(rep.w7) + '</span> (' + rep.n7 + ' حصص).', '<b>Charge 7 jours :</b> <span class="num">' + Math.round(rep.w7) + '</span> (' + rep.n7 + ' séances).'));
   if (rep.cat) {
     var K = CLC[rep.cat], cl = rep.cl;
     tr.push('<b>' + A('حالة الحمل (Polar):', 'Statut de charge (Polar) :') + '</b> ' + K.ic + ' <span class="chip ' + K.c + '">' + Tv(K.t) + '</span> ' + Tv(K.x) +
-      (C.num(cl.str) != null && C.num(cl.tol) != null ? '<div class="small muted">' + A('التعب (Strain) ', 'Fatigue ') + '<span class="num">' + n1(C.num(cl.str)) + '</span> · ' + A('التحمّل (Tolérance) ', 'Tolérance ') + '<span class="num">' + n1(C.num(cl.tol)) + '</span>' + (C.num(cl.clr) != null ? ' · ' + A('النسبة ', 'Ratio ') + '<span class="num">' + R(C.num(cl.clr), 2) + '</span>' : '') + '</div>' : ''));
+      (C.num(cl.str) != null && C.num(cl.tol) != null ? '<div class="small muted">' + A('التعب (Strain) ', 'Fatigue ') + '<span class="num">' + n1(C.num(cl.str)) + '</span> · ' + A('التحمّل (Tolérance) ', 'Tolérance ') + '<span class="num">' + n1(C.num(cl.tol)) + '</span>' + (C.num(cl.clr) != null ? ' · ' + A('النسبة ', 'Ratio ') + '<span class="num">' + R(C.num(cl.clr), 2) + '</span>' : '') + '</div>' : '') + (C.num(cl.tol) != null && C.num(cl.tol) < 40 ? '<div class="small muted">ℹ️ ' + A('التحمّل مازال ناقص لأن Polar عندها غير أيام قلال من البيانات: النسبة مضخّمة شوية حتى يكمل قريب 4 أسابيع.', 'Tolérance encore basse faute d’historique : le ratio est surestimé pendant ~4 semaines.') + '</div>' : ''));
   }
   out.push(rcard('🏊', A('التدريب والحمل', 'Entraînement et charge'), '<ul>' + tr.map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul>'));
 
@@ -823,6 +828,7 @@ function reportHtml(rep) {
   return out.join('');
 }
 function rcard(ic, t, body) { return '<div class="kbox" style="margin-bottom:10px"><h3 style="margin-bottom:6px">' + ic + ' ' + t + '</h3><div class="small" style="font-size:14.5px">' + body + '</div></div>'; }
+function isTraining(e) { var sp = String(e.sport || ''); if (/SWIM|NATATION|POOL/i.test(sp)) return true; if (/WALK|MARCHE|COMMUT|OTHER_INDOOR|DAILY/i.test(sp)) return (e.min || 0) >= 45; return (e.min || 0) >= 30 || (e.hrAvg || 0) >= 130 && (e.min || 0) >= 20; }
 function exLine(e, when) {
   return '⌚ <b>' + when + ' ' + esc(e.start || '') + '</b> — ' + A('المدة', 'durée') + ' <span class="num">' + (e.min || '—') + '</span> min · ' + A('النبض', 'FC') + ' <span class="num">' + (e.hrAvg || '—') + '</span> (max <span class="num">' + (e.hrMax || '—') + '</span>)' +
     (e.load != null ? ' · ' + A('الحمل', 'charge') + ' <span class="num">' + e.load + '</span>' : '');
@@ -831,6 +837,7 @@ function reportText(rep) {
   var el = document.createElement('div'); el.innerHTML = reportHtml(rep);
   Array.prototype.forEach.call(el.querySelectorAll('details'), function (x) { x.remove(); });
   Array.prototype.forEach.call(el.querySelectorAll('li'), function (x) { x.insertAdjacentText('afterbegin', '• '); x.insertAdjacentText('beforeend', '\n'); });
+  Array.prototype.forEach.call(el.querySelectorAll('div.small'), function (x) { x.insertAdjacentText('beforebegin', '\n'); });
   Array.prototype.forEach.call(el.querySelectorAll('h3,b[style]'), function (x) { x.insertAdjacentText('beforebegin', '\n'); x.insertAdjacentText('afterend', '\n'); });
   return ('📋 ' + A('التقرير اليومي', 'Rapport du jour') + ' — ' + rep.s.name + ' — ' + fmtDate(rep.date) + '\n' + el.innerText).replace(/\n{3,}/g, '\n\n').trim();
 }
