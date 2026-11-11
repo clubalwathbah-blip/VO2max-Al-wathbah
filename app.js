@@ -724,18 +724,14 @@ function dayReport(s, date) {
 }
 function zr(rep, a, b) { var z = rep.zones; if (!z) return ''; return ' <span class="num ltr">(' + z[a - 1].lo + '–' + z[b - 1].hi + ' bpm)</span>'; }
 
-function reportHtml(rep) {
+function reportHtml(rep) { return reportVisual(rep) + '<div class="rp-sec">📝 ' + A('التفاصيل والشرح', 'Détails et explications') + '</div>' + reportDetails(rep); }
+function reportDetails(rep) {
   var d = rep.d, r = rep.r, L = rep.lvl, out = [];
   var head = { green: ['🟢', A('جاهز: حصة عادية حسب البرنامج', 'Prêt : séance normale selon le programme')], yellow: ['🟡', A('تعب خفيف: نقّص الشدة اليوم', 'Fatigue légère : réduire l’intensité aujourd’hui')], red: ['🔴', A('تعب: حصة استرجاع ولا راحة', 'Fatigue : récupération ou repos')], none: ['⚪', A('ما كاينش بيانات كافية للحكم', 'Pas assez de données')] }[L];
   var why = [];
   if (r) r.flags.forEach(function (f) { why.push(T('f_' + f)); });
   if (rep.cat === 'excess') why.push(A('حمل التدريب تاع الأيام الأخيرة زايد (Polar)', 'Charge récente excessive (Polar)'));
   if (rep.ill) why.push(A('HRV هابط ونبض الراحة طالع في نفس الليلة', 'VFC basse et FC de repos haute la même nuit'));
-  // 1) الخلاصة
-  out.push('<div class="ready ' + (L === 'none' ? 'yellow' : L) + '" style="margin-bottom:12px"><span class="big">' + head[0] + '</span><div class="sp"><b style="font-size:19px">' + head[1] + '</b>' +
-    (why.length ? '<div class="small">' + A('السبب: ', 'Pourquoi : ') + why.join(' · ') + '</div>' : (L === 'green' ? '<div class="small">' + A('كل المؤشرات في الحدود العادية تاعو.', 'Tous les indicateurs sont dans sa zone habituelle.') + '</div>' : '')) +
-    (r && r.baseN < 7 ? '<div class="small">⚠️ ' + A('التقييم أوّلي: المعدل الشخصي يحتاج 7 ليالي على الأقل (عندنا ' + r.baseN + ').', 'Évaluation provisoire : la référence perso demande 7 nuits (actuellement ' + r.baseN + ').') + '</div>' : '') + '</div></div>');
-
   // 2) واش نديرو اليوم
   var todo = [];
   if (L === 'green') {
@@ -799,9 +795,7 @@ function reportHtml(rep) {
   // 5) الاسترجاع
   var wake = 6.5, bed = hhmm(wake - rep.need - 0.25);
   var rec = [
-    A('<b>النوم الليلة:</b> باش يرقد ' + rep.need + ' سوايع وينوض 06:30، لازم يكون في الفراش قبل <b class="num">' + bed + '</b>. ساعة قبل النوم بلا تيليفون ولا شاشة.', '<b>Ce soir :</b> pour ' + rep.need + ' h de sommeil avec réveil à 06:30, au lit avant <b class="num">' + bed + '</b>. Pas d’écran 1 h avant.'),
-    A('<b>الماء:</b> قرعة ماء معاه في الحصة ويشرب شوية بين السلاسل، ويكمّل الشرب بعد الحصة.', '<b>Hydratation :</b> une gourde à chaque séance, boire entre les séries et après.'),
-    A('<b>الماكلة بعد الحصة:</b> في ساعة ولا ساعتين بعد التدريب ياكل وجبة فيها نشويات (خبز، عجائن، أرز) وبروتين (بيض، حليب، لحم).', '<b>Après la séance :</b> dans les 1–2 h, un repas avec glucides (pain, pâtes, riz) et protéines (œufs, lait, viande).')
+    A('<b>النوم الليلة:</b> باش يرقد ' + rep.need + ' سوايع وينوض 06:30، لازم يكون في الفراش قبل <b class="num">' + bed + '</b>. ساعة قبل النوم بلا تيليفون ولا شاشة.', '<b>Ce soir :</b> pour ' + rep.need + ' h de sommeil avec réveil à 06:30, au lit avant <b class="num">' + bed + '</b>. Pas d’écran 1 h avant.')
   ];
   if (L === 'yellow' || L === 'red') rec.push(A('<b>اليوم:</b> نهار هادي، يتجنب الرياضات الأخرى الثقيلة بعد الحصة.', '<b>Aujourd’hui :</b> journée calme, éviter d’autres efforts intenses.'));
   out.push(rcard('💤', A('الاسترجاع', 'Récupération'), '<ul>' + rec.map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul>'));
@@ -835,12 +829,14 @@ function exLine(e, when) {
     (e.load != null ? ' · ' + A('الحمل', 'charge') + ' <span class="num">' + e.load + '</span>' : '');
 }
 function reportText(rep) {
-  var el = document.createElement('div'); el.innerHTML = reportHtml(rep);
+  var el = document.createElement('div'); el.innerHTML = energyHtml(rep) + reportDetails(rep);
   Array.prototype.forEach.call(el.querySelectorAll('details'), function (x) { x.remove(); });
   Array.prototype.forEach.call(el.querySelectorAll('li'), function (x) { x.insertAdjacentText('afterbegin', '• '); x.insertAdjacentText('beforeend', '\n'); });
   Array.prototype.forEach.call(el.querySelectorAll('div.small'), function (x) { x.insertAdjacentText('beforebegin', '\n'); });
   Array.prototype.forEach.call(el.querySelectorAll('h3,b[style]'), function (x) { x.insertAdjacentText('beforebegin', '\n'); x.insertAdjacentText('afterend', '\n'); });
-  return ('📋 ' + A('التقرير اليومي', 'Rapport du jour') + ' — ' + rep.s.name + ' — ' + fmtDate(rep.date) + '\n' + el.innerText).replace(/\n{3,}/g, '\n\n').trim();
+  var hd = { green: '🟢 ' + A('جاهز: حصة عادية', 'Prêt : séance normale'), yellow: '🟡 ' + A('تعب خفيف: نقّص الشدة', 'Fatigue légère : réduire l’intensité'), red: '🔴 ' + A('تعب: استرجاع ولا راحة', 'Fatigue : récupération'), none: '⚪' }[rep.lvl], sc = rpScore(rep);
+  var why = []; if (rep.r) rep.r.flags.forEach(function (f) { why.push(T('f_' + f)); }); if (rep.cat === 'excess') why.push(A('حمل الأيام الأخيرة زايد', 'charge récente excessive'));
+  return ('📋 ' + A('التقرير اليومي', 'Rapport du jour') + ' — ' + rep.s.name + ' — ' + fmtDate(rep.date) + '\n' + hd + (sc != null ? ' (' + sc + '/100)' : '') + (why.length ? '\n' + A('السبب: ', 'Pourquoi : ') + why.join('، ') : '') + '\n' + el.innerText).replace(/\n{3,}/g, '\n\n').trim();
 }
 function drawReport(s) {
   var box = $('#day-report'); if (!box) return;
@@ -851,16 +847,211 @@ function drawReport(s) {
   box.innerHTML = '<div class="card"><div class="row" style="margin-bottom:10px"><h2 class="sp" style="margin:0">📋 ' + A('التقرير اليومي', 'Rapport du jour') + '</h2>' +
     '<select id="rp-d" style="width:auto">' + dates.map(function (x) { return '<option value="' + x + '"' + (x === S.rdate ? ' selected' : '') + '>' + fmtDate(x) + '</option>'; }).join('') + '</select>' +
     '<button class="btn sm" id="rp-cp">📲 ' + A('نسخ (واتساب)', 'Copier') + '</button><button class="btn sm" id="rp-pr">🖨 ' + A('طباعة', 'Imprimer') + '</button></div>' +
-    (rep ? reportHtml(rep) : '<p class="muted">' + T('noDays') + '</p>') + '</div>';
-  $('#rp-d').onchange = function () { S.rdate = this.value; drawReport(s); };
+    '<div id="rp-body">' + (rep ? reportHtml(rep) : '<p class="muted">' + T('noDays') + '</p>') + '</div></div>';
+  if (rep) drawReportCharts(rep);
+  $('#rp-d').onchange = function () { S.rdate = this.value; killCharts(); render(); };
   $('#rp-cp').onclick = function () {
     var t = reportText(rep);
     (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { toast('✅ ' + A('تنسخ، لصقو في واتساب', 'Copié')); }).catch(function () { prompt('', t); });
   };
   $('#rp-pr').onclick = function () {
-    $('#print').innerHTML = '<div dir="' + (LANG === 'fr' ? 'ltr' : 'rtl') + '"><h2>📋 ' + A('التقرير اليومي', 'Rapport du jour') + ' — ' + esc(s.name) + ' — ' + fmtDate(rep.date) + '</h2>' + reportHtml(rep).replace('<details class="guide">', '<details class="guide" open>') + '</div>';
+    var cl = $('#rp-body').cloneNode(true), src = $$('#rp-body canvas');
+    $$('canvas', cl).forEach(function (cv, i) { var im = document.createElement('img'); try { im.src = src[i].toDataURL('image/png'); } catch (e) {} im.style.width = '100%'; cv.parentNode.replaceChild(im, cv); });
+    $$('details', cl).forEach(function (x) { x.setAttribute('open', ''); });
+    $('#print').innerHTML = '<div dir="' + (LANG === 'fr' ? 'ltr' : 'rtl') + '"><h2>📋 ' + A('التقرير اليومي', 'Rapport du jour') + ' — ' + esc(s.name) + ' — ' + fmtDate(rep.date) + '</h2></div>';
+    $('#print').firstChild.appendChild(cl);
     window.print();
   };
+}
+
+/* ---------- 📋 التقرير اليومي: الشكل العصري (بطاقات + منحنيات) ---------- */
+var ZC = ['#B4B2A9', '#85B7EB', '#97C459', '#EF9F27', '#F0738A'];
+function rpCss() {
+  if (document.getElementById('rp-css')) return;
+  var st = document.createElement('style'); st.id = 'rp-css';
+  st.textContent = '.rp-hero{display:flex;align-items:center;gap:14px;border-radius:18px;padding:14px 16px;margin-bottom:12px}.rp-hero .ic{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;font-size:26px;flex:none;background:rgba(255,255,255,.55)}' +
+    '.rp-hero.green{background:#e3f7ee;color:#0a5b3a}.rp-hero.yellow{background:#fff4dc;color:#6b4a00}.rp-hero.red{background:#fde8e8;color:#7a1c1c}.rp-hero.none{background:#eef2f8;color:#3d5078}' +
+    '.rp-score{text-align:center;min-width:64px}.rp-score b{display:block;font:700 30px/1 Rubik}.rp-score small{font-size:11px}' +
+    '.rp-k{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));margin-bottom:12px}' +
+    '.rp-c{background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px;box-shadow:var(--sh)}.rp-c .l{font-size:12.5px;color:var(--mute);font-weight:700}.rp-c .v{font:700 26px/1.2 Rubik;color:var(--navy);direction:ltr;unicode-bidi:isolate}.rp-c .v small{font-size:12px;color:var(--mute)}.rp-c .n{font-size:12px;margin-top:4px}' +
+    '.rp-bar{height:8px;background:#e6edf8;border-radius:5px;overflow:hidden;margin-top:6px}.rp-bar i{display:block;height:100%;border-radius:5px}.rp-seg{display:flex;gap:3px;margin-top:8px}.rp-seg i{flex:1;height:9px;border-radius:3px;background:#e6edf8}' +
+    '.rp-z{display:flex;height:22px;border-radius:7px;overflow:hidden;margin:6px 0 4px;direction:ltr}.rp-z i{display:block}.rp-zl{display:flex;justify-content:space-between;font-size:11.5px;color:var(--mute);direction:ltr}' +
+    '.rp-chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.rp-chips span{background:#f3f7ff;border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:12.5px}.rp-chips b{font-family:Rubik}' +
+    '.rp-g2{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));margin-bottom:12px}.rp-ch{position:relative;height:190px}.rp-ch.s{height:150px}' +
+    '.rp-do{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr))}.rp-do div{border-radius:12px;padding:10px}.rp-do b{display:block}.rp-do small{font-size:12.5px}' +
+    '.rp-lb{display:flex;align-items:flex-end;gap:6px;height:80px;direction:ltr}.rp-lb div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch}.rp-lb span{display:block;border-radius:3px 3px 0 0}.rp-lb em{font-style:normal;font-size:10.5px;color:var(--mute);text-align:center}' +
+    '.rp-sec{font-weight:800;color:var(--navy);margin:16px 0 8px;font-size:16px}@media print{.rp-hero,.rp-c,.rp-z i,.rp-do div,.rp-lb span,.rp-seg i,.rp-bar i,.chip{-webkit-print-color-adjust:exact;print-color-adjust:exact}.rp-c{break-inside:avoid}}';
+  document.head.appendChild(st);
+}
+function rpScore(rep) {
+  if (!rep.r) return null;
+  var s = 100 - rep.r.score * 12 - (rep.cat === 'excess' ? 15 : 0) - (rep.ill ? 20 : 0);
+  s = Math.max(5, Math.min(100, Math.round(s)));
+  return rep.lvl === 'red' ? Math.min(s, 39) : rep.lvl === 'yellow' ? Math.min(s, 69) : s;
+}
+function spark(vals, color, base) {
+  var v = vals.filter(function (x) { return x != null; }); if (v.length < 2) return '';
+  var lo = Math.min.apply(null, v.concat(base != null ? [base] : [])), hi = Math.max.apply(null, v.concat(base != null ? [base] : [])); if (hi === lo) { hi++; lo--; }
+  var n = vals.length, pts = [], dots = '';
+  vals.forEach(function (x, i) { if (x == null) return; var X = 4 + i * 92 / Math.max(1, n - 1), Y = 26 - (x - lo) / (hi - lo) * 22; pts.push(X.toFixed(1) + ',' + Y.toFixed(1)); if (i === n - 1) dots = '<circle cx="' + X.toFixed(1) + '" cy="' + Y.toFixed(1) + '" r="2.8" fill="' + color + '"/>'; });
+  var b = base != null ? '<line x1="0" x2="100" y1="' + (26 - (base - lo) / (hi - lo) * 22).toFixed(1) + '" y2="' + (26 - (base - lo) / (hi - lo) * 22).toFixed(1) + '" stroke="#9aa9bb" stroke-dasharray="3 3" stroke-width="1"/>' : '';
+  return '<svg viewBox="0 0 100 30" preserveAspectRatio="none" style="width:100%;height:30px;margin-top:4px">' + b + '<polyline points="' + pts.join(' ') + '" fill="none" stroke="' + color + '" stroke-width="2" vector-effect="non-scaling-stroke"/>' + dots + '</svg>';
+}
+// المناطق تاع الحصة: تاع Polar إذا كاينين، ولا تاع التقرير
+function exZones(e, rep) {
+  if (e.zones && e.zones.length) {
+    var z = e.zones.slice().sort(function (a, b) { return a.lo - b.lo; });
+    return { lo: z.map(function (x) { return x.lo; }), hi: z.map(function (x) { return x.hi; }), sec: z.map(function (x) { return x.sec; }), src: 'polar' };
+  }
+  if (!rep.zones) return null;
+  var lo = rep.zones.map(function (x) { return x.lo; }), hi = rep.zones.map(function (x) { return x.hi; }), sec = [0, 0, 0, 0, 0];
+  (e.hr || []).forEach(function (b) { if (b > 0) sec[zIdx(b, lo)] += e.rate || 5; });
+  return { lo: lo, hi: hi, sec: sec, src: 'app' };
+}
+function zIdx(b, lo) { var k = 0; for (var i = 0; i < lo.length; i++) if (b >= lo[i]) k = i; return k; }
+// مصادر الطاقة (تقديري من النبض، ولا نسب Polar إذا بعثتهم)
+function energy(e, rep) {
+  if (!e.hr || !e.hr.length) return null;
+  var rest = C.num(rep.d.rhr) || 60, mx = Math.max(e.hrMax || 0, rep.zones ? rep.zones[4].hi : 0, Math.max.apply(null, e.hr)) || 190;
+  var kc = e.kcal || null, ws = e.hr.map(function (b) { return b > 0 ? Math.max(b - 70, 5) : 0; }), W = ws.reduce(function (a, b) { return a + b; }, 0) || 1, perMin = 60 / (e.rate || 5);
+  var cho = [], fat = [], tc = 0, tf = 0, tp = 0;
+  e.hr.forEach(function (b, i) {
+    if (!b) { cho.push(null); fat.push(null); return; }
+    var I = Math.max(0, Math.min(1, (b - rest) / (mx - rest))), fc = Math.max(0.1, Math.min(0.95, 0.1 + 0.9 * Math.pow(I, 1.3))), k = kc ? kc * ws[i] / W * perMin : ws[i] / 12;
+    cho.push(+(k * fc).toFixed(2)); fat.push(+(k * (0.98 - fc)).toFixed(2)); tc += fc; tf += 0.98 - fc; tp += 0.02;
+  });
+  var T = tc + tf + tp, pc = { c: Math.round(tc / T * 100), f: Math.round(tf / T * 100), p: Math.round(tp / T * 100) }, polar = false;
+  if (e.choP != null && e.fatP != null) { pc = { c: Math.round(e.choP), f: Math.round(e.fatP), p: Math.round(e.proP || 0) }; polar = true; }
+  return { cho: cho, fat: fat, pc: pc, polar: polar, perMin: !!kc };
+}
+function fmtMS(s) { s = Math.round(s); var h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return (h ? h + ':' + ('0' + m).slice(-2) : m) + ':' + ('0' + x).slice(-2); }
+
+function reportVisual(rep) {
+  rpCss();
+  var d = rep.d, r = rep.r, L = rep.lvl, sc = rpScore(rep), days = daysOf(rep.s.id).filter(function (x) { return x.date <= rep.date; }).slice(-7);
+  var head = { green: ['🟢', A('جاهز: حصة عادية حسب البرنامج', 'Prêt : séance normale')], yellow: ['🟡', A('تعب خفيف: نقّص الشدة اليوم', 'Fatigue légère : réduire l’intensité')], red: ['🔴', A('تعب: حصة استرجاع ولا راحة', 'Fatigue : récupération ou repos')], none: ['⚪', A('ما كاينش بيانات كافية', 'Données insuffisantes')] }[L];
+  var why = []; if (r) r.flags.forEach(function (f) { why.push(T('f_' + f)); }); if (rep.cat === 'excess') why.push(A('حمل الأيام الأخيرة زايد', 'charge récente excessive')); if (rep.ill) why.push(A('HRV هابط + نبض الراحة طالع', 'VFC basse + FC repos haute'));
+  var h = '<div class="rp-hero ' + L + '"><div class="ic">' + head[0] + '</div><div class="sp"><b style="font-size:19px">' + head[1] + '</b><div class="small">' + esc(rep.s.name) + ' · ' + fmtDate(rep.date) + (why.length ? ' · ' + A('السبب: ', '') + why.join('، ') : '') + '</div>' +
+    (r && r.baseN < 7 ? '<div class="small">⚠️ ' + A('تقييم أوّلي (' + r.baseN + '/7 ليالي)', 'provisoire (' + r.baseN + '/7 nuits)') + '</div>' : '') + '</div>' +
+    (sc != null ? '<div class="rp-score"><b>' + sc + '</b><small>' + A('الجاهزية /100', 'forme /100') + '</small></div>' : '') + '</div>';
+
+  // ── بطاقات الليل
+  var sh = C.num(d.sleepH), need = rep.need, rc = C.num(d.recharge);
+  var hrvS = days.map(function (x) { return C.num(x.hrv); }), rhrS = days.map(function (x) { return C.num(x.rhr); });
+  var prev = function (k) { for (var i = days.length - 2; i >= 0; i--) if (C.num(days[i][k]) != null) return C.num(days[i][k]); return null; };
+  var pH = prev('hrv'), pR = prev('rhr'), hv = C.num(d.hrv), rh = C.num(d.rhr);
+  h += '<div class="rp-k">';
+  h += '<div class="rp-c"><div class="l">🌙 ' + A('النوم', 'Sommeil') + '</div><div class="v">' + n1(sh) + ' <small>h</small></div><div class="rp-bar"><i style="width:' + Math.min(100, (sh || 0) / (need + 2) * 100) + '%;background:' + (sh == null ? '#ccc' : sh >= need ? '#1D9E75' : sh >= need - 1 ? '#EF9F27' : '#E24B4A') + '"></i></div><div class="n muted">' + A('اللازم', 'Besoin') + ' <span class="num ltr">' + need + '–' + (need + 2) + 'h</span>' + (C.num(d.sleepScore) != null ? ' · Score <b class="num">' + n0(C.num(d.sleepScore)) + '</b>' : '') + '</div></div>';
+  h += '<div class="rp-c"><div class="l">💓 HRV</div><div class="v">' + n0(hv) + ' <small>ms</small></div>' + spark(hrvS, '#378ADD', r && r.hrvBase) + '<div class="n" style="color:' + (hv != null && pH != null ? (hv >= pH ? '#0e9f6e' : '#c27c00') : 'var(--mute)') + '">' + (hv != null && pH != null ? (hv >= pH ? '▲ ' : '▼ ') + A('على البارح', 'vs veille') + ' (' + pH + ')' : r && r.hrvBase ? A('المعدل', 'Réf.') + ' ' + n0(r.hrvBase) : '—') + '</div></div>';
+  h += '<div class="rp-c"><div class="l">❤️ ' + A('نبض الراحة', 'FC repos') + '</div><div class="v">' + n0(rh) + ' <small>bpm</small></div>' + spark(rhrS, '#E24B4A', r && r.rhrBase) + '<div class="n" style="color:' + (rh != null && pR != null ? (rh <= pR ? '#0e9f6e' : '#c27c00') : 'var(--mute)') + '">' + (rh != null && pR != null ? (rh <= pR ? '▼ ' : '▲ ') + A('على البارح', 'vs veille') + ' (' + pR + ')' : '—') + '</div></div>';
+  h += '<div class="rp-c"><div class="l">🔋 Nightly Recharge</div><div class="v" style="font-size:20px">' + (rc != null ? T('rc' + rc) : '—') + '</div><div class="rp-seg">' + [1, 2, 3, 4, 5].map(function (i) { return '<i style="' + (rc != null && i <= rc ? 'background:' + (rc >= 4 ? '#1D9E75' : rc === 3 ? '#EF9F27' : '#E24B4A') : '') + '"></i>'; }).join('') + '</div><div class="n muted">' + (rc != null ? rc + ' / 5' : '') + '</div></div>';
+  h += '</div>';
+
+  // ── الحصص (منحنى النبض + الطاقة)
+  var trn = (d.ex || []).filter(isTraining), when = A('اليوم', 'Aujourd’hui');
+  if (!trn.length && rep.y) { trn = (rep.y.ex || []).filter(isTraining); when = A('البارح', 'Hier'); }
+  rep.charts = [];
+  trn.forEach(function (e, i) {
+    var Z = exZones(e, rep), tot = Z ? Z.sec.reduce(function (a, b) { return a + b; }, 0) || 1 : 1, en = energy(e, rep);
+    h += '<div class="rp-sec">🏊 ' + when + ' ' + esc(e.start) + ' — ' + A('حصة التدريب', 'séance') + '</div><div class="rp-c" style="margin-bottom:12px">' +
+      '<div class="rp-chips"><span>⏱ <b>' + (e.min || '—') + '</b> min</span><span>♥ ' + A('متوسط', 'moy.') + ' <b>' + (e.hrAvg || '—') + '</b></span><span>▲ max <b>' + (e.hrMax || '—') + '</b></span>' + (e.load != null ? '<span>🔥 ' + A('الحمل', 'charge') + ' <b>' + e.load + '</b></span>' : '') + (e.kcal ? '<span>⚡ <b>' + e.kcal + '</b> kcal</span>' : '') + '</div>';
+    if (Z) h += '<div class="rp-z">' + Z.sec.map(function (s, k) { return '<i title="Z' + (k + 1) + '" style="width:' + (s / tot * 100) + '%;background:' + ZC[k] + '"></i>'; }).join('') + '</div><div class="rp-zl">' + Z.sec.map(function (s, k) { return '<span><b style="color:' + ZC[k] + '">■</b> Z' + (k + 1) + ' ' + Math.round(s / tot * 100) + '% · ' + fmtMS(s) + '</span>'; }).join('') + '</div>';
+    if (e.hr && e.hr.length) {
+      h += '<div class="small muted" style="margin-top:10px">' + A('منحنى النبض (bpm)', 'Fréquence cardiaque (bpm)') + '</div><div class="rp-ch"><canvas id="rp-hr-' + i + '"></canvas></div>';
+      if (en) h += '<div class="small muted" style="margin-top:8px">' + A('مصادر الطاقة', 'Sources d’énergie') + ' (' + (en.perMin ? 'kcal/min' : A('نسبي', 'relatif')) + ') — <b style="color:#F26B21">■ ' + A('سكريات', 'Glucides') + ' ' + en.pc.c + '%</b> · <b style="color:#E0B020">■ ' + A('دهون', 'Lipides') + ' ' + en.pc.f + '%</b> · ' + A('بروتين', 'Protéines') + ' ' + en.pc.p + '%' + (en.polar ? '' : ' <span class="chip warn" style="font-size:11px">' + A('تقديري', 'estimation') + '</span>') + '</div><div class="rp-ch s"><canvas id="rp-en-' + i + '"></canvas></div>';
+      rep.charts.push({ i: i, e: e, Z: Z, en: en });
+    } else h += '<div class="small muted" style="margin-top:8px">⏳ ' + A('المنحنى يجي مع الجلب الجاي (🔄 جيب دوك).', 'Courbe disponible à la prochaine synchro.') + '</div>';
+    h += '</div>';
+  });
+
+  // ── الحمل 7 أيام (أعمدة) + الاتجاهات
+  var L7 = []; for (var k = 6; k >= 0; k--) { var dt = addDays(rep.date, -k), dd = daysOf(rep.s.id).filter(function (x) { return x.date === dt; })[0], t = 0, a = 0; (dd && dd.ex || []).forEach(function (e) { if (isTraining(e)) t += e.load || 0; else a += e.load || 0; }); L7.push({ d: dt, t: t, a: a }); }
+  var mx = Math.max.apply(null, L7.map(function (x) { return x.t + x.a; })) || 1, K = rep.cat ? CLC[rep.cat] : null;
+  h += '<div class="rp-g2"><div class="rp-c"><div class="l">📊 ' + A('الحمل في 7 أيام', 'Charge sur 7 jours') + '</div><div class="rp-lb" style="margin-top:8px">' + L7.map(function (x) { return '<div><span style="height:' + (x.a / mx * 64) + 'px;background:#9FE1CB"></span><span style="height:' + (x.t / mx * 64) + 'px;background:#534AB7"></span><em>' + x.d.slice(8) + '</em></div>'; }).join('') + '</div>' +
+    '<div class="n"><b style="color:#534AB7">■</b> ' + A('تدريب', 'entraînement') + ' <b class="num">' + Math.round(rep.w7) + '</b> · <b style="color:#1D9E75">■</b> ' + A('نشاط يومي', 'activité') + ' <b class="num">' + Math.round(rep.a7) + '</b></div>' +
+    (K ? '<div style="margin-top:8px"><span class="chip ' + K.c + '">' + K.ic + ' Polar : ' + Tv(K.t) + '</span>' + (C.num(rep.cl.clr) != null ? ' <span class="small muted">' + A('النسبة', 'ratio') + ' <b class="num">' + R(C.num(rep.cl.clr), 2) + '</b></span>' : '') + '</div>' : '') + '</div>' +
+    '<div class="rp-c"><div class="l">📈 ' + A('HRV ونبض الراحة (14 يوم)', 'VFC et FC repos (14 j)') + '</div><div class="rp-ch s"><canvas id="rp-tr1"></canvas></div></div></div>';
+  h += '<div class="rp-c" style="margin-bottom:12px"><div class="l">🌙 ' + A('النوم والحمل (14 يوم)', 'Sommeil et charge (14 j)') + '</div><div class="rp-ch s"><canvas id="rp-tr2"></canvas></div></div>';
+
+  // ── واش نديرو اليوم (3 بطاقات)
+  var tiles = {
+    green: [['#E1F5EE', '#085041', '✅ ' + A('حصة عادية', 'Séance normale'), A('حسب البرنامج', 'selon le programme')], ['#E6F1FB', '#0C447C', '🎯 Z3–Z4', zTxt(rep, 3, 4) + ' ' + A('مسموح', 'permis')]],
+    yellow: [['#E6F1FB', '#0C447C', '⬇️ ' + A('الحجم −20 لـ 30%', 'Volume −20 à 30 %'), A('بلا تكرارات قصوى', 'pas de max')], ['#E1F5EE', '#085041', '🎯 Z1–Z2', zTxt(rep, 1, 2) + ' · ' + A('تقنية', 'technique')]],
+    red: [['#FCEBEB', '#791F1F', '🛌 ' + A('استرجاع', 'Récupération'), A('30–45 د خفيف ولا راحة', '30–45 min facile ou repos')], ['#E1F5EE', '#085041', '🎯 Z1', zTxt(rep, 1, 1)]],
+    none: [['#eef2f8', '#3d5078', '📝 ' + A('دخّل الليل', 'Saisir la nuit'), A('Polar ولا باليد', 'Polar ou manuel')]]
+  }[L].concat([['#EEEDFE', '#3C3489', '🛏 ' + A('يرقد قبل', 'Au lit avant') + ' ' + hhmm(6.5 - need - 0.25), A('ماء + ماكلة بعد الحصة', 'eau + repas après')]]);
+  h += '<div class="rp-sec">✅ ' + A('واش نديرو اليوم', 'Que faire aujourd’hui') + '</div><div class="rp-do" style="margin-bottom:12px">' + tiles.map(function (t) { return '<div style="background:' + t[0] + ';color:' + t[1] + '"><b>' + t[2] + '</b><small>' + t[3] + '</small></div>'; }).join('') + '</div>';
+  h += energyHtml(rep);
+  return h;
+}
+function zTxt(rep, a, b) { var z = rep.zones; return z ? z[a - 1].lo + '–' + z[b - 1].hi + ' bpm' : ''; }
+
+function drawReportCharts(rep) {
+  if (!window.Chart) return;
+  var o0 = function () { var o = chartBase(); o.plugins.legend = { display: false }; o.interaction = { mode: 'index', intersect: false }; return o; };
+  (rep.charts || []).forEach(function (c) {
+    var e = c.e, rate = e.rate || 5, lab = e.hr.map(function (_, k) { return fmtMS(k * rate); });
+    var lo = c.Z ? c.Z.lo : null, col = function (b) { return lo ? ZC[zIdx(b, lo)] : '#E24B4A'; };
+    var imax = e.hr.indexOf(Math.max.apply(null, e.hr));
+    var o = o0(); o.scales = { x: { ticks: { maxTicksLimit: 7, maxRotation: 0 }, grid: { display: false } }, y: { suggestedMin: 80 } };
+    o.plugins.tooltip = { callbacks: { label: function (x) { return x.parsed.y + ' bpm'; } } };
+    mk('rp-hr-' + c.i, { type: 'line', data: { labels: lab, datasets: [{ data: e.hr.map(function (b) { return b || null; }), borderWidth: 2, pointRadius: e.hr.map(function (_, k) { return k === imax ? 4 : 0; }), pointBackgroundColor: '#E24B4A', spanGaps: false,
+      segment: { borderColor: function (ctx) { return col(ctx.p1.parsed.y); } }, borderColor: '#97C459', tension: 0.25 }].concat(lo ? lo.slice(1).map(function (v, k) { return { data: e.hr.map(function () { return v; }), borderColor: ZC[k + 1] + '66', borderWidth: 1, borderDash: [4, 4], pointRadius: 0 }; }) : []) }, options: o });
+    if (c.en) {
+      var o2 = o0(); o2.scales = { x: { ticks: { maxTicksLimit: 7, maxRotation: 0 }, grid: { display: false } }, y: { min: 0 } };
+      mk('rp-en-' + c.i, { type: 'line', data: { labels: lab, datasets: [{ data: c.en.cho, borderColor: '#F26B21', borderWidth: 1.8, pointRadius: 0, tension: .3 }, { data: c.en.fat, borderColor: '#E0B020', borderWidth: 1.8, pointRadius: 0, tension: .3 }] }, options: o2 });
+    }
+  });
+  var all = daysOf(rep.s.id).filter(function (x) { return x.date <= rep.date; }).slice(-14), lab = all.map(function (x) { return x.date.slice(8) + '/' + x.date.slice(5, 7); });
+  var base = all.map(function (x) { var r = C.readiness(daysOf(rep.s.id), x.date); return r && r.hrvBase ? Math.round(r.hrvBase) : null; });
+  var o = chartBase(); o.plugins.legend = { position: 'bottom', labels: { boxWidth: 10 } }; o.spanGaps = true; o.scales = { y: { title: { display: true, text: 'ms' } }, y2: { position: 'right', grid: { display: false }, title: { display: true, text: 'bpm' } } };
+  mk('rp-tr1', { type: 'line', data: { labels: lab, datasets: [{ label: 'HRV', data: all.map(function (x) { return C.num(x.hrv); }), borderColor: '#378ADD', backgroundColor: '#378ADD', borderWidth: 2.5 }, { label: A('المعدل', 'Réf.'), data: base, borderColor: '#9aa9bb', borderDash: [5, 4], pointRadius: 0 }, { label: A('نبض الراحة', 'FC repos'), data: all.map(function (x) { return C.num(x.rhr); }), borderColor: '#E24B4A', backgroundColor: '#E24B4A', yAxisID: 'y2' }] }, options: o });
+  var o3 = chartBase(); o3.plugins.legend = { position: 'bottom', labels: { boxWidth: 10 } }; o3.scales = { y: { min: 0, title: { display: true, text: 'h' } }, y2: { position: 'right', min: 0, grid: { display: false } } };
+  mk('rp-tr2', { type: 'bar', data: { labels: lab, datasets: [{ type: 'bar', label: A('النوم (سا)', 'Sommeil (h)'), data: all.map(function (x) { return C.num(x.sleepH); }), backgroundColor: all.map(function (x) { var s = C.num(x.sleepH); return s == null ? '#ccc' : s >= rep.need ? '#5DCAA5' : s >= rep.need - 1 ? '#FAC775' : '#F09595'; }), borderRadius: 4 },
+    { type: 'line', label: 'Cardio load', data: all.map(function (x) { var t = 0, n = 0; (x.ex || []).forEach(function (e) { if (isTraining(e) && e.load != null) { t += e.load; n++; } }); return n ? t : C.num(x.cl); }), borderColor: '#534AB7', backgroundColor: '#534AB7', yAxisID: 'y2', spanGaps: true }] }, options: o3 });
+}
+
+/* ---------- 🔥 الطاقة والاسترجاع ---------- */
+function rpMainEx(rep) {
+  var t = (rep.d.ex || []).filter(isTraining), w = A('اليوم', 'aujourd’hui');
+  if (!t.length && rep.y) { t = (rep.y.ex || []).filter(isTraining); w = A('البارح', 'hier'); }
+  if (!t.length) return null;
+  var e = t.slice().sort(function (a, b) { return (b.load || b.min || 0) - (a.load || a.min || 0); })[0];
+  var min = t.reduce(function (a, x) { return a + (x.min || 0); }, 0), kcal = t.reduce(function (a, x) { return a + (x.kcal || 0); }, 0);
+  var Z = exZones(e, rep), tot = Z ? Z.sec.reduce(function (a, b) { return a + b; }, 0) || 1 : 1, hi = Z ? (Z.sec[3] + Z.sec[4]) / tot : 0;
+  return { e: e, when: w, min: min, kcal: kcal || null, hiPct: Math.round(hi * 100), en: energy(e, rep), hard: min > 60 || hi > 0.2 || (e.load || 0) >= 80, easy: min < 45 && hi < 0.1 };
+}
+function energyHtml(rep) {
+  var m = rpMainEx(rep), h = '<div class="rp-sec">🔥 ' + A('الطاقة والاسترجاع', 'Énergie et récupération') + '</div>';
+  if (m) {
+    var pc = m.en ? m.en.pc : null, k = m.kcal, est = m.en && !m.en.polar;
+    h += '<div class="rp-c" style="margin-bottom:10px"><div class="l">' + A('واش حرق في حصة ', 'Dépense de la séance d’') + m.when + ' · <span class="num">' + m.min + '</span> min' + (k ? ' · <b class="num">' + k + '</b> kcal' : '') + (est ? ' <span class="chip warn" style="font-size:11px">' + A('تقديري', 'estimation') + '</span>' : '') + '</div>';
+    if (pc) h += '<div class="rp-z" style="height:26px;margin-top:8px"><i style="width:' + pc.c + '%;background:#F26B21"></i><i style="width:' + pc.f + '%;background:#F2C94C"></i><i style="width:' + pc.p + '%;background:#9B7BD4"></i></div>';
+    var row = function (c, t, p, x) { return '<div style="display:flex;gap:10px;align-items:flex-start;margin-top:8px"><span style="width:12px;height:12px;border-radius:3px;background:' + c + ';margin-top:5px;flex:none"></span><div><b>' + t + (p != null ? ' — <span class="num">' + p + '%</span>' + (k ? ' <span class="small muted">(≈ <span class="num">' + Math.round(k * p / 100) + '</span> kcal)</span>' : '') : '') + '</b><div class="small">' + x + '</div></div></div>'; };
+    h += row('#F26B21', A('السكريات (Glucides)', 'Glucides'), pc && pc.c, A('«البنزين» تاع السرعة والسلاسل القوية، تتخزن في العضلات والكبد. كي تخلاص، السباح يثقل ويبطا ← <b>لازم يعوضها بعد الحصة</b>.', 'Le « carburant » de la vitesse et des séries dures, stocké dans les muscles et le foie. Quand il manque, le nageur ralentit ← <b>à recharger après la séance</b>.'));
+    h += row('#F2C94C', A('الدهون (Lipides)', 'Lipides'), pc && pc.f, A('تخدم أكثر في السباحة الخفيفة والطويلة (Z1–Z2). الجسم عندو منها بزاف ← ما يلزمش يعوضها بعد الحصة.', 'Utilisés surtout à faible intensité (Z1–Z2). Le corps en a beaucoup en réserve ← pas besoin de les compenser.'));
+    h += row('#9B7BD4', A('البروتين (Protéines)', 'Protéines'), pc && pc.p, A('ماشي للطاقة: يحتاجو باش <b>يصلّح ويبني العضلات</b> بعد التدريب.', 'Pas pour l’énergie : sert à <b>réparer et construire</b> le muscle après l’effort.'));
+    h += '<div class="info" style="margin-top:10px">' + (m.hard ? A('💡 <b>الخلاصة:</b> حصة ' + (m.min > 60 ? 'طويلة' : 'قوية') + (m.hiPct ? ' (' + m.hiPct + '% في Z4–Z5)' : '') + ' ← لازم <b>يعوض السكريات</b> و<b>ياكل بروتين</b> في الساعة لي تجي.', '💡 <b>Bilan :</b> séance ' + (m.min > 60 ? 'longue' : 'intense') + (m.hiPct ? ' (' + m.hiPct + ' % en Z4–Z5)' : '') + ' ← <b>recharger en glucides</b> et <b>apporter des protéines</b> dans l’heure.') :
+      m.easy ? A('💡 <b>الخلاصة:</b> حصة خفيفة ← ماء وماكلة عادية يكفيو، ما يحتاجش قصّة زايدة.', '💡 <b>Bilan :</b> séance légère ← eau et repas normal suffisent.') :
+      A('💡 <b>الخلاصة:</b> حصة متوسطة ← قصّة خفيفة بعد الحصة ووجبة عادية.', '💡 <b>Bilan :</b> séance modérée ← petite collation puis repas normal.')) + '</div></div>';
+  } else h += '<div class="info" style="margin-bottom:10px">' + A('💡 ما كاينش حصة تدريب اليوم ولا البارح ← ماكلة عادية متوازنة، والتركيز على النوم.', '💡 Pas de séance hier ni aujourd’hui ← alimentation équilibrée normale, priorité au sommeil.') + '</div>';
+
+  // ── برنامج الاسترجاع (جدول زمني)
+  var need = rep.need, bed = hhmm(6.5 - need - 0.25), hard = m && m.hard, easy = !m || m.easy;
+  var T5 = [
+    ['💧', A('في الحصة', 'Pendant'), A('قرعة ماء، يشرب شوية كل 15–20 دقيقة', 'Gourde d’eau, quelques gorgées toutes les 15–20 min'), '#E6F1FB', '#0C447C'],
+    ['🥛', A('0–30 د بعد', '0–30 min après'), easy ? A('ماء برك، ولا فاكهة إذا جاع', 'De l’eau ; un fruit s’il a faim') : A('<b>لبن ولا حليب</b> + <b>تمر</b> ولا بنانة ولا خبزة صغيرة', '<b>Lben ou lait</b> + <b>dattes</b>, banane ou petit pain'), '#FAEEDA', '#633806'],
+    ['🍽', A('1–2 سا بعد', '1–2 h après'), A('وجبة: <b>كسكسي، عجائن ولا أرز</b> + <b>دجاج، حوت، بيض ولا عدس</b> + خضرة' + (hard ? ' (صحن السكريات يكون أكبر شوية اليوم)' : ''), 'Repas : <b>couscous, pâtes ou riz</b> + <b>poulet, poisson, œufs ou lentilles</b> + légumes' + (hard ? ' (portion de féculents un peu plus grande)' : '')), '#E1F5EE', '#085041'],
+    ['🌙', A('قبل الرقاد', 'Avant de dormir'), A('ياوورت ولا حليب، ويرقد قبل <b class="num">' + bed + '</b> بلا شاشة', 'Yaourt ou lait ; au lit avant <b class="num">' + bed + '</b>, sans écran'), '#EEEDFE', '#3C3489'],
+    ['🍳', A('غدوة الصباح', 'Demain matin'), A('فطور كامل: خبز + بيض ولا جبن + فاكهة + حليب', 'Petit-déjeuner complet : pain + œuf ou fromage + fruit + lait'), '#FBEAF0', '#72243E']
+  ];
+  h += '<div class="rp-c" style="margin-bottom:10px"><div class="l">🍽 ' + A('برنامج الاسترجاع', 'Plan de récupération') + '</div>' + T5.map(function (x) {
+    return '<div style="display:flex;gap:10px;align-items:center;margin-top:8px"><div style="background:' + x[3] + ';color:' + x[4] + ';border-radius:12px;min-width:104px;padding:7px 8px;text-align:center;font-weight:700;font-size:13px">' + x[0] + ' ' + x[1] + '</div><div class="small" style="font-size:14px">' + x[2] + '</div></div>';
+  }).join('') + '</div>';
+  if (rep.lvl === 'yellow' || rep.lvl === 'red') h += '<div class="note" style="margin-bottom:10px">' + A('<b>اليوم الحالة ' + (rep.lvl === 'red' ? '🔴' : '🟡') + ':</b> 3 وجبات + 2 قصّات بلا ما ينقص حتى وحدة · ما يعوضش بالحلويات والمشروبات الغازية · <b>مشروبات الطاقة (Energy drinks) ممنوعة</b> في هذا العمر · النوم هو أول وسيلة استرجاع (' + need + ' سوايع على الأقل).',
+    '<b>Statut ' + (rep.lvl === 'red' ? '🔴' : '🟡') + ' :</b> 3 repas + 2 collations, aucun sauté · pas de sucreries ni sodas pour « compenser » · <b>boissons énergisantes interdites</b> à cet âge · le sommeil reste la 1re récupération (au moins ' + need + ' h).') + '</div>';
+  h += '<div class="small muted" style="margin-bottom:12px">ℹ️ ' + A('هاذي نصائح عامة للرياضيين الصغار. لبرنامج غذائي خاص بيه (الكميات، الوزن، الحساسية) استشير طبيب ولا أخصائي تغذية رياضية.', 'Conseils généraux pour jeunes sportifs. Pour un plan personnalisé (quantités, poids, allergies), consulter un médecin ou un diététicien du sport.') + '</div>';
+  return h;
 }
 
 /* ---------- ⌚ Polar مباشر في الاختبارات ---------- */
