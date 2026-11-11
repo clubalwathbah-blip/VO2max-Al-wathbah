@@ -856,11 +856,13 @@ function drawReport(s) {
   };
   $('#rp-pr').onclick = function () {
     var cl = $('#rp-body').cloneNode(true), src = $$('#rp-body canvas');
-    $$('canvas', cl).forEach(function (cv, i) { var im = document.createElement('img'); try { im.src = src[i].toDataURL('image/png'); } catch (e) {} im.style.width = '100%'; cv.parentNode.replaceChild(im, cv); });
+    var imgs = [];
+    $$('canvas', cl).forEach(function (cv, i) { var im = document.createElement('img'); try { im.src = src[i].toDataURL('image/png'); } catch (e) {} im.style.cssText = 'width:100%;height:100%;object-fit:contain;display:block'; imgs.push(im); cv.parentNode.replaceChild(im, cv); });
     $$('details', cl).forEach(function (x) { x.setAttribute('open', ''); });
     $('#print').innerHTML = '<div dir="' + (LANG === 'fr' ? 'ltr' : 'rtl') + '"><h2>📋 ' + A('التقرير اليومي', 'Rapport du jour') + ' — ' + esc(s.name) + ' — ' + fmtDate(rep.date) + '</h2></div>';
     $('#print').firstChild.appendChild(cl);
-    window.print();
+    // نستناو الصور يتحملو قبل الطباعة، ولا يخرجو فارغين
+    Promise.all(imgs.map(function (im) { return im.decode ? im.decode().catch(function () {}) : Promise.resolve(); })).then(function () { setTimeout(function () { window.print(); }, 150); });
   };
 }
 
@@ -880,7 +882,7 @@ function rpCss() {
     '.rp-g2{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));margin-bottom:12px}.rp-ch{position:relative;height:190px}.rp-ch.s{height:150px}' +
     '.rp-do{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr))}.rp-do div{border-radius:12px;padding:10px}.rp-do b{display:block}.rp-do small{font-size:12.5px}' +
     '.rp-lb{display:flex;align-items:flex-end;gap:6px;height:80px;direction:ltr}.rp-lb div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch}.rp-lb span{display:block;border-radius:3px 3px 0 0}.rp-lb em{font-style:normal;font-size:10.5px;color:var(--mute);text-align:center}' +
-    '.rp-sec{font-weight:800;color:var(--navy);margin:16px 0 8px;font-size:16px}@media print{.rp-hero,.rp-c,.rp-z i,.rp-do div,.rp-lb span,.rp-seg i,.rp-bar i,.chip{-webkit-print-color-adjust:exact;print-color-adjust:exact}.rp-c{break-inside:avoid}}';
+    '.rp-sec{font-weight:800;color:var(--navy);margin:16px 0 8px;font-size:16px}@media print{.rp-hero,.rp-c,.rp-z i,.rp-do div,.rp-lb span,.rp-seg i,.rp-bar i,.chip{-webkit-print-color-adjust:exact;print-color-adjust:exact}.rp-c{break-inside:avoid;box-shadow:none}.rp-big{break-inside:auto}.rp-ch{break-inside:avoid}.rp-sec{break-after:avoid}#print .rp-ch{height:170px}#print .rp-ch.s{height:140px}}';
   document.head.appendChild(st);
 }
 function rpScore(rep) {
@@ -953,7 +955,7 @@ function reportVisual(rep) {
   rep.charts = [];
   trn.forEach(function (e, i) {
     var Z = exZones(e, rep), tot = Z ? Z.sec.reduce(function (a, b) { return a + b; }, 0) || 1 : 1, en = energy(e, rep);
-    h += '<div class="rp-sec">🏊 ' + when + ' ' + esc(e.start) + ' — ' + A('حصة التدريب', 'séance') + '</div><div class="rp-c" style="margin-bottom:12px">' +
+    h += '<div class="rp-sec">🏊 ' + when + ' ' + esc(e.start) + ' — ' + A('حصة التدريب', 'séance') + '</div><div class="rp-c rp-big" style="margin-bottom:12px">' +
       '<div class="rp-chips"><span>⏱ <b>' + (e.min || '—') + '</b> min</span><span>♥ ' + A('متوسط', 'moy.') + ' <b>' + (e.hrAvg || '—') + '</b></span><span>▲ max <b>' + (e.hrMax || '—') + '</b></span>' + (e.load != null ? '<span>🔥 ' + A('الحمل', 'charge') + ' <b>' + e.load + '</b></span>' : '') + (e.kcal ? '<span>⚡ <b>' + e.kcal + '</b> kcal</span>' : '') + '</div>';
     if (Z) h += '<div class="rp-z">' + Z.sec.map(function (s, k) { return '<i title="Z' + (k + 1) + '" style="width:' + (s / tot * 100) + '%;background:' + ZC[k] + '"></i>'; }).join('') + '</div><div class="rp-zl">' + Z.sec.map(function (s, k) { return '<span><b style="color:' + ZC[k] + '">■</b> Z' + (k + 1) + ' ' + Math.round(s / tot * 100) + '% · ' + fmtMS(s) + '</span>'; }).join('') + '</div>';
     if (e.hr && e.hr.length) {
