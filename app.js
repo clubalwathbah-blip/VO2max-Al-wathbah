@@ -845,8 +845,8 @@ function drawReport(s) {
   if (!S.rdate || dates.indexOf(S.rdate) < 0) S.rdate = dates[0];
   var rep = dayReport(s, S.rdate);
   box.innerHTML = '<div class="card"><div class="row" style="margin-bottom:10px"><h2 class="sp" style="margin:0">📋 ' + A('التقرير اليومي', 'Rapport du jour') + '</h2>' +
-    '<select id="rp-d" style="width:auto">' + dates.map(function (x) { return '<option value="' + x + '"' + (x === S.rdate ? ' selected' : '') + '>' + fmtDate(x) + '</option>'; }).join('') + '</select>' +
-    '<button class="btn sm" id="rp-cp">📲 ' + A('نسخ (واتساب)', 'Copier') + '</button><button class="btn sm" id="rp-pr">🖨 ' + A('طباعة', 'Imprimer') + '</button></div>' +
+    '<select id="rp-d" class="rp-np" style="width:auto">' + dates.map(function (x) { return '<option value="' + x + '"' + (x === S.rdate ? ' selected' : '') + '>' + fmtDate(x) + '</option>'; }).join('') + '</select>' +
+    '<button class="btn sm rp-np" id="rp-cp">📲 ' + A('نسخ (واتساب)', 'Copier') + '</button><button class="btn sm" id="rp-pr">🖨 ' + A('طباعة', 'Imprimer') + '</button></div>' +
     '<div id="rp-body">' + (rep ? reportHtml(rep) : '<p class="muted">' + T('noDays') + '</p>') + '</div></div>';
   if (rep) drawReportCharts(rep);
   $('#rp-d').onchange = function () { S.rdate = this.value; killCharts(); render(); };
@@ -855,14 +855,16 @@ function drawReport(s) {
     (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { toast('✅ ' + A('تنسخ، لصقو في واتساب', 'Copié')); }).catch(function () { prompt('', t); });
   };
   $('#rp-pr').onclick = function () {
-    var cl = $('#rp-body').cloneNode(true), src = $$('#rp-body canvas');
-    var imgs = [];
-    $$('canvas', cl).forEach(function (cv, i) { var im = document.createElement('img'); try { im.src = src[i].toDataURL('image/png'); } catch (e) {} im.style.cssText = 'width:100%;height:100%;object-fit:contain;display:block'; imgs.push(im); cv.parentNode.replaceChild(im, cv); });
-    $$('details', cl).forEach(function (x) { x.setAttribute('open', ''); });
-    $('#print').innerHTML = '<div dir="' + (LANG === 'fr' ? 'ltr' : 'rtl') + '"><h2>📋 ' + A('التقرير اليومي', 'Rapport du jour') + ' — ' + esc(s.name) + ' — ' + fmtDate(rep.date) + '</h2></div>';
-    $('#print').firstChild.appendChild(cl);
-    // نستناو الصور يتحملو قبل الطباعة، ولا يخرجو فارغين
-    Promise.all(imgs.map(function (im) { return im.decode ? im.decode().catch(function () {}) : Promise.resolve(); })).then(function () { setTimeout(function () { window.print(); }, 150); });
+    // نطبعو التقرير الحقيقي (بالمنحنيات كيما راهم)، نحطوه في #print وقت الطباعة ومن بعد نرجعوه
+    var box = $('#day-report'), ph = document.createComment('rp'), pr = $('#print');
+    box.parentNode.insertBefore(ph, box);
+    pr.innerHTML = '<div dir="' + (LANG === 'fr' ? 'ltr' : 'rtl') + '"><h2 style="margin:0 0 8px">📋 ' + A('التقرير اليومي', 'Rapport du jour') + ' — ' + esc(s.name) + ' — ' + fmtDate(rep.date) + '</h2></div>';
+    pr.firstChild.appendChild(box);
+    var opened = $$('details', box).filter(function (x) { return !x.open; }); opened.forEach(function (x) { x.open = true; });
+    var back = function () { window.removeEventListener('afterprint', back); if (ph.parentNode) { ph.parentNode.replaceChild(box, ph); opened.forEach(function (x) { x.open = false; }); pr.innerHTML = ''; charts.forEach(function (c) { try { c.resize(); } catch (e) {} }); } };
+    window.addEventListener('afterprint', back);
+    charts.forEach(function (c) { try { c.resize(); } catch (e) {} });
+    setTimeout(function () { window.print(); setTimeout(back, 1500); }, 200);
   };
 }
 
@@ -882,7 +884,7 @@ function rpCss() {
     '.rp-g2{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));margin-bottom:12px}.rp-ch{position:relative;height:190px}.rp-ch.s{height:150px}' +
     '.rp-do{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr))}.rp-do div{border-radius:12px;padding:10px}.rp-do b{display:block}.rp-do small{font-size:12.5px}' +
     '.rp-lb{display:flex;align-items:flex-end;gap:6px;height:80px;direction:ltr}.rp-lb div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch}.rp-lb span{display:block;border-radius:3px 3px 0 0}.rp-lb em{font-style:normal;font-size:10.5px;color:var(--mute);text-align:center}' +
-    '.rp-sec{font-weight:800;color:var(--navy);margin:16px 0 8px;font-size:16px}@media print{.rp-hero,.rp-c,.rp-z i,.rp-do div,.rp-lb span,.rp-seg i,.rp-bar i,.chip{-webkit-print-color-adjust:exact;print-color-adjust:exact}.rp-c{break-inside:avoid;box-shadow:none}.rp-big{break-inside:auto}.rp-ch{break-inside:avoid}.rp-sec{break-after:avoid}#print .rp-ch{height:170px}#print .rp-ch.s{height:140px}}';
+    '.rp-sec{font-weight:800;color:var(--navy);margin:16px 0 8px;font-size:16px}@media print{.rp-hero,.rp-c,.rp-z i,.rp-do div,.rp-lb span,.rp-seg i,.rp-bar i,.chip{-webkit-print-color-adjust:exact;print-color-adjust:exact}.rp-c{break-inside:avoid;box-shadow:none}.rp-big{break-inside:auto}.rp-ch{break-inside:avoid}.rp-sec{break-after:avoid}#print .rp-ch{height:170px}#print .rp-ch.s{height:140px}.rp-np{display:none!important}#print .card{border:none;padding:0}}';
   document.head.appendChild(st);
 }
 function rpScore(rep) {
