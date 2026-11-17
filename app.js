@@ -13,7 +13,7 @@ var R = C.round, F = C.fmtTime;
 /* ======================= i18n ======================= */
 var LANG = ls('vo2_lang') || 'ar';
 var D = {
-  sub: ['قياس اللياقة الهوائية للسباحين', 'Aptitude aérobie des nageurs'],
+  sub: ['الأداء والاختبارات · BY OKBA', 'Performance et tests · BY OKBA'],
   setupT: ['ربط التطبيق بملف البيانات', 'Relier l’application aux données'],
   setupP: ['ألصق رابط تطبيق الويب (Apps Script) اللي ينتهي بـ /exec. هذا يتدار مرة وحدة في كل جهاز.', 'Collez l’URL de l’application Web Apps Script (se termine par /exec). Une seule fois par appareil.'],
   apiUrl: ['رابط الخادم', 'URL du serveur'],
@@ -134,7 +134,7 @@ var D = {
   method: ['الطريقة', 'Méthode'],
   value: ['القيمة', 'Valeur'],
   see: ['الخطأ المعياري', 'Erreur type'],
-  sum: ['الملخص', 'Résumé'],
+  sum: ['VO2max والمناطق', 'VO2max et zones'],
   vVO2: ['سرعة VO2max (vVO2max)', 'Vitesse VO2max (vVO2max)'],
   fromStep: ['من التصاعدي', 'du progressif'], from400: ['من 400 م', 'du 400 m'],
   settings2: ['الإعدادات', 'Paramètres'],
@@ -195,11 +195,22 @@ var D = {
   stats_sw: ['السباحين', 'Nageurs'], stats_month: ['اختبارات هذا الشهر', 'Tests ce mois'], stats_ready: ['جاهزية اليوم', 'Forme du jour'],
   by: ['سجّلو', 'Saisi par'],
   home: ['الرئيسية', 'Accueil'], btTitle: ['الاختبارات · الوثبة', 'TESTS · AL-WATHBA'], btShort: ['الاختبارات', 'Tests'], gm: ['صباح الخير', 'Bonjour'], ga: ['مساء الخير', 'Bon après-midi'], ge: ['مساء الخير', 'Bonsoir'],
-  authSub: ['قياس اللياقة الهوائية · نادي الوثبة', 'Aptitude aérobie · Club Al-Wathba'],
+  authSub: ['الأداء والاختبارات · نادي الوثبة', 'Performance et tests · Club Al-Wathba'],
   failsAlert: ['محاولات دخول غالطة في آخر 24 ساعة. شوف سجل الدخول في الإعدادات.', 'tentatives de connexion échouées en 24 h. Voir le journal dans Paramètres.'],
   weakCode: ['الكود لازم 6 خانات على الأقل فيه أرقام وحروف', 'Code : 6 caractères min., lettres et chiffres'],
   logT: ['سجل الدخول', 'Journal des connexions'], okLogin: ['دخول', 'Connexion'], failLogin: ['غالط', 'Échec'], when: ['الوقت', 'Quand'], who: ['شكون', 'Qui'],
   acwrNeed: ['يتحسب بعد 3 أسابيع من إدخال الحصص', 'Calculé après 3 semaines de saisies'],
+  rpt: ['التقرير', 'Rapport'], saveAll: ['حفظ الكل', 'Tout enregistrer'], nothing: ['ما كاين حتى نتيجة', 'Aucun résultat'], dayHrT: ['❤️ نبض النهار كامل (Loop)', '❤️ FC de la journée (Loop)'], hrTest: ['النبض أثناء الاختبار', 'FC pendant le test'], suitsFor: ['يصلح لـ', 'Adapté à'], delta: ['التطور', 'Évolution'], pickT: ['اختبار جديد', 'Nouveau test'],
+  g_AER: ['🫁 هوائي', '🫁 Aérobie'], g_LAC: ['🔥 لاكتيكي', '🔥 Lactique'], g_ALA: ['⚡ ألاكتيكي (سرعة)', '⚡ Alactique (vitesse)'], g_END: ['🏋 تحمّل القوة', '🏋 Endurance de force'],
+  g_MAX: ['💪 القوة القصوى', '💪 Force maximale'], g_POW: ['🚀 القدرة', '🚀 Puissance'], g_FLX: ['🤸 المرونة', '🤸 Souplesse'], g_HR: ['❤️ النبض والاسترجاع', '❤️ FC et récupération'], g_FOL: ['📅 المتابعة', '📅 Suivi'],
+  notCat: ['ماشي لفئتو', 'hors catégorie'], lastOn: ['آخر مرة', 'Dernier'], pb: ['🏆 أحسن نتيجة', '🏆 Record perso'], prevR: ['قبل', 'avant'], nRes: ['نتيجة', 'résultat(s)'],
+  vReal: ['تطور حقيقي', 'Changement réel'], vLikely: ['تطور محتمل', 'Changement probable'], vNoise: ['داخل هامش الخطأ', 'Dans la marge d’erreur'], vDiff: ['طريقة مختلفة', 'Méthode différente'],
+  noRpt: ['ما كاين حتى اختبار لهذا السباح. اضغط «＋ اختبار جديد».', 'Aucun test pour ce nageur. Appuyez sur « ＋ Nouveau test ».'],
+  addRes: ['＋ نتيجة جديدة', '＋ Nouveau résultat'], allRes: ['كل النتائج', 'Tous les résultats'], evo: ['منحنى التطور', 'Courbe d’évolution'],
+  metStep: ['السرعة عند FCmax', 'Vitesse à FCmax'], metLast: ['سرعة آخر تكرار', 'Allure de la dernière rép.'],
+  lastRes: ['آخر نتيجة', 'Dernier résultat'], bestRes: ['أحسن نتيجة', 'Meilleur résultat'], vsPrev: ['مقارنة بالسابقة', 'Par rapport au précédent'], vsFirst: ['من أول نتيجة', 'Depuis le premier'],
+  testsDone: ['نتائج مسجّلة', 'Résultats enregistrés'], upN: ['تحسّن حقيقي', 'Progrès réels'], downN: ['تراجع حقيقي', 'Baisses réelles'],
+  lowB: ['الأقل هو الأحسن', 'Plus bas = meilleur'], highB: ['الأكبر هو الأحسن', 'Plus haut = meilleur'], legerLand: ['أرضي (جري)', 'terrain (course)'],
   hrrR: { exc: ['ممتاز', 'Excellent'], good: ['جيد', 'Bon'], avg: ['متوسط', 'Moyen'], low: ['ضعيف', 'Faible'], poor: ['ضعيف جداً', 'Très faible'] }
 };
 function T(k) { var v = D[k]; return v ? (LANG === 'fr' ? v[1] : v[0]) : k; }
@@ -285,33 +296,35 @@ var Local = {
       if (p.pw === d.pw) return { ok: true, tk: 'demo-admin', role: 'admin' };
       return c ? { ok: true, tk: 'demo-coach-' + c.id, role: 'coach' } : { ok: false, err: 'bad' };
     }
-    var tk = p.tk || '', w = tk === 'demo-admin' ? { role: 'admin', name: 'Administration' } : null;
-    if (!w && tk.indexOf('demo-coach-') === 0) { var co = d.c.find(function (x) { return x.id === tk.slice(11) && x.active !== false; }); if (co) w = { role: 'coach', id: co.id, name: co.name, head: co.head === true }; }
+    var tk = p.tk || '', w = tk === 'demo-admin' ? { role: 'admin', name: 'Administration', perm: permOf(null) } : null;
+    if (!w && tk.indexOf('demo-coach-') === 0) { var co = d.c.find(function (x) { return x.id === tk.slice(11) && x.active !== false; }); if (co) w = { role: 'coach', id: co.id, name: co.name, head: co.head === true, perm: permOf(co), rec: co }; }
     if (!w) return { ok: false, err: 'auth' };
-    var own = function (s) { return w.role === 'admin' || (s && s.coachId === w.id); };
-    var btT = function (ty) { return ty === 'bt' || ty === 'va'; }, canT = function (s, ty) { return own(s) || (w.head && s && btT(ty)); };
+    var sees = function (s) { return w.role === 'admin' || (!!s && (w.perm.see ? w.perm.see.indexOf(String(s.id)) >= 0 : s.coachId === w.id)); };
+    var need = function (k) { return w.role === 'admin' || !!w.perm[k]; };
+    var btT = function (ty) { return ty === 'bt' || ty === 'va'; }, kindOf = function (ty) { return btT(ty) ? 'bt' : ty === 'day' ? 'day' : 'vo2'; };
+    var canT = function (s, ty, edit) { return sees(s) && need(kindOf(ty)) && (!edit || ty === 'day' || need('editRes')); };
     function up(arr, rec) { if (!rec.id) rec.id = uid(); rec.updated = new Date().toISOString(); var i = arr.findIndex(function (x) { return x.id === rec.id; }); if (i >= 0) arr[i] = rec; else arr.push(rec); return rec; }
     function S_(id) { return d.s.find(function (x) { return x.id === id; }); }
-    var r = { ok: true };
+    var r = { ok: true }, F_ = { ok: false, err: 'forbidden' };
     function audit(act, det) { d.au.push({ t: new Date().toISOString(), who: w.name, act: act, det: det }); if (d.au.length > 1000) d.au.splice(0, 200); }
     if (p.a === 'all') {
-      var ss = w.head ? d.s : d.s.filter(own), ids = {}; d.s.filter(own).forEach(function (x) { ids[x.id] = 1; });
-      r.swimmers = ss; r.tests = d.t.filter(function (t) { return ids[t.swimmerId] || (w.head && btT(t.type)); });
+      var ss = d.s.filter(sees), ids = {}; ss.forEach(function (x) { ids[x.id] = 1; });
+      r.swimmers = ss; r.tests = d.t.filter(function (t) { return ids[t.swimmerId]; });
       r.coaches = w.role === 'admin' ? d.c : d.c.filter(function (c) { return c.id === w.id; }).map(function (c) { return { id: c.id, name: c.name }; });
-      r.me = { role: w.role, id: w.id || null, name: w.name, head: !!w.head }; r.settings = d.set || {}; r.protos = d.p;
+      r.me = { role: w.role, id: w.id || null, name: w.name, head: !!w.head, perm: w.perm }; r.settings = d.set || {}; r.protos = d.p;
       if (w.role === 'admin') r.fails24 = (d.log || []).filter(function (x) { return !x.ok && Date.now() - new Date(x.t) < 864e5; }).length;
     }
-    else if (p.a === 'saveSwimmer') { var old = S_(p.rec.id); if (old && !own(old)) return { ok: false, err: 'forbidden' }; if (w.role !== 'admin') p.rec.coachId = w.id; r.rec = up(d.s, p.rec); }
-    else if (p.a === 'saveTest') { if (!canT(S_(p.rec.swimmerId), p.rec.type)) return { ok: false, err: 'forbidden' }; if (btT(p.rec.type) && w.role !== 'admin' && !w.head) return { ok: false, err: 'forbidden' }; var ex0 = d.t.find(function (x) { return x.id === p.rec.id; }); p.rec.by = p.rec.by || w.name; r.rec = up(d.t, p.rec); if (btT(p.rec.type)) audit(ex0 ? 'résultat modifié' : 'résultat', (S_(p.rec.swimmerId) || {}).name + ' · ' + (p.rec.type === 'va' ? '🎥 ' + ((p.rec.data.cfg || {}).dist || '') + 'm' : p.rec.data.proto ? p.rec.data.proto.name : p.rec.data.test) + ' · ' + p.rec.date + (p.rec.data.retest ? ' · re-test' : '')); }
-    else if (p.a === 'saveProto') { if (w.role !== 'admin' && !w.head) return { ok: false, err: 'forbidden' }; var op = d.p.find(function (x) { return x.id === p.rec.id; }); if (op && w.role !== 'admin' && op.byId !== w.id) return { ok: false, err: 'forbidden' }; if (!op) { p.rec.by = w.name; p.rec.byId = w.id || 'admin'; } else { p.rec.by = op.by; p.rec.byId = op.byId; } r.rec = up(d.p, p.rec); audit(op ? (p.rec.active === false ? 'protocole archivé' : 'protocole modifié') : 'protocole créé', p.rec.name); }
-    else if (p.a === 'saveProgram') { if (w.role !== 'admin' && !w.head) return { ok: false, err: 'forbidden' }; d.set = d.set || {}; var pk = 'prog_' + p.camp; d.set[pk] = d.set[pk] || {}; d.set[pk][p.cat] = p.tests || []; audit('programme', p.camp + ' · ' + p.cat + ' · ' + (p.tests || []).length + ' tests'); }
-    else if (p.a === 'audit') { if (w.role !== 'admin') return { ok: false, err: 'forbidden' }; r.log = d.au.slice().reverse(); }
-    else if (p.a === 'delSwimmer') { if (!own(S_(p.id))) return { ok: false, err: 'forbidden' }; d.s = d.s.filter(function (x) { return x.id !== p.id; }); d.t = d.t.filter(function (x) { return x.swimmerId !== p.id; }); }
-    else if (p.a === 'delTest') { var dt = d.t.find(function (x) { return x.id === p.id; }); if (dt && !canT(S_(dt.swimmerId), dt.type)) return { ok: false, err: 'forbidden' }; if (dt && btT(dt.type)) audit('résultat supprimé', (S_(dt.swimmerId) || {}).name + ' · ' + dt.date); d.t = d.t.filter(function (x) { return x.id !== p.id; }); }
-    else if (p.a === 'saveSetting') { if (w.role !== 'admin') return { ok: false, err: 'forbidden' }; d.set = d.set || {}; d.set[p.key] = p.value; }
+    else if (p.a === 'saveSwimmer') { var old = S_(p.rec.id); if (old ? !(need('edit') && sees(old)) : !need('add')) return F_; if (w.role !== 'admin') { if (old) p.rec.coachId = old.coachId; else { p.rec.coachId = w.id; if (!p.rec.id) p.rec.id = uid(); if (w.perm.see) { w.rec.perm = w.rec.perm || {}; w.rec.perm.see = (w.rec.perm.see || []).concat([p.rec.id]); } } } r.rec = up(d.s, p.rec); }
+    else if (p.a === 'saveTest') { var ex0 = d.t.find(function (x) { return x.id === p.rec.id; }); if (!canT(S_(p.rec.swimmerId), p.rec.type, !!ex0)) return F_; p.rec.by = p.rec.by || w.name; r.rec = up(d.t, p.rec); if (btT(p.rec.type)) audit(ex0 ? 'résultat modifié' : 'résultat', (S_(p.rec.swimmerId) || {}).name + ' · ' + (p.rec.type === 'va' ? '🎥' : p.rec.data.proto ? p.rec.data.proto.name : p.rec.data.test) + ' · ' + p.rec.date); }
+    else if (p.a === 'saveProto') { if (!need('proto')) return F_; var op = d.p.find(function (x) { return x.id === p.rec.id; }); if (op && w.role !== 'admin' && op.byId !== w.id) return F_; if (!op) { p.rec.by = w.name; p.rec.byId = w.id || 'admin'; } else { p.rec.by = op.by; p.rec.byId = op.byId; } r.rec = up(d.p, p.rec); audit(op ? (p.rec.active === false ? 'protocole archivé' : 'protocole modifié') : 'protocole créé', p.rec.name); }
+    else if (p.a === 'saveProgram') { if (!need('proto')) return F_; d.set = d.set || {}; var pk = 'prog_' + p.camp; d.set[pk] = d.set[pk] || {}; d.set[pk][p.cat] = p.tests || []; }
+    else if (p.a === 'audit') { if (w.role !== 'admin') return F_; r.log = d.au.slice().reverse(); }
+    else if (p.a === 'delSwimmer') { if (!need('del') || !sees(S_(p.id))) return F_; d.s = d.s.filter(function (x) { return x.id !== p.id; }); d.t = d.t.filter(function (x) { return x.swimmerId !== p.id; }); }
+    else if (p.a === 'delTest') { var dt = d.t.find(function (x) { return x.id === p.id; }); if (dt && !(canT(S_(dt.swimmerId), dt.type, true) && need('editRes'))) return F_; if (dt && btT(dt.type)) audit('résultat supprimé', (S_(dt.swimmerId) || {}).name + ' · ' + dt.date); d.t = d.t.filter(function (x) { return x.id !== p.id; }); }
+    else if (p.a === 'saveSetting') { if (w.role !== 'admin') return F_; d.set = d.set || {}; d.set[p.key] = p.value; }
     else if (p.a === 'log') { r.log = (d.log || []).slice().reverse(); }
-    else if (p.a === 'saveCoach') { if (w.role !== 'admin') return { ok: false, err: 'forbidden' }; if (!/^(?=.*[0-9])(?=.*[A-Za-z]).{6,}$/.test(String(p.rec.code || ''))) return { ok: false, err: 'weakCode' }; if (d.c.some(function (c) { return c.code === p.rec.code && c.id !== p.rec.id; }) || p.rec.code === d.pw) return { ok: false, err: 'dupcode' }; r.rec = up(d.c, p.rec); }
-    else if (p.a === 'delCoach') { if (w.role !== 'admin') return { ok: false, err: 'forbidden' }; d.c = d.c.filter(function (c) { return c.id !== p.id; }); }
+    else if (p.a === 'saveCoach') { if (w.role !== 'admin') return F_; if (!/^(?=.*[0-9])(?=.*[A-Za-z]).{6,}$/.test(String(p.rec.code || ''))) return { ok: false, err: 'weakCode' }; if (d.c.some(function (c) { return c.code === p.rec.code && c.id !== p.rec.id; }) || p.rec.code === d.pw) return { ok: false, err: 'dupcode' }; r.rec = up(d.c, p.rec); }
+    else if (p.a === 'delCoach') { if (w.role !== 'admin') return F_; d.c = d.c.filter(function (c) { return c.id !== p.id; }); }
     else if (p.a === 'changePw') { if (p.old !== d.pw) return { ok: false, err: 'bad' }; if (String(p.nw).length < 6) return { ok: false, err: 'short' }; d.pw = p.nw; }
     Local.put(d);
     return JSON.parse(JSON.stringify(r));
@@ -372,10 +385,21 @@ function n1(x) { return x == null ? '—' : R(x, 1); }
 function n0(x) { return x == null ? '—' : Math.round(x); }
 function initials(n) { return String(n || '?').trim().split(/\s+/).slice(0, 2).map(function (w) { return w[0]; }).join('').toUpperCase(); }
 var ICON = { step: '📈', '400': '🏊', css: '⏱', leger: '🏃', rest: '😴', day: '🌙', time: '🏅' };
-function daysOf(id) { return DB.tests.filter(function (t) { return t.swimmerId === id && t.type === 'day'; }).map(function (t) { var d = t.data || {}; return { id: t.id, date: t.date, hrv: d.hrv, rhr: d.rhr, sleepH: d.sleepH, sleepScore: d.sleepScore, recharge: d.recharge, br: d.br, ans: d.ans, min: d.min, rpe: d.rpe, load: C.num(d.min) && C.num(d.rpe) != null ? C.num(d.min) * C.num(d.rpe) : null, polar: d.polar, cl: d.cl, str: d.str, tol: d.tol, clr: d.clr, cls: d.cls, ex: d.ex || [] }; }).sort(function (a, b) { return a.date < b.date ? -1 : 1; }); }
+function daysOf(id) { return DB.tests.filter(function (t) { return t.swimmerId === id && t.type === 'day'; }).map(function (t) { var d = t.data || {}; return { id: t.id, date: t.date, hrv: d.hrv, rhr: d.rhr, sleepH: d.sleepH, sleepScore: d.sleepScore, recharge: d.recharge, br: d.br, ans: d.ans, min: d.min, rpe: d.rpe, load: C.num(d.min) && C.num(d.rpe) != null ? C.num(d.min) * C.num(d.rpe) : null, polar: d.polar, cl: d.cl, str: d.str, tol: d.tol, clr: d.clr, cls: d.cls, ex: d.ex || [], chr: d.chr || null }; }).sort(function (a, b) { return a.date < b.date ? -1 : 1; }); }
 function readyOf(s, date) { return C.readiness(daysOf(s.id), date || today(), ageOf(s, date)); }
 function isHead() { return DB.me && DB.me.role === 'coach' && DB.me.head; }
-function visibleSwimmers() { return DB.swimmers.filter(function (s) { if (isHead() && window.APP_MODE !== 'bt') return s.coachId === DB.me.id; return !isAdmin() || !VIEWAS || s.coachId === VIEWAS; }); }
+/* --- permissions (v4) : l'administration choisit, pour chaque entraîneur, les nageurs visibles et les droits --- */
+var PERM_KEYS = ['add', 'edit', 'del', 'vo2', 'bt', 'editRes', 'rep', 'day', 'polar', 'proto', 'print'];
+function permOf(c) { // mêmes règles que le serveur (Code.gs · permOf_)
+  var o = {}; if (!c) { PERM_KEYS.forEach(function (k) { o[k] = true; }); o.see = null; return o; }
+  var p = c.perm || {}, head = c.head === true;
+  var d = { add: true, edit: true, del: false, vo2: true, bt: head, editRes: true, rep: true, day: true, polar: true, proto: head, print: true };
+  PERM_KEYS.forEach(function (k) { o[k] = p[k] != null ? p[k] === true : d[k]; });
+  o.see = Array.isArray(p.see) ? p.see.map(String) : null; return o;
+}
+function can(k) { if (isAdmin()) return true; if (!DB.me) return false; var p = DB.me.perm || permOf(DB.me); return !!p[k]; }
+function coachSees(c, s) { if (!c || !s) return false; var p = permOf(c); return p.see ? p.see.indexOf(String(s.id)) >= 0 : s.coachId === c.id; }
+function visibleSwimmers() { return DB.swimmers.filter(function (s) { if (!isAdmin() || !VIEWAS) return true; return coachSees((DB.coaches || []).find(function (c) { return c.id === VIEWAS; }), s); }); }
 function fmtDate(d) { if (!d) return ''; var p = d.split('-'); return p[2] + '/' + p[1] + '/' + p[0]; }
 
 /* ======================= analyse d'un nageur ======================= */
@@ -508,7 +532,7 @@ function bindBt() { var b = $('#bt-btn'); if (b) b.onclick = function () { if (B
 
 /* ======================= Wake lock ======================= */
 var wake = null;
-function keepAwake(on) { try { if (on && navigator.wakeLock) navigator.wakeLock.request('screen').then(function (w) { wake = w; }); else if (wake) { wake.release(); wake = null; } } catch (e) {} }
+function keepAwake(on) { try { if (on && navigator.wakeLock) navigator.wakeLock.request('screen').then(function (w) { wake = w; }).catch(function () {}); else if (wake) { wake.release(); wake = null; } } catch (e) {} }
 
 /* ======================= routage / rendu ======================= */
 function route(v, o) { stopRunner(); Object.assign(S, { view: v }, o || {}); render(); window.scrollTo(0, 0); }
@@ -521,20 +545,20 @@ function render() {
   var logged = !!(API.url() && API.tk());
   $('#set-btn').classList.toggle('hide', !logged); $('#out-btn').classList.toggle('hide', !logged);
   $('#set-lbl').textContent = T('settings'); $('#out-lbl').textContent = T('logout');
-  var tb = document.querySelector('.hd .t b'); if (tb) tb.textContent = window.APP_MODE === 'bt' ? T('btTitle') : 'VO2max · AL-WATHBA';
+  var tb = document.querySelector('.hd .t b'); if (tb) tb.innerHTML = 'MR WATHBA PERFORMANCE <small style="font:600 10.5px Rubik,sans-serif;letter-spacing:1.5px;opacity:.8;margin-inline-start:6px">BY OKBA</small>';
   document.body.classList.toggle('wide', S.view === 'btVideo');
-  var sb = $('#switch-btn'); if (sb) { sb.classList.toggle('hide', !logged || (window.APP_MODE !== 'bt' && DB.me && DB.me.role === 'coach' && !DB.me.head)); sb.textContent = window.APP_MODE === 'bt' ? '🫁 VO2max' : '🧪 ' + T('btShort'); sb.onclick = function () { location.href = window.APP_MODE === 'bt' ? 'index.html' : 'tests.html'; }; }
+  var sb = $('#switch-btn'); if (sb) { sb.classList.toggle('hide', true); sb.textContent = window.APP_MODE === 'bt' ? '🫁 VO2max' : '🧪 ' + T('btShort'); sb.onclick = function () { location.href = window.APP_MODE === 'bt' ? 'index.html' : 'tests.html'; }; }
   $('#hd-sub').textContent = logged && DB.me ? (DB.me.role === 'admin' ? T('admin') : T('coach') + ' · ' + DB.me.name) : T('sub');
   var app = $('#app');
   document.body.classList.toggle('auth', !logged);
-  var nav = [['home', '🏠', T('home')], ['add', '＋', T('addSw')], ['settings', '⚙', T('settings')], ['out', '🚪', T('logout')]];
-  $('#bnav').innerHTML = nav.map(function (n) { return '<button data-nav="' + n[0] + '" class="' + ((S.view === n[0] || (n[0] === 'home' && (S.view === 'swimmer' || S.view === 'test'))) ? 'on' : '') + '"><b>' + n[1] + '</b>' + n[2] + '</button>'; }).join('');
+  var nav = [['home', '🏠', T('home')]].concat(can('add') ? [['add', '＋', T('addSw')]] : []).concat([['settings', '⚙', T('settings')], ['out', '🚪', T('logout')]]);
+  $('#bnav').innerHTML = nav.map(function (n) { return '<button data-nav="' + n[0] + '" class="' + ((S.view === n[0] || (n[0] === 'home' && /^(swimmer|test|pick|swTest|btEntry|liveSetup|live|liveRes)$/.test(S.view))) ? 'on' : '') + '"><b>' + n[1] + '</b>' + n[2] + '</button>'; }).join('');
   $$('#bnav [data-nav]').forEach(function (b) { b.onclick = function () { var k = b.dataset.nav; if (k === 'out') $('#out-btn').click(); else if (k === 'add') route('swForm', { sid: null }); else route(k); }; });
   if (!API.url()) return vSetup(app);
   if (!API.tk()) return vLogin(app);
   if (window.APP_MODE === 'bt' && DB.me && DB.me.role === 'coach' && !DB.me.head && S.view !== 'settings') { app.innerHTML = '<div class="card empty" style="margin-top:30px">🔒 ' + T('noBt') + '<div style="margin-top:14px"><a class="btn pri" href="index.html">🫁 VO2max</a></div></div>'; load().then(function (r) { if (r && r.ok && DB.me && DB.me.head) render(); }).catch(function () {}); return; }
-  var V = { home: vHome, swimmer: vSwimmer, swForm: vSwForm, test: vTest, settings: vSettings };
-  if (window.APP_MODE === 'bt' && window.BTV) Object.keys(window.BTV.views).forEach(function (k) { V[k] = window.BTV.views[k]; });
+  var V = { home: vHome, swimmer: vSwimmer, swForm: vSwForm, test: vTest, settings: vSettings, pick: vPick, swTest: vSwTest, liveSetup: vLiveSetup, live: vLive, liveRes: vLiveRes };
+  if (window.BTV) Object.keys(window.BTV.views).forEach(function (k) { if (window.APP_MODE === 'bt' || (k !== 'home' && k !== 'swimmer')) V[k] = window.BTV.views[k]; });
   (V[S.view] || V.home)(app);
 }
 $('#lang-btn').onclick = function () { LANG = LANG === 'fr' ? 'ar' : 'fr'; ls('vo2_lang', LANG); render(); };
@@ -548,7 +572,7 @@ function authShell(inner) {
   var d1 = 'M0 100 C200 40 400 160 600 100 S1000 40 1200 100 S1600 160 1800 100 S2200 40 2400 100 V200 H0Z', d2 = 'M0 120 C300 70 500 170 800 120 S1300 70 1600 120 S2100 170 2400 120 V200 H0Z';
   return '<div class="auth-wrap"><button class="hbtn auth-lang" id="auth-lang" type="button">' + (LANG === 'fr' ? 'ع' : 'FR') + '</button><div class="bubbles">' + bub + '</div>' +
     '<div class="waves">' + wave('w3', 'rgba(91,155,255,.35)', d2) + wave('w1', 'rgba(47,212,240,.28)', d1) + wave('w2', 'rgba(59,123,255,.45)', d2) + '</div>' +
-    '<div class="auth-card"><img class="logo" src="logo.png" alt=""><div class="brand">' + (window.APP_MODE === 'bt' ? 'TESTS' : 'VO2max') + '</div><div class="sub">' + T('authSub') + '</div>' + inner + '</div></div>';
+    '<div class="auth-card"><img class="logo" src="logo.png" alt=""><div class="brand" style="font-size:27px;line-height:1.15">MR WATHBA<br>PERFORMANCE</div><div style="font:700 12px Rubik,sans-serif;letter-spacing:3px;color:var(--mute);margin:4px 0 6px">BY OKBA</div><div class="sub">' + T('authSub') + '</div>' + inner + '</div></div>';
 }
 function bindAuthLang() { $('#auth-lang').onclick = function () { $('#lang-btn').click(); }; }
 function vSetup(app) {
@@ -598,22 +622,27 @@ function vHome(app) {
   h += '<div class="statbar">' + si('🏊', 'rgba(91,155,255,.18)', T('stats_sw'), list.length) + si('🧪', 'rgba(47,212,240,.15)', T('stats_month'), nT) +
     '<div class="card"><div class="si" style="background:rgba(43,209,143,.15)">💚</div><div class="kpi"><div class="l">' + T('stats_ready') + '</div><div class="row" style="gap:12px;font:700 20px Rubik"><span><span class="dot green"></span> ' + rd.green + '</span><span><span class="dot yellow"></span> ' + rd.yellow + '</span><span><span class="dot red"></span> ' + rd.red + '</span></div></div></div>' +
     (isAdmin() ? si('👥', 'rgba(246,196,83,.15)', T('coaches'), (DB.coaches || []).length) : '') + '</div>';
-  h += '<div class="row"><h1 class="sp">' + T('swimmers') + '</h1><button class="btn pri" id="add">＋ ' + T('addSw') + '</button></div>';
+  if (LV && LV.running) h += '<div class="alert" style="margin-bottom:14px;display:flex;align-items:center;gap:10px"><b class="sp">⏱ ' + A('اختبار لايف راهو يخدم', 'Test en direct en cours') + '</b><button class="btn pri" id="lv-back">' + A('رجوع للاختبار', 'Revenir au test') + '</button></div>';
+  h += '<div class="row" style="margin-bottom:14px">' + ((can('vo2') || can('bt')) ? '<button class="btn pri big" id="go-live">⏱ ' + A('اختبار لايف · Verity Sense', 'Test en direct · Verity Sense') + '</button>' : '') + (can('proto') ? '<button class="btn" id="go-protos">🧩 ' + A('البروتوكولات', 'Protocoles') + '</button>' : '') + '</div>';
+  h += '<div class="row"><h1 class="sp">' + T('swimmers') + '</h1>' + (can('add') ? '<button class="btn pri" id="add">＋ ' + T('addSw') + '</button>' : '') + '</div>';
   if (QUEUE.length) h += '<div class="note" style="margin-bottom:12px">⏳ ' + QUEUE.length + ' ' + T('pending') + '</div>';
   if (!list.length) h += '<div class="card empty">' + T('noSw') + '</div>';
   h += '<div class="grid g3">';
   list.forEach(function (s) {
     var P = profile(s), a = P.age, r = P.ready;
     h += '<div class="card sw" data-id="' + s.id + '"><div class="av ' + (r ? r.level : '') + '">' + esc(initials(s.name)) + '</div><div class="sp" style="min-width:0"><b style="font-size:17px">' + esc(s.name) + '</b><div class="small muted">' +
-      (a ? Math.floor(a) + ' ' + T('yrs') : '') + (s.level ? ' · ' + (s.level == 7 ? T('comp') : T('level') + ' ' + s.level) : '') + (s.group ? ' · ' + esc(s.group) : '') + '</div>' +
+      (a ? Math.floor(a) + ' ' + T('yrs') : '') + (s.level ? ' · ' + (s.level == 7 ? T('comp') : T('level') + ' ' + s.level) : '') + (window.BTV && BTV.catOf(s) ? ' · ' + BTV.catName(BTV.catOf(s)) : '') + '</div>' +
       '<div class="small muted">' + (isAdmin() && !VIEWAS ? '👤 ' + esc(coachName(s.coachId) || T('noCoach')) + ' · ' : '') + '<span class="dot ' + (r ? r.level : 'none') + '" style="vertical-align:middle"></span> ' + (r ? T(r.level).split(':')[0] : '—') + '</div></div>' +
       gauge(P.final ? P.final.vo2 : null, 84) + '</div>';
   });
   h += '</div>';
   app.innerHTML = h;
-  $('#add').onclick = function () { route('swForm', { sid: null }); };
+  if ($('#add')) $('#add').onclick = function () { route('swForm', { sid: null }); };
+  if ($('#go-live')) $('#go-live').onclick = function () { LS = null; route('liveSetup', { liveSids: [] }); };
+  if ($('#lv-back')) $('#lv-back').onclick = function () { route('live'); };
+  if ($('#go-protos')) $('#go-protos').onclick = function () { route('btProtos'); };
   $$('[data-va]').forEach(function (b) { b.onclick = function () { VIEWAS = b.dataset.va; ls('vo2_viewas', VIEWAS || null); render(); }; });
-  $$('.sw').forEach(function (el) { el.onclick = function () { route('swimmer', { sid: el.dataset.id, tab: 'sum' }); }; });
+  $$('.sw').forEach(function (el) { el.onclick = function () { route('swimmer', { sid: el.dataset.id, tab: 'rpt' }); }; });
   if (!vHome.loaded) { vHome.loaded = true; load().then(function (r) { if (r && r.ok && S.view === 'home') render(); }).catch(function () {}); }
 }
 
@@ -629,48 +658,55 @@ function vSwForm(app) {
     '<div class="fr"><div class="f">' + lab('dob') + '<input type="date" name="dob" required value="' + esc(s.dob) + '"></div>' +
     '<div class="f">' + lab('sex') + '<select name="sex"><option value="M">' + T('M') + '</option><option value="F"' + (s.sex === 'F' ? ' selected' : '') + '>' + T('Fm') + '</option></select></div>' +
     '<div class="f">' + lab('level') + '<select name="level">' + lv + '</select></div>' +
-    '<div class="f">' + lab('group') + '<input name="group" value="' + esc(s.group) + '"></div>' + co + '</div></div>' +
+    co + '</div></div>' +
     '<div class="card"><h3>📏 ' + T('body') + '</h3><div class="fr">' + inp('height', 'height', 'hHint') + inp('sitH', 'sitH', 'sitHint') + inp('span', 'span', 'spanHint') + inp('weight', 'weight') + inp('hrmaxKnown', 'hrmaxOverride', null, 'numeric') + '</div></div>' +
     '<div class="card"><div class="f">' + lab('notes') + '<textarea name="notes" rows="2">' + esc(s.notes) + '</textarea></div>' +
-    '<div class="row"><button class="btn pri big">' + T('save') + '</button>' + (S.sid ? '<span class="sp"></span><button type="button" class="btn dan" id="dl">' + T('del') + '</button>' : '') + '</div></div></form>';
+    '<div class="row"><button class="btn pri big">' + T('save') + '</button>' + (S.sid && can('del') ? '<span class="sp"></span><button type="button" class="btn dan" id="dl">' + T('del') + '</button>' : '') + '</div></div></form>';
   $('#bk').onclick = function () { S.sid ? route('swimmer') : route('home'); };
   $('#sf').onsubmit = function (e) {
     e.preventDefault(); var f = e.target, rec = Object.assign({}, s);
-    ['name', 'dob', 'sex', 'level', 'group', 'height', 'sitH', 'span', 'weight', 'hrmaxKnown', 'notes'].forEach(function (k) { rec[k] = f[k].value.trim(); });
+    ['name', 'dob', 'sex', 'level', 'height', 'sitH', 'span', 'weight', 'hrmaxKnown', 'notes'].forEach(function (k) { rec[k] = f[k].value.trim(); });
     if (f.coachId) rec.coachId = f.coachId.value; else if (!rec.coachId && DB.me && DB.me.role === 'coach') rec.coachId = DB.me.id;
     rec.id = rec.id || uid();
     rec.body = (s.body || []).slice();
     if (rec.height !== (s.height || '') || rec.weight !== (s.weight || '') || rec.sitH !== (s.sitH || '')) rec.body.push({ date: today(), h: rec.height, w: rec.weight, sh: rec.sitH, span: rec.span });
-    mutate('saveSwimmer', { rec: rec }); toast(T('saved')); route('swimmer', { sid: rec.id, tab: 'sum' });
+    mutate('saveSwimmer', { rec: rec }); toast(T('saved')); route('swimmer', { sid: rec.id, tab: 'rpt' });
   };
-  if (S.sid) $('#dl').onclick = function () { if (confirm(T('confirmDel'))) { mutate('delSwimmer', { id: S.sid }); toast(T('deleted')); route('home'); } };
+  if ($('#dl')) $('#dl').onclick = function () { if (confirm(T('confirmDel'))) { mutate('delSwimmer', { id: S.sid }); toast(T('deleted')); route('home'); } };
 }
 
 /* ---------- page nageur ---------- */
 function vSwimmer(app) {
   var s = sw(S.sid); if (!s) return route('home');
   var P = profile(s);
-  var h = '<div class="row"><button class="btn sm" id="bk">← ' + T('swimmers') + '</button><span class="sp"></span><button class="btn sm" id="pr">🖨 ' + T('print') + '</button><button class="btn sm" id="ed">✎ ' + T('edit') + '</button></div>' +
+  var h = '<div class="row"><button class="btn sm" id="bk">← ' + T('swimmers') + '</button><span class="sp"></span>' + (can('vo2') || can('bt') || can('day') ? '<button class="btn pri" id="nt">＋ ' + T('newTest') + '</button>' : '') + (can('print') && can('rep') ? '<button class="btn sm" id="pr">🖨 ' + T('print') + '</button>' : '') + (can('edit') ? '<button class="btn sm" id="ed">✎ ' + T('edit') + '</button>' : '') + '</div>' +
     '<div class="row" style="margin:12px 0"><div class="av" style="width:58px;height:58px;font-size:22px">' + esc(initials(s.name)) + '</div><div class="sp"><h1 style="margin:0">' + esc(s.name) + '</h1><div class="small muted">' +
-    (P.age ? '<span class="num">' + R(P.age, 1) + '</span> ' + T('yrs') : '') + (s.weight ? ' · <span class="ltr">' + esc(s.weight) + ' kg</span>' : '') + (s.height ? ' · <span class="ltr">' + esc(s.height) + ' cm</span>' : '') + (s.level ? ' · ' + (s.level == 7 ? T('comp') : T('level') + ' ' + s.level) : '') + (isAdmin() && s.coachId ? ' · 👤 ' + esc(coachName(s.coachId)) : '') + '</div></div>' +
+    (P.age ? '<span class="num">' + R(P.age, 1) + '</span> ' + T('yrs') : '') + (window.BTV && BTV.catOf(s) ? ' · <span class="chip">' + BTV.catName(BTV.catOf(s)) + '</span>' : '') + (s.weight ? ' · <span class="ltr">' + esc(s.weight) + ' kg</span>' : '') + (s.height ? ' · <span class="ltr">' + esc(s.height) + ' cm</span>' : '') + (s.level ? ' · ' + (s.level == 7 ? T('comp') : T('level') + ' ' + s.level) : '') + (isAdmin() && s.coachId ? ' · 👤 ' + esc(coachName(s.coachId)) : '') + '</div></div>' +
     (P.ready ? '<span class="chip ' + P.ready.level + '"><span class="dot ' + P.ready.level + '"></span> ' + T(P.ready.level).split(':')[0] + '</span>' : '') + '</div>';
-  h += '<div class="tabs">' + [['sum', '📊'], ['recovery', '🌙'], ['tests', '🧪'], ['times', '🏅'], ['history', '📈']].map(function (k) { return '<button class="btn sm' + (S.tab === k[0] ? ' on' : '') + '" data-tab="' + k[0] + '">' + k[1] + ' ' + T(k[0]) + '</button>'; }).join('') + '</div>';
-  if (S.tab === 'sum') h += summaryHtml(P);
-  else if (S.tab === 'tests') h += testsHtml(P);
+  var TABS = [['rpt', '📋'], ['sum', '🫁'], ['recovery', '🌙'], ['times', '🏅'], ['history', '📈']].filter(function (k) { return can('rep') || k[0] === 'recovery' || k[0] === 'times'; });
+  if (S.tab === 'tests') S.tab = 'rpt';
+  if (!TABS.some(function (k) { return k[0] === S.tab; })) S.tab = TABS[0][0];
+  h += '<div class="tabs">' + TABS.map(function (k) { return '<button class="btn sm' + (S.tab === k[0] ? ' on' : '') + '" data-tab="' + k[0] + '">' + k[1] + ' ' + T(k[0]) + '</button>'; }).join('') + '</div>';
+  if (S.tab === 'tests') S.tab = 'rpt';
+  if (S.tab === 'rpt') h += rptHtml(s);
+  else if (S.tab === 'sum') h += summaryHtml(P);
   else if (S.tab === 'recovery') h += recoveryHtml(s);
   else if (S.tab === 'times') h += timesHtml(s);
   else h += '<div class="grid g2"><div class="card"><h3>VO2max</h3><div class="chart"><canvas id="ch-vo2"></canvas></div></div><div class="card"><h3>' + T('pacesT') + '</h3><div class="chart"><canvas id="ch-pace"></canvas></div></div>' +
     '<div class="card"><h3>' + T('hrCurve') + '</h3><div class="chart"><canvas id="ch-hrall"></canvas></div></div><div class="card"><h3>' + T('hrrest') + ' / ' + T('hrr') + '</h3><div class="chart"><canvas id="ch-rest"></canvas></div></div></div>';
   app.innerHTML = h;
   $('#bk').onclick = function () { route('home'); };
-  $('#ed').onclick = function () { route('swForm'); };
-  $('#pr').onclick = function () { printCard(s); };
+  if ($('#ed')) $('#ed').onclick = function () { route('swForm'); };
+  if ($('#pr')) $('#pr').onclick = function () { printCard(s); };
+  if ($('#nt')) $('#nt').onclick = function () { route('pick', { sid: s.id }); };
+  $$('[data-pick]').forEach(function (b) { b.onclick = function () { route('pick', { sid: s.id }); }; });
+  $$('[data-tk]').forEach(function (b) { b.onclick = function () { route('swTest', { tkey: b.dataset.tk }); }; });
   $$('[data-tab]').forEach(function (b) { b.onclick = function () { S.tab = b.dataset.tab; render(); }; });
   $$('[data-new]').forEach(function (b) { b.onclick = function () { route('test', { tid: null, type: b.dataset.new }); }; });
   $$('[data-tid]').forEach(function (b) { b.onclick = function () { var t = DB.tests.find(function (x) { return x.id === b.dataset.tid; }); route('test', { tid: t.id, type: t.type }); }; });
   if (S.tab === 'sum') drawSummaryCharts(P);
   if (S.tab === 'history') drawHistory(s);
-  if (S.tab === 'recovery') { drawRecovery(s); polarBind(s); drawReport(s); }
+  if (S.tab === 'recovery') { polarBind(s); if (can('rep')) { drawRecovery(s); drawReport(s); } }
 }
 
 /* ---------- 📋 التقرير اليومي + ⌚ Polar ---------- */
@@ -825,6 +861,7 @@ function reportText(rep) {
     L.push(''); L.push('📅 ' + A('غدوة', 'Demain') + ' (' + dayName(tm.date) + ' ' + fmtDate(tm.date) + ') : ' + strip_(tm.title));
     tm.lines.forEach(function (x) { L.push('• ' + strip_(x)); });
   }
+  L.push(''); L.push('— MR WATHBA PERFORMANCE · BY OKBA');
   return L.join('\n').replace(/\n{3,}/g, '\n\n').trim();
 }
 function drawReport(s) {
@@ -835,15 +872,15 @@ function drawReport(s) {
   var rep = dayReport(s, S.rdate);
   box.innerHTML = '<div class="card"><div class="row" style="margin-bottom:10px"><h2 class="sp" style="margin:0">📋 ' + A('التقرير اليومي', 'Rapport du jour') + '</h2>' +
     '<select id="rp-d" class="rp-np" style="width:auto">' + dates.map(function (x) { return '<option value="' + x + '"' + (x === S.rdate ? ' selected' : '') + '>' + fmtDate(x) + '</option>'; }).join('') + '</select>' +
-    '<button class="btn sm rp-np" id="rp-cp">📲 ' + A('نسخ (واتساب)', 'Copier') + '</button><button class="btn sm rp-np" id="rp-pr">🖨 ' + A('طباعة', 'Imprimer') + '</button></div>' +
+    (can('print') ? '<button class="btn sm rp-np" id="rp-cp">📲 ' + A('نسخ (واتساب)', 'Copier') + '</button><button class="btn sm rp-np" id="rp-pr">🖨 ' + A('طباعة', 'Imprimer') + '</button>' : '') + '</div>' +
     '<div id="rp-body">' + (rep ? reportHtml(rep) : '<p class="muted">' + T('noDays') + '</p>') + '</div></div>';
   if (rep) drawReportCharts(rep);
   $('#rp-d').onchange = function () { S.rdate = this.value; killCharts(); render(); };
-  $('#rp-cp').onclick = function () {
+  if ($('#rp-cp')) $('#rp-cp').onclick = function () {
     var t = reportText(rep);
     (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { toast('✅ ' + A('تنسخ، لصقو في واتساب', 'Copié')); }).catch(function () { prompt('', t); });
   };
-  $('#rp-pr').onclick = function () {
+  if ($('#rp-pr')) $('#rp-pr').onclick = function () {
     // 🖨 1) المنحنيات يتصوّرو وهوما ظاهرين في الشاشة (قبل ما نحرّكو التقرير) ← ما يطلعوش فارغين
     var box = $('#day-report'), ph = document.createComment('rp'), pr = $('#print'), snaps = [];
     $$('canvas', box).forEach(function (cv) {
@@ -856,7 +893,7 @@ function drawReport(s) {
     });
     // 2) نحطو التقرير في #print وقت الطباعة ومن بعد نرجعوه
     box.parentNode.insertBefore(ph, box);
-    pr.innerHTML = '<div dir="' + (LANG === 'fr' ? 'ltr' : 'rtl') + '"><h2 style="margin:0 0 8px">📋 ' + A('التقرير اليومي', 'Rapport du jour') + ' — ' + esc(s.name) + ' — ' + fmtDate(rep.date) + '</h2></div>';
+    pr.innerHTML = '<div dir="' + (LANG === 'fr' ? 'ltr' : 'rtl') + '"><div style="font:700 13px Rubik,sans-serif;letter-spacing:1px;color:#0b3d91">MR WATHBA PERFORMANCE · BY OKBA</div><h2 style="margin:0 0 8px">📋 ' + A('التقرير اليومي', 'Rapport du jour') + ' — ' + esc(s.name) + ' — ' + fmtDate(rep.date) + '</h2></div>';
     pr.firstChild.appendChild(box);
     var opened = $$('details', box).filter(function (x) { return !x.open; }); opened.forEach(function (x) { x.open = true; });
     var done = false, back = function () {
@@ -956,6 +993,7 @@ function reportVisual(rep) {
   h += '<div class="rp-c"><div class="l">🔋 Nightly Recharge</div><div class="v" style="font-size:20px">' + (rc != null ? T('rc' + rc) : '—') + '</div><div class="rp-seg">' + [1, 2, 3, 4, 5].map(function (i) { return '<i style="' + (rc != null && i <= rc ? 'background:' + (rc >= 4 ? '#1D9E75' : rc === 3 ? '#EF9F27' : '#E24B4A') : '') + '"></i>'; }).join('') + '</div><div class="n muted">' + (rc != null ? rc + ' / 5' : '') + '</div></div>';
   h += '</div>';
 
+  h += dayHrHtml(rep);
   // ── حصص النهار: كل حصة وحدها + التحليل تاعها
   rep.charts = [];
   if (rep.tr.length) {
@@ -1013,6 +1051,14 @@ function reportVisual(rep) {
   h += '<div class="rp-c" style="margin-bottom:12px"><div class="l">🌙 ' + A('النوم والحمل (14 يوم)', 'Sommeil et charge (14 j)') + '</div><div class="rp-ch s"><canvas id="rp-tr2"></canvas></div></div>';
   return h;
 }
+function dayHrHtml(rep) {
+  var c = rep.d.chr; if (!c || c.length < 8) return '';
+  var v = []; for (var i = 1; i < c.length; i += 2) v.push(c[i]);
+  var mn = Math.min.apply(null, v), mx = Math.max.apply(null, v), av = Math.round(v.reduce(function (a, b) { return a + b; }, 0) / v.length);
+  var day = []; for (var j = 0; j < c.length; j += 2) if (c[j] >= 8 * 60 && c[j] <= 21 * 60) day.push(c[j + 1]);
+  var dmn = day.length ? Math.min.apply(null, day) : null;
+  return '<div class="rp-c" style="margin-bottom:12px"><div class="l">' + T('dayHrT') + '</div><div class="rp-chips"><span>▼ min <b>' + mn + '</b></span><span>' + A('المتوسط', 'moy.') + ' <b>' + av + '</b></span><span>▲ max <b>' + mx + '</b></span>' + (dmn ? '<span>' + A('أقل نبض في النهار', 'min en journée') + ' <b>' + dmn + '</b></span>' : '') + '<span class="muted">' + A('قراءة كل 5 د · بلا الحصص', 'mesure / 5 min · hors séances') + '</span></div><div class="rp-ch s"><canvas id="rp-chr"></canvas></div></div>';
+}
 function zTxt(rep, a, b) { var z = rep.zones; return z ? z[a - 1].lo + '–' + z[b - 1].hi + ' bpm' : ''; }
 
 function drawReportCharts(rep) {
@@ -1031,6 +1077,11 @@ function drawReportCharts(rep) {
       mk('rp-en-' + c.i, { type: 'line', data: { labels: lab, datasets: [{ data: c.en.cho, borderColor: '#F26B21', borderWidth: 1.8, pointRadius: 0, tension: .3 }, { data: c.en.fat, borderColor: '#E0B020', borderWidth: 1.8, pointRadius: 0, tension: .3 }] }, options: o2 });
     }
   });
+  if (rep.d.chr && rep.d.chr.length >= 8) {
+    var cx = [], cy = []; for (var ci = 0; ci < rep.d.chr.length; ci += 2) { cx.push(hhmm(rep.d.chr[ci] / 60)); cy.push(rep.d.chr[ci + 1]); }
+    var oc = o0(); oc.scales = { x: { ticks: { maxTicksLimit: 8, maxRotation: 0 }, grid: { display: false } }, y: { suggestedMin: 50 } };
+    mk('rp-chr', { type: 'line', data: { labels: cx, datasets: [{ data: cy, borderColor: '#E24B4A', borderWidth: 1.8, pointRadius: 0, tension: .25, spanGaps: true }] }, options: oc });
+  }
   var all = daysOf(rep.s.id).filter(function (x) { return x.date <= rep.date; }).slice(-14), lab = all.map(function (x) { return x.date.slice(8) + '/' + x.date.slice(5, 7); });
   var base = all.map(function (x) { var r = C.readiness(daysOf(rep.s.id), x.date); return r && r.hrvBase ? Math.round(r.hrvBase) : null; });
   var o = chartBase(); o.plugins.legend = { position: 'bottom', labels: { boxWidth: 10 } }; o.spanGaps = true; o.scales = { y: { title: { display: true, text: 'ms' } }, y2: { position: 'right', grid: { display: false }, title: { display: true, text: 'bpm' } } };
@@ -1211,14 +1262,14 @@ function polarBind(s) {
     var L = (r.linked || {})[s.id];
     if (!L && !isAdmin()) return;
     // 🔄 جلب وحدو كي تفتح الصفحة (مرة وحدة في الجلسة، وإذا آخر جلب فات عليه 10 دقايق)
-    if (L && !PSYNC[s.id] && (!L.last || Date.now() - new Date(L.last).getTime() > 10 * 60000)) {
+    if (L && can('polar') && !PSYNC[s.id] && (!L.last || Date.now() - new Date(L.last).getTime() > 10 * 60000)) {
       PSYNC[s.id] = 1; toast(PT('wait'));
       API.call('polarSync', { sid: s.id }).then(function (x) { if (x && x.ok) { toast('✅ ' + x.days + ' ' + PT('got')); if (x.days) load().then(render); else polarBind(s); } }).catch(function () {});
     }
     var when = L && L.last ? new Date(L.last).toLocaleString(LANG === 'fr' ? 'fr-FR' : 'ar-DZ', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : PT('none');
     box.innerHTML = '<div class="card" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px"><div class="ic">⌚</div><div class="sp"><b>' + PT('t') + ' · ' + (L ? PT('on') : PT('off')) + '</b>' +
       '<div class="small muted">' + (L ? PT('last') + ' : <span class="num">' + esc(when) + '</span> · ' + PT('auto') : (r.cfg ? '' : PT('noCfg'))) + '</div></div>' +
-      (L ? '<button class="btn pri sm" id="pl-sync">' + PT('sync') + '</button>' : '') +
+      (L && can('polar') ? '<button class="btn pri sm" id="pl-sync">' + PT('sync') + '</button>' : '') +
       (isAdmin() && r.cfg ? '<button class="btn sm" id="pl-link">' + PT('link') + '</button>' : '') +
       (isAdmin() && L ? '<button class="btn sm dan" id="pl-un">' + PT('unlink') + '</button>' : '') + '</div>';
     var b;
@@ -1251,8 +1302,10 @@ function readyCard(r, s) {
 }
 function recoveryHtml(s) {
   var days = daysOf(s.id), last = days[days.length - 1], r = last ? C.readiness(days, last.date, ageOf(s, last.date)) : null, ac = C.acwr(days, today());
-  var h = '<div class="row" style="margin-bottom:12px"><h2 class="sp" style="margin:0">' + T('readyT') + (last ? ' <span class="small muted">' + fmtDate(last.date) + '</span>' : '') + '</h2><button class="btn pri" data-new="day">＋ ' + T('addDay') + '</button></div>';
-  h += '<div id="polar-bar"></div><div id="day-report" style="margin-bottom:14px"></div>';
+  var h = '<div class="row" style="margin-bottom:12px"><h2 class="sp" style="margin:0">' + T('readyT') + (last ? ' <span class="small muted">' + fmtDate(last.date) + '</span>' : '') + '</h2>' + (can('day') ? '<button class="btn pri" data-new="day">＋ ' + T('addDay') + '</button>' : '') + '</div>';
+  h += '<div id="polar-bar"></div>';
+  if (!can('rep')) return h + '<div class="card empty">🔒 ' + A('التقارير مسكّرة لهذا الحساب. تقدر تدخّل البيانات برك.', 'Rapports non autorisés pour ce compte : saisie uniquement.') + '</div>';
+  h += '<div id="day-report" style="margin-bottom:14px"></div>';
 h += readyCard(r, s);
   h += '<div class="grid g4" style="margin-bottom:14px">';
   if (last) {
@@ -1290,7 +1343,7 @@ function timesHtml(s) {
   var all = timesOf(s.id), best = {};
   all.forEach(function (t) { var d = t.data || {}, k = d.event + '|' + (d.course || 'SCM'), sec = C.parseTime(d.time); if (!sec) return; if (!best[k] || sec < best[k].sec) best[k] = { sec: sec, t: t, ev: d.event, course: d.course || 'SCM' }; });
   var rows = Object.keys(best).map(function (k) { return best[k]; }).sort(function (a, b) { return C.EVENTS.indexOf(a.ev) - C.EVENTS.indexOf(b.ev) || (a.course < b.course ? 1 : -1); });
-  var h = '<div class="row" style="margin-bottom:12px"><h2 class="sp" style="margin:0">' + T('best') + '</h2><button class="btn pri" data-new="time">＋ ' + T('addTime') + '</button></div><div class="card">';
+  var h = '<div class="row" style="margin-bottom:12px"><h2 class="sp" style="margin:0">' + T('best') + '</h2>' + (can('vo2') ? '<button class="btn pri" data-new="time">＋ ' + T('addTime') + '</button>' : '') + '</div><div class="card">';
   if (!rows.length) h += '<p class="muted">' + T('noTimes') + '</p>';
   else h += '<div class="tbl-wrap"><table><tr><th>' + T('event') + '</th><th>' + T('course') + '</th><th>' + T('best') + '</th><th>' + T('points') + '</th><th>' + T('date') + '</th></tr>' + rows.map(function (b) {
     var pts = C.waPoints(b.ev, b.sec, s.sex, b.course);
@@ -1392,6 +1445,392 @@ function testsHtml(P) {
 }
 
 
+/* ======================= page unifiée : catalogue · rapport · choix · détail ======================= */
+var GROUPS = ['AER', 'LAC', 'ALA', 'END', 'MAX', 'POW', 'FLX', 'HR'];
+var SYS_IC = { AER: '🫁', LAC: '🔥', ALA: '⚡', END: '🏋', MAX: '💪', POW: '🚀', FLX: '🤸' };
+var TE_V = { step: 2, '400': 1.5, css: 2, leger: 4, rest: 5 }; // erreur typique (%) des tests VO2
+function canBt() { return can('bt'); }
+function rdot(s, date) { var r = s && date ? readyOf(s, date) : null; var c = r ? { green: 'var(--ok)', yellow: 'var(--warn)', red: 'var(--bad)' }[r.level] : '#c9d5ea'; return '<span title="' + (r ? esc(T(r.level)) : '') + '" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:' + c + ';vertical-align:middle;margin-inline-end:4px"></span>'; }
+function bdi(x) { return x ? String(x).split(' · ').map(function (e) { return '<bdi>' + esc(e) + '</bdi>'; }).join(' · ') : ''; }
+// valeur clé d'un test VO2 (pour comparer le nageur avec lui-même)
+function vo2Key(t, s) {
+  var r = computeTest(t, s);
+  if (t.type === 'step') {
+    var st = r.step; if (!st || st.error) return null;
+    var pk = r.hrmaxW ? ' · ' + T('peak') + ' ' + n0(r.hrmaxW) : '';
+    if (st.vAtHRmax) return { v: 100 / st.vAtHRmax, mk: 'hrmax', disp: F(100 / st.vAtHRmax, 1), extra: T('metStep') + ' /100' + pk };
+    return st.vLast ? { v: 100 / st.vLast, mk: 'last', disp: F(100 / st.vLast, 1), extra: T('metLast') + ' /100' + pk } : null;
+  }
+  if (t.type === '400') return r.m400 ? { v: r.m400.time, disp: F(r.m400.time, 2), extra: paceStr(r.m400.pace) + ' /100' + (r.hrr != null ? ' · HRR ' + n0(r.hrr) : '') } : null;
+  if (t.type === 'css') return r.css ? { v: r.css.pace, disp: F(r.css.pace, 1) + ' /100', extra: 'D′ ' + R(r.css.dprime, 0) + ' m' } : null;
+  if (t.type === 'leger') {
+    if (r.leger) return { v: r.leger.vo2, mk: 'vo2', disp: R(r.leger.vo2, 1), extra: 'VO2max · ' + T('stage') + ' ' + r.lastDone + ' · ' + r.leger.V + ' km/h' };
+    return r.lastDone >= 1 ? { v: r.lastDone, mk: 'stage', disp: T('stage') + ' ' + r.lastDone, extra: '' } : null;
+  }
+  if (t.type === 'rest') return r.rest ? { v: r.rest.mean, disp: n1(r.rest.mean) + ' bpm', extra: r.rmssd ? 'RMSSD ' + n0(r.rmssd) + ' ms' : '' } : null;
+  return null;
+}
+// tous les tests (VO2 + batterie + protocoles), chacun dans son groupe
+function catalog(s) {
+  var out = [], B = window.BTV, cat = B && s ? B.catOf(s) : null;
+  if (can('vo2')) [['step', 'AER', 'low'], ['400', 'AER', 'low'], ['css', 'AER', 'low'], ['leger', 'AER', 'high'], ['rest', 'HR', 'low']].forEach(function (x) {
+    out.push({ key: x[0], sys: x[1], better: x[2], icon: ICON[x[0]], name: T('T_' + x[0]), desc: T('D_' + x[0]) + (x[0] === 'leger' ? ' · ' + T('legerLand') : ''), time: x[0] !== 'leger' && x[0] !== 'rest', ok: true });
+  });
+  if (B && canBt()) B.tests(true).forEach(function (t) {
+    var u = t.unit;
+    out.push({ key: 'bt:' + t.id, sys: t.sys, better: t.better, bt: t, icon: t.proto ? '🧩' : SYS_IC[t.sys] || '🧪', name: Tv(t.name), desc: t.proto ? B.protoStr(t.proto) : '', proto: !!t.proto,
+      time: u === 's' || u === '/100', ok: !cat || t.cats.indexOf(cat) >= 0, hide: t.id === 'css', archived: !!(t.proto && t.proto.active === false) });
+  });
+  return out;
+}
+function histOf(s, it) {
+  if (it.bt) return window.BTV.history(s, it.bt.id).map(function (r) { return { date: r.rec.date, v: r.v, disp: r.disp, extra: r.extra, rec: r.rec, res: r }; });
+  return DB.tests.filter(function (t) { return t.swimmerId === s.id && t.type === it.key; })
+    .sort(function (a, b) { return (a.date || '').localeCompare(b.date || '') || (a.updated || '').localeCompare(b.updated || ''); })
+    .map(function (t) { var k = vo2Key(t, s); return k ? Object.assign({ date: t.date, rec: t }, k) : null; }).filter(Boolean);
+}
+function vdOf(it, cur, prev) {
+  if (!cur || !prev || !prev.v) return null;
+  if (it.bt) return window.BTV.verdict(it.bt, cur.res, prev.res);
+  if ((cur.mk || '') !== (prev.mk || '')) return { k: 'diff' };
+  var ch = (cur.v - prev.v) / prev.v * 100, te = TE_V[it.key] || 3, mdc = 2.77 * te; if (it.better === 'low') ch = -ch;
+  return { ch: ch, k: Math.abs(ch) >= mdc ? 'real' : Math.abs(ch) >= te ? 'likely' : 'noise', mdc: mdc };
+}
+function vChip(vd) {
+  if (!vd) return '';
+  if (vd.k === 'diff') return '<span class="chip">' + T('vDiff') + '</span>';
+  var up = vd.ch >= 0, cls = vd.k === 'noise' ? '' : up ? 'ok' : 'bad', lab = T({ real: 'vReal', likely: 'vLikely', noise: 'vNoise' }[vd.k]);
+  return '<span class="chip ' + cls + '" title="' + lab + '">' + (up ? '▲ ' : '▼ ') + R(Math.abs(vd.ch), 1) + '% · ' + lab + '</span>';
+}
+function pbIdx(hh, better) { var b = -1; hh.forEach(function (x, i) { if (b < 0 || (better === 'low' ? x.v <= hh[b].v : x.v >= hh[b].v)) b = i; }); return b; }
+
+/* --- onglet « التقرير » : le nageur comparé à lui-même --- */
+function rptHtml(s) {
+  var items = catalog(s), nT = 0, up = 0, down = 0, last = null;
+  var body = GROUPS.map(function (g) {
+    var rows = items.filter(function (it) { return it.sys === g; }).map(function (it) { var hh = histOf(s, it); return hh.length ? { it: it, h: hh } : null; }).filter(Boolean);
+    if (!rows.length) return '';
+    rows.sort(function (a, b) { return a.h[a.h.length - 1].date < b.h[b.h.length - 1].date ? 1 : -1; });
+    return '<div class="card"><h3>' + T('g_' + g) + '</h3><div class="tlist">' + rows.map(function (x) {
+      var hh = x.h, cur = hh[hh.length - 1], prev = hh.length > 1 ? hh[hh.length - 2] : null, vd = vdOf(x.it, cur, prev), isPb = hh.length > 1 && pbIdx(hh, x.it.better) === hh.length - 1;
+      nT += hh.length; if (vd && vd.k === 'real') { if (vd.ch > 0) up++; else down++; } if (!last || cur.date > last) last = cur.date;
+      return '<div class="it" data-tk="' + esc(x.it.key) + '" style="cursor:pointer"><span class="ic">' + x.it.icon + '</span><div class="sp" style="min-width:0"><b>' + esc(x.it.name) + '</b>' + (isPb ? ' <span class="chip ok">' + T('pb') + '</span>' : '') +
+        '<div class="small muted">' + rdot(s, cur.date) + fmtDate(cur.date) + (cur.extra ? ' · ' + bdi(cur.extra) : '') + (prev ? ' · ' + T('prevR') + ' <span class="num">' + esc(prev.disp) + '</span>' : '') + ' · <span class="num">' + hh.length + '</span> ' + T('nRes') + '</div></div>' +
+        '<div style="text-align:end"><div class="num" style="font-size:19px;font-weight:700">' + esc(cur.disp) + '</div>' + vChip(vd) + '</div></div>';
+    }).join('') + '</div></div>';
+  }).join('');
+  if (!body) return '<div class="card empty">' + T('noRpt') + '<div style="margin-top:14px"><button class="btn pri big" data-pick="1">＋ ' + T('newTest') + '</button></div></div>';
+  return '<div class="statbar"><div class="card"><div class="kpi"><div class="l">' + T('testsDone') + '</div><div class="v">' + nT + '</div></div></div>' +
+    '<div class="card"><div class="kpi"><div class="l">' + T('lastTest') + '</div><div class="v" style="font-size:20px">' + fmtDate(last) + '</div></div></div>' +
+    '<div class="card"><div class="kpi"><div class="l">' + T('upN') + '</div><div class="v" style="color:var(--ok)">▲ ' + up + '</div></div></div>' +
+    '<div class="card"><div class="kpi"><div class="l">' + T('downN') + '</div><div class="v" style="color:var(--bad)">▼ ' + down + '</div></div></div></div>' + body;
+}
+
+/* --- choix du test, rangé par type --- */
+function openItem(s, key) { if (key.indexOf('bt:') === 0) window.BTV.openEntry(s.id, key.slice(3)); else route('test', { sid: s.id, tid: null, type: key }); }
+function vPick(app) {
+  var s = sw(S.sid); if (!s) return route('home');
+  var items = catalog(s).filter(function (it) { return !it.hide && !it.archived; }), B = window.BTV, cat = B ? B.catOf(s) : null;
+  if (can('day')) items.push({ key: 'day', sys: 'FOL', icon: ICON.day, name: T('T_day'), desc: T('D_day'), ok: true, fol: true });
+  if (can('vo2')) items.push({ key: 'time', sys: 'FOL', icon: ICON.time, name: T('T_time'), desc: T('points'), ok: true, fol: true });
+  var h = '<button class="btn sm" id="bk">← ' + esc(s.name) + '</button><h1>＋ ' + T('pickT') + ' · ' + esc(s.name) + (cat && B ? ' <span class="chip">' + B.catName(cat) + '</span>' : '') + '</h1>';
+  if (can('vo2') || can('bt')) h += '<button class="btn pri big" id="pk-live" style="width:100%;justify-content:center;margin-bottom:14px">⏱ ' + A('اختبار لايف بالـ Verity Sense (حتى 4 سباحين)', 'Test en direct Verity Sense (jusqu’à 4 nageurs)') + '</button>';
+  if (!canBt()) h += '<div class="info" style="margin-bottom:14px">' + A('اختبارات البطارية (قوة، سرعة، بروتوكولات…) ما راهيش مفتوحة لهذا الحساب.', 'Tests de la batterie non autorisés pour ce compte.') + '</div>';
+  GROUPS.concat(['FOL']).forEach(function (g) {
+    var list = items.filter(function (it) { return it.sys === g; }); if (!list.length) return;
+    list.sort(function (a, b) { return (b.ok ? 1 : 0) - (a.ok ? 1 : 0) || (a.proto ? 1 : 0) - (b.proto ? 1 : 0); });
+    h += '<div class="card"><h3>' + T('g_' + g) + '</h3><div class="grid g3">' + list.map(function (it) {
+      var hh = it.fol ? [] : histOf(s, it), lastD = hh.length ? hh[hh.length - 1].date : null;
+      return '<button class="btn" style="justify-content:flex-start;text-align:start;min-height:64px;' + (it.ok ? '' : 'opacity:.7') + '" data-pk="' + esc(it.key) + '"><span class="ic">' + it.icon + '</span><span style="min-width:0"><b>' + esc(it.name) + '</b>' +
+        (it.desc ? '<br><span class="small muted' + (it.proto ? ' ltr' : '') + '" style="font-weight:400">' + esc(it.desc) + '</span>' : '') +
+        (lastD || !it.ok ? '<br>' : '') + (lastD ? '<span class="chip" style="margin-top:3px">' + T('lastOn') + ' ' + fmtDate(lastD) + '</span> ' : '') + (!it.ok ? '<span class="chip warn" style="margin-top:3px">⚠ ' + T('notCat') + '</span>' : '') + '</span></button>';
+    }).join('') + '</div></div>';
+  });
+  app.innerHTML = h;
+  $('#bk').onclick = function () { route('swimmer', { tab: 'rpt' }); };
+  $$('[data-pk]').forEach(function (b) { b.onclick = function () { openItem(s, b.dataset.pk); }; });
+  if ($('#pk-live')) $('#pk-live').onclick = function () { LS = null; route('liveSetup', { liveSids: [s.id] }); };
+}
+
+/* --- page d'un test : toutes les résultats + courbe --- */
+function vSwTest(app) {
+  var s = sw(S.sid); if (!s) return route('home');
+  var it = catalog(s).find(function (x) { return x.key === S.tkey; }); if (!it) return route('swimmer', { tab: 'rpt' });
+  var hh = histOf(s, it), n = hh.length, cur = hh[n - 1], prev = n > 1 ? hh[n - 2] : null, first = hh[0], pi = pbIdx(hh, it.better), pb = hh[pi];
+  var h = '<div class="row"><button class="btn sm" id="bk">← ' + esc(s.name) + '</button><span class="sp"></span>' + (it.archived ? '' : '<button class="btn pri" id="add">' + T('addRes') + '</button>') + '</div>' +
+    '<h1 style="margin-top:12px">' + it.icon + ' ' + esc(it.name) + '</h1>' + (it.desc ? '<p class="muted' + (it.proto ? ' ltr' : '') + '" style="margin-top:-6px">' + esc(it.desc) + '</p>' : '');
+  if (it.bt && window.BTV) h += '<div class="small muted" style="margin:-4px 0 10px">' + T('suitsFor') + ' : ' + BTV.catList(it.bt) + '</div>';
+  var hs = null; for (var q = n - 1; q >= 0 && !hs; q--) if (hh[q].rec && hh[q].rec.data && hh[q].rec.data.samples && hh[q].rec.data.samples.length > 10) hs = hh[q];
+  if (!n) h += '<div class="card empty">' + T('noTests') + '</div>';
+  else {
+    var box = function (l, v, sub) { return '<div class="card"><div class="kpi"><div class="l">' + l + '</div><div class="v" style="font-size:22px">' + v + '</div>' + (sub ? '<div class="small muted">' + sub + '</div>' : '') + '</div></div>'; };
+    h += '<div class="statbar">' + box(T('lastRes'), esc(cur.disp), fmtDate(cur.date)) + box(T('bestRes'), esc(pb.disp), '🏆 ' + fmtDate(pb.date)) +
+      box(T('vsPrev'), prev ? esc(prev.disp) : '—', prev ? vChip(vdOf(it, cur, prev)) : '') + box(T('vsFirst'), n > 2 ? esc(first.disp) : '—', n > 2 ? vChip(vdOf(it, cur, first)) : '') + '</div>';
+    if (n >= 2) h += '<div class="card"><h3>' + T('evo') + ' <span class="small muted">· ' + T(it.better === 'low' ? 'lowB' : 'highB') + '</span></h3><div class="chart"><canvas id="ch-evo"></canvas></div></div>';
+    if (hs) { var lvd = hs.rec.data.live || {}; h += '<div class="card"><h3>❤️ ' + T('hrTest') + ' <span class="small muted">· ' + fmtDate(hs.date) + (lvd.sensor ? ' · ' + esc(lvd.sensor) : '') + '</span></h3><div class="chart" style="height:200px"><canvas id="ch-hrt"></canvas></div>' +
+      (lvd.peak ? '<div class="row small muted" style="gap:14px">' + A('الأعلى', 'Max') + ' <b class="num">' + lvd.peak + '</b> · ' + A('المتوسط', 'Moy.') + ' <b class="num">' + (lvd.avg || '—') + '</b>' + (lvd.hr60 ? ' · ' + A('بعد 60 ث', 'à +60 s') + ' <b class="num">' + lvd.hr60 + '</b>' : '') + (lvd.gap > 3 ? ' · <span style="color:var(--warn)">' + A('بلا نبض ', 'sans FC ') + lvd.gap + A(' ث', ' s') + '</span>' : '') + '</div>' : '') + '</div>'; }
+    h += '<div class="card"><h3>' + T('allRes') + '</h3><div class="tbl-wrap"><table><tr><th>' + T('date') + '</th><th>' + T('results') + '</th><th></th><th>' + T('delta') + '</th></tr>' +
+      hh.map(function (x, i) { return '<tr data-ed="' + i + '" style="cursor:pointer"><td class="num">' + rdot(s, x.date) + fmtDate(x.date) + '</td><td class="num" style="font-weight:700">' + esc(x.disp) + (i === pi && n > 1 ? ' 🏆' : '') + '</td><td class="small muted" style="text-align:start">' + bdi(x.extra) + '</td><td>' + (i ? vChip(vdOf(it, x, hh[i - 1])) : '') + '</td></tr>'; }).reverse().join('') + '</table></div></div>';
+  }
+  app.innerHTML = h;
+  $('#bk').onclick = function () { route('swimmer', { tab: 'rpt' }); };
+  if ($('#add')) $('#add').onclick = function () { openItem(s, it.key); };
+  $$('[data-ed]').forEach(function (b) { b.onclick = function () { var x = hh[+b.dataset.ed]; if (it.bt) window.BTV.openEntry(s.id, it.bt.id, x.date); else route('test', { tid: x.rec.id, type: x.rec.type }); }; });
+  if (hs && window.Chart) {
+    var sm = unpack(hs.rec.data.samples), oh = chartBase(); oh.plugins.legend = { display: false };
+    oh.scales = { x: { type: 'linear', ticks: { callback: function (v) { return F(v, 0); } } }, y: { suggestedMin: 80 } };
+    mk('ch-hrt', { type: 'scatter', data: { datasets: [{ type: 'line', data: sm.map(function (p) { return { x: p.t, y: p.hr }; }), borderColor: CH.red, borderWidth: 2, pointRadius: 0, tension: .2 }] }, options: oh });
+  }
+  if (n >= 2 && window.Chart) {
+    var o = chartBase(); o.plugins.legend = { display: false };
+    o.scales = { y: { reverse: it.better === 'low', ticks: { callback: function (v) { return it.time ? F(v, 1) : R(v, 1); } } } };
+    o.plugins.tooltip = { callbacks: { label: function (c) { return hh[c.dataIndex].disp; } } };
+    mk('ch-evo', { type: 'line', data: { labels: hh.map(function (x) { return fmtDate(x.date); }), datasets: [{ data: hh.map(function (x) { return x.v; }), borderColor: CH.blue, backgroundColor: CH.blue, borderWidth: 3, pointRadius: hh.map(function (x, i) { return i === pi ? 8 : 5; }), pointBackgroundColor: hh.map(function (x, i) { return i === pi ? CH.gold : CH.blue; }) }] }, options: o });
+  }
+}
+
+/* ======================= ⏱ اختبار لايف · Verity Sense · حتى 4 سباحين (كل واحد يتحفظ في ملفو) ======================= */
+var LV = null, LS = null, SENS = {};
+var BT_LIVE = { m100: [1, 0, 100], m200: [1, 0, 200], f800: [1, 0, 800], s15: [1, 0, 15], s25: [1, 0, 25], tol: [4, 60, 50], rs: [6, 60, 25] };
+var BT_DUR = { t12: [720, [['dist', 'المسافة الكلية (م)', 'Distance totale (m)']]], t20: [1200, [['dist', 'المسافة الكلية (م)', 'Distance totale (m)']]], t30: [1800, [['dist', 'المسافة الكلية (م)', 'Distance totale (m)']]],
+  cs3: [180, [['d150', 'المسافة في 2:30 (م)', 'Distance à 2:30 (m)'], ['d180', 'المسافة في 3:00 (م)', 'Distance à 3:00 (m)']]] };
+function liveSpec(it, pid) {
+  if (!it) return null;
+  if (it.key === 'step') { var id = C.PROTOCOLS[pid] ? pid : '5x100', P = C.PROTOCOLS[id]; return { n: P.reps, next: 'send', send: P.cycle, dist: P.dist, pid: id }; }
+  if (it.key === '400') return { n: 1, dist: 400 };
+  if (it.key === 'css') return { n: 2, next: 'manual', dists: [400, 200] };
+  if (!it.bt) return null;
+  var tid = it.bt.id, p = it.bt.proto;
+  if (BT_LIVE[tid]) { var b = BT_LIVE[tid]; return { n: b[0], next: 'send', send: b[1], dist: b[2] }; }
+  if (BT_DUR[tid]) return { n: 0, dur: BT_DUR[tid][0], ask: BT_DUR[tid][1] };
+  if (p && /^(AER|LAC|ALA)$/.test(p.sys) && +p.dist > 0) { var sets = Math.max(1, +p.sets || 1), reps = Math.max(1, +p.reps || 1); return { n: sets * reps, next: 'rest', rest: +p.restRep || 0, restSet: +p.restSet || 0, setSize: reps, dist: +p.dist, proto: p }; }
+  return null;
+}
+function liveItems() { return catalog(null).filter(function (it) { return !it.hide && !it.archived && liveSpec(it, '5x100'); }); }
+function isIOS() { return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
+
+/* --- الحساسات (كل سباح بحساسو) --- */
+function sensConnect(sid) {
+  if (!BT.supported()) { toast(isIOS() ? A('في الآيباد/الآيفون حل التطبيق في متصفح Bluefy', 'Sur iPad/iPhone, ouvrez l’app dans le navigateur Bluefy') : T('btNo')); return; }
+  navigator.bluetooth.requestDevice({ filters: [{ services: ['heart_rate'] }] }).then(function (dev) {
+    var old = SENS[sid]; if (old && old.dev && old.dev !== dev) { old.want = false; try { old.dev.gatt.disconnect(); } catch (e) {} }
+    var x = SENS[sid] = { dev: dev, name: dev.name || 'Polar', want: true, hr: null, last: 0, on: false };
+    try { var m = JSON.parse(ls('mr_sens') || '{}'); m[sid] = x.name; ls('mr_sens', JSON.stringify(m)); } catch (e) {}
+    dev.addEventListener('gattserverdisconnected', function () {
+      x.on = false; lvPaint();
+      (function retry(n) { if (!x.want || n > 200) return; setTimeout(function () { sensGatt(sid).catch(function () { retry(n + 1); }); }, 1500); })(0);
+    });
+    return sensGatt(sid);
+  }).catch(function (e) { if (e && e.name !== 'NotFoundError') toast(e.message || 'Bluetooth ✗'); });
+}
+function sensGatt(sid) {
+  var x = SENS[sid]; if (!x || !x.dev) return Promise.reject(new Error('nodev'));
+  return x.dev.gatt.connect().then(function (g) { return g.getPrimaryService('heart_rate'); })
+    .then(function (sv) { return sv.getCharacteristic('heart_rate_measurement'); })
+    .then(function (ch) {
+      ch.addEventListener('characteristicvaluechanged', function (e) { var dv = e.target.value, fl = dv.getUint8(0), hr = fl & 1 ? dv.getUint16(1, true) : dv.getUint8(1); if (!(hr > 0)) return; x.hr = hr; x.last = Date.now(); x.on = true; lvSample(sid, hr); if (S.view === 'liveSetup') lvPaint(); });
+      return ch.startNotifications();
+    }).then(function () { x.on = true; if (S.view === 'liveSetup') render(); else lvPaint(); });
+}
+function sensOff(sid) { var x = SENS[sid]; if (!x) return; x.want = false; try { x.dev.gatt.disconnect(); } catch (e) {} delete SENS[sid]; lvPaint(); }
+function sensState(sid) { // {cls, txt, hr}
+  var x = SENS[sid]; if (!x) return { cls: 'none', txt: A('بلا حساس', 'Sans capteur'), hr: null };
+  var age = x.last ? (Date.now() - x.last) / 1000 : 999;
+  if (x.on && age < 4) return { cls: 'ok', txt: '● ' + esc(x.name), hr: x.hr };
+  return { cls: 'warn', txt: '⚠ ' + A('الإشارة انقطعت', 'Signal perdu') + (x.last ? ' · ' + Math.round(age) + ' ' + A('ث', 's') : ''), hr: x.hr, lost: true };
+}
+function lvSample(sid, hr) { if (!LV || !LV.running) return; LV.lanes.forEach(function (L) { if (L.sid === sid) L.smp.push([(Date.now() - LV.T0) / 1000, hr]); }); }
+
+/* --- المحرك --- */
+function lvNow() { return (Date.now() - LV.T0) / 1000; }
+function lvBegin(L, at) { L.first = at; L.repStart = at; L.state = 'swim'; beep(1000, .4); }
+function lvTick() {
+  if (!LV || !LV.running) return;
+  var t = lvNow(), sp = LV.spec;
+  LV.lanes.forEach(function (L) {
+    if (L.state === 'wait' && L.startAt != null) {
+      if (t >= L.startAt) lvBegin(L, L.startAt);
+      else if (L.startAt - t <= 3 && L.cd !== Math.ceil(L.startAt - t)) { L.cd = Math.ceil(L.startAt - t); beep(660, .12); }
+    }
+    if (L.state === 'rest') {
+      if (t >= L.nextAt) { L.repStart = L.nextAt; L.state = 'swim'; beep(1000, .35); }
+      else if (L.nextAt - t <= 3 && L.cd !== Math.ceil(L.nextAt - t)) { L.cd = Math.ceil(L.nextAt - t); beep(660, .12); }
+    }
+    if (L.state === 'swim' && sp.dur && t - L.first >= sp.dur) { L.end = L.first + sp.dur; L.state = 'rec60'; beep(1000, .8); }
+    if (L.state === 'rec60' && t - L.end >= 62) { L.state = 'done'; beep(880, .3); }
+  });
+  if (S.view === 'live') lvPaint();
+}
+function lvTouch(i) {
+  var L = LV.lanes[i], sp = LV.spec, t = lvNow(); if (L.state !== 'swim' || sp.dur) return;
+  L.reps.push({ s: L.repStart, e: t }); var k = L.reps.length;
+  if (k >= sp.n) { L.end = t; L.state = 'rec60'; beep(880, .25); lvPaint(); return; }
+  if (sp.next === 'send') { var nx = L.first + k * sp.send; if (nx <= t + .5) { L.repStart = t; L.state = 'swim'; } else { L.nextAt = nx; L.state = 'rest'; } }
+  else if (sp.next === 'rest') { var endSet = sp.setSize && k % sp.setSize === 0; L.nextAt = t + ((endSet ? sp.restSet : sp.rest) || 0); L.state = L.nextAt > t + .5 ? 'rest' : 'swim'; if (L.state === 'swim') L.repStart = t; }
+  else L.state = 'ready';
+  beep(880, .15); lvPaint();
+}
+function lvUndo(i) { var L = LV.lanes[i], r = L.reps.pop(); if (!r) return; L.repStart = r.s; L.state = 'swim'; L.end = null; lvPaint(); }
+function lvGo(i) { var L = LV.lanes[i], t = lvNow(); if (L.state === 'wait') lvBegin(L, t); else if (L.state === 'ready') { L.repStart = t; L.state = 'swim'; beep(1000, .35); } lvPaint(); }
+function lvStart() {
+  try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.resume) actx.resume(); } catch (e) {}
+  LV.T0 = Date.now(); LV.running = true; keepAwake(true);
+  LV.lanes.forEach(function (L, i) { L.state = 'wait'; L.reps = []; L.smp = []; L.first = null; L.end = null; L.startAt = LV.mode === 'solo' ? null : LV.mode === 'stagger' ? 5 + i * LV.gap : 5; });
+  clearInterval(LV.iv); LV.iv = setInterval(lvTick, 100);
+  route('live');
+}
+function lvFinish() { if (!LV) return; clearInterval(LV.iv); LV.running = false; LV.T1 = lvNow(); keepAwake(false); route('liveRes'); }
+
+/* --- الشاشة 1: التحضير --- */
+function vLiveSetup(app) {
+  var items = liveItems(), pre = (S.liveSids || []).slice(0, 4);
+  LS = LS || { key: items.length ? items[0].key : '', pid: '5x100', pool: '25', mode: 'all', gap: 10, sids: [pre[0] || '', pre[1] || '', pre[2] || '', pre[3] || ''] };
+  if (LV && LV.running) return route('live');
+  var it = items.find(function (x) { return x.key === LS.key; }), sw0 = visibleSwimmers().slice().sort(function (a, b) { return (a.name || '').localeCompare(b.name || ''); });
+  var remembered = {}; try { remembered = JSON.parse(ls('mr_sens') || '{}'); } catch (e) {}
+  var h = '<button class="btn sm" id="bk">← ' + T('home') + '</button><h1>⏱ ' + A('اختبار لايف · Verity Sense', 'Test en direct · Verity Sense') + '</h1>';
+  if (!BT.supported()) h += '<div class="note" style="margin-bottom:14px">' + (isIOS() ? A('📱 في الآيباد والآيفون: نزّل المتصفح المجاني <b>Bluefy</b> من App Store وحل فيه التطبيق، باش يخدم البلوتوث.', '📱 Sur iPad/iPhone : installez le navigateur gratuit <b>Bluefy</b> (App Store) et ouvrez l’app dedans pour le Bluetooth.') : T('btNo')) + '</div>';
+  h += '<div class="card"><div class="fr"><div class="f"><label>' + A('الاختبار', 'Test') + '</label><select id="ls-t">' + GROUPS.map(function (g) { var l = items.filter(function (x) { return x.sys === g; }); return l.length ? '<optgroup label="' + esc(T('g_' + g)) + '">' + l.map(function (x) { return '<option value="' + esc(x.key) + '"' + (x.key === LS.key ? ' selected' : '') + '>' + esc(x.name) + '</option>'; }).join('') + '</optgroup>' : ''; }).join('') + '</select></div>' +
+    (LS.key === 'step' ? '<div class="f"><label>' + T('protocol') + '</label><select id="ls-p">' + Object.keys(C.PROTOCOLS).map(function (k) { return '<option value="' + k + '"' + (k === LS.pid ? ' selected' : '') + '>' + C.PROTOCOLS[k].label + '</option>'; }).join('') + '</select></div>' : '') +
+    '<div class="f"><label>' + T('pool') + '</label><select id="ls-pool"><option value="25">25 m</option><option value="50"' + (LS.pool === '50' ? ' selected' : '') + '>50 m</option></select></div></div>' +
+    '<label>' + A('الانطلاق', 'Départ') + '</label><div class="seg" style="margin-bottom:8px">' + [['all', A('الكل مع بعض', 'Tous ensemble')], ['stagger', A('بفاصل', 'Décalé')], ['solo', A('كل واحد وحدو', 'Chacun son départ')]].map(function (m) { return '<button type="button" class="btn sm' + (LS.mode === m[0] ? ' on' : '') + '" data-lm="' + m[0] + '">' + m[1] + '</button>'; }).join('') + '</div>' +
+    (LS.mode === 'stagger' ? '<div class="f" style="max-width:220px"><label>' + A('الفاصل بين السباحين (ث)', 'Écart entre nageurs (s)') + '</label><input id="ls-gap" class="num mono" inputmode="numeric" value="' + LS.gap + '"></div>' : '') +
+    (it ? '<div class="small muted">' + esc(it.desc || '') + '</div>' : '') + '</div>';
+  h += '<div class="grid g2">' + [0, 1, 2, 3].map(function (i) {
+    var sid = LS.sids[i], st = sid ? sensState(sid) : null, used = LS.sids.filter(function (x, j) { return x && j !== i; });
+    return '<div class="card"><div class="row" style="margin-bottom:8px"><span class="ic" style="width:36px;height:36px;font:700 17px Rubik">' + (i + 1) + '</span><select data-ls="' + i + '" class="sp" style="min-width:150px"><option value="">— ' + A('سباح', 'Nageur') + ' —</option>' + sw0.filter(function (s) { return used.indexOf(s.id) < 0; }).map(function (s) { return '<option value="' + esc(s.id) + '"' + (s.id === sid ? ' selected' : '') + '>' + esc(s.name) + '</option>'; }).join('') + '</select></div>' +
+      (sid ? '<div class="row"><div class="num" id="ls-hr-' + i + '" style="font:700 40px Rubik;color:var(--bad);min-width:90px">' + (st.hr || '--') + '</div><div class="sp"><div class="small" id="ls-st-' + i + '" style="color:var(--' + (st.cls === 'ok' ? 'ok' : st.cls === 'warn' ? 'warn' : 'mute') + ')">' + st.txt + '</div>' + (remembered[sid] && !SENS[sid] ? '<div class="small muted">' + A('آخر حساس: ', 'Dernier capteur : ') + esc(remembered[sid]) + '</div>' : '') + '</div>' +
+        '<button type="button" class="btn sm' + (SENS[sid] ? '' : ' pri') + '" data-sc="' + i + '">' + (SENS[sid] ? A('بدّل', 'Changer') : A('ربط الحساس', 'Connecter')) + '</button>' + (SENS[sid] ? '<button type="button" class="btn sm dan" data-so="' + i + '">✕</button>' : '') + '</div>' : '<div class="small muted">' + A('اختار سباح', 'Choisissez un nageur') + '</div>') + '</div>';
+  }).join('') + '</div>';
+  var nSw = LS.sids.filter(Boolean).length;
+  h += '<div class="row" style="margin-top:6px"><button class="btn pri big" id="ls-go"' + (!it || !nSw ? ' disabled' : '') + '>▶ ' + A('ابدا الاختبار', 'Démarrer le test') + ' (' + nSw + ')</button><span class="small muted">' + A('العد التنازلي 5 ثواني. البلوتوث ما يحتاجش أنترنت.', 'Compte à rebours 5 s. Le Bluetooth n’a pas besoin d’internet.') + '</span></div>';
+  app.innerHTML = h;
+  $('#bk').onclick = function () { route('home'); };
+  $('#ls-t').onchange = function () { LS.key = this.value; render(); };
+  if ($('#ls-p')) $('#ls-p').onchange = function () { LS.pid = this.value; };
+  $('#ls-pool').onchange = function () { LS.pool = this.value; };
+  if ($('#ls-gap')) $('#ls-gap').oninput = function () { LS.gap = Math.max(1, C.num(this.value) || 10); };
+  $$('[data-lm]').forEach(function (b) { b.onclick = function () { LS.mode = b.dataset.lm; render(); }; });
+  $$('[data-ls]').forEach(function (sel) { sel.onchange = function () { LS.sids[+sel.dataset.ls] = this.value; render(); }; });
+  $$('[data-sc]').forEach(function (b) { b.onclick = function () { sensConnect(LS.sids[+b.dataset.sc]); }; });
+  $$('[data-so]').forEach(function (b) { b.onclick = function () { sensOff(LS.sids[+b.dataset.so]); render(); }; });
+  $('#ls-go').onclick = function () {
+    var it2 = liveItems().find(function (x) { return x.key === LS.key; }), sp = liveSpec(it2, LS.pid); if (!it2 || !sp) return;
+    LV = { key: LS.key, it: it2, spec: sp, mode: LS.mode, gap: LS.gap || 10, pool: LS.pool, date: today(), lanes: LS.sids.filter(Boolean).map(function (sid) { return { sid: sid, smp: [], reps: [] }; }) };
+    lvStart();
+  };
+}
+
+/* --- الشاشة 2: لايف --- */
+function lvStateTxt(L) {
+  var t = lvNow();
+  return { wait: L.startAt != null ? A('يبدا بعد ', 'Départ dans ') + Math.max(0, Math.ceil(L.startAt - t)) + A(' ث', ' s') : A('يستنى ▶', 'Attend ▶'), swim: A('يسبح', 'Nage'), rest: A('راحة · ينطلق بعد ', 'Récup · départ dans ') + Math.max(0, Math.ceil(L.nextAt - t)) + A(' ث', ' s'), ready: A('راحة · اضغط ▶ كي يبدا', 'Récup · ▶ au départ'), rec60: A('استرجاع 60 ث · ', 'Récup 60 s · ') + Math.max(0, Math.ceil(L.end + 60 - t)), done: '✅ ' + A('كمّل', 'Terminé') }[L.state] || '';
+}
+function vLive(app) {
+  if (!LV) return route('liveSetup');
+  var sp = LV.spec, nm = LV.it.name + (sp.pid ? ' · ' + C.PROTOCOLS[sp.pid].label : '');
+  var h = '<div class="row" style="margin-bottom:12px"><div class="sp"><h1 style="margin:0">⏱ ' + esc(nm) + '</h1><div class="small muted">' + fmtDate(LV.date) + ' · ' + LV.pool + ' m · ' + { all: A('الكل مع بعض', 'Tous ensemble'), stagger: A('بفاصل ', 'Décalé ') + LV.gap + A(' ث', ' s'), solo: A('كل واحد وحدو', 'Chacun son départ') }[LV.mode] + '</div></div>' +
+    '<div class="num" id="lv-clock" style="font:700 40px Rubik;min-width:130px;text-align:center">0:00</div><button class="btn dan big" id="lv-end">■ ' + A('إنهاء', 'Terminer') + '</button></div>';
+  h += '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr))">' + LV.lanes.map(function (L, i) {
+    var s = sw(L.sid) || {};
+    return '<div class="card" style="margin:0;display:flex;flex-direction:column;gap:8px"><div class="row"><span class="ic" style="width:38px;height:38px;font:700 18px Rubik;background:var(--blue);color:#fff">' + (i + 1) + '</span><b class="sp" style="font-size:20px">' + esc(s.name || '') + '</b><span class="small" id="lv-sn-' + i + '"></span></div>' +
+      '<div class="row" style="align-items:flex-end;gap:16px"><div><div class="num" id="lv-hr-' + i + '" style="font:700 80px/0.95 Rubik;color:var(--bad)">--</div><div class="small muted">bpm</div></div>' +
+      '<div class="sp"><div style="font-weight:700" id="lv-st-' + i + '"></div><div class="small muted">' + (sp.n ? A('التكرار', 'Rép.') + ' <b class="num" id="lv-rep-' + i + '" style="color:var(--ink)">0/' + sp.n + '</b> · ' + A('السابق', 'Préc.') + ' <b class="num" id="lv-last-' + i + '" style="color:var(--ink)">—</b>' : A('المدة', 'Durée') + ' <b class="num" style="color:var(--ink)">' + F(sp.dur, 0) + '</b>') + '</div>' +
+      '<div class="num" id="lv-cur-' + i + '" style="font:700 30px Rubik">0:00.0</div></div></div>' +
+      '<div class="row" style="margin-top:auto"><button type="button" class="btn" data-lu="' + i + '" style="min-height:64px">↩ ' + A('تراجع', 'Annuler') + '</button>' +
+      '<button type="button" class="btn" data-lg="' + i + '" style="min-height:64px;font-size:18px">▶</button>' +
+      (sp.dur ? '' : '<button type="button" class="btn pri" data-lt="' + i + '" style="flex:1;min-height:72px;font-size:26px;justify-content:center">🏁 ' + A('وصل', 'Touche') + '</button>') + '</div></div>';
+  }).join('') + '</div>';
+  app.innerHTML = h;
+  $('#lv-end').onclick = function () { var open = LV.lanes.some(function (L) { return L.state !== 'done'; }); if (!open || confirm(A('نوقفو الاختبار؟ النتائج اللي تسجلت تبقى.', 'Arrêter le test ? Les résultats saisis sont conservés.'))) lvFinish(); };
+  $$('[data-lt]').forEach(function (b) { b.onclick = function () { lvTouch(+b.dataset.lt); }; });
+  $$('[data-lu]').forEach(function (b) { b.onclick = function () { lvUndo(+b.dataset.lu); }; });
+  $$('[data-lg]').forEach(function (b) { b.onclick = function () { lvGo(+b.dataset.lg); }; });
+  lvPaint();
+}
+function lvPaint() {
+  if (S.view === 'liveSetup' && LS) { LS.sids.forEach(function (sid, i) { if (!sid) return; var st = sensState(sid), e = $('#ls-hr-' + i), f = $('#ls-st-' + i); if (e) e.textContent = st.hr || '--'; if (f) { f.innerHTML = st.txt; f.style.color = 'var(--' + (st.cls === 'ok' ? 'ok' : st.cls === 'warn' ? 'warn' : 'mute') + ')'; } }); return; }
+  if (S.view !== 'live' || !LV) return;
+  var t = LV.running ? lvNow() : LV.T1 || 0, ck = $('#lv-clock'); if (ck) ck.textContent = t < 0 ? '0:00' : F(t, 0);
+  LV.lanes.forEach(function (L, i) {
+    var st = sensState(L.sid), hr = $('#lv-hr-' + i), sn = $('#lv-sn-' + i);
+    if (hr) { hr.textContent = st.hr || '--'; hr.style.color = st.lost ? 'var(--mute)' : 'var(--bad)'; }
+    if (sn) { sn.innerHTML = st.txt; sn.style.color = 'var(--' + (st.cls === 'ok' ? 'ok' : st.cls === 'warn' ? 'warn' : 'mute') + ')'; }
+    var se = $('#lv-st-' + i); if (se) se.textContent = lvStateTxt(L);
+    var cur = $('#lv-cur-' + i); if (cur) cur.textContent = L.state === 'swim' ? F(t - L.repStart, 1) : L.reps.length ? F(L.reps[L.reps.length - 1].e - L.reps[L.reps.length - 1].s, 1) : L.state === 'rec60' && LV.spec.dur ? F(LV.spec.dur, 0) : '0:00.0';
+    var rp = $('#lv-rep-' + i); if (rp) rp.textContent = L.reps.length + '/' + LV.spec.n;
+    var la = $('#lv-last-' + i); if (la) la.textContent = L.reps.length ? F(L.reps[L.reps.length - 1].e - L.reps[L.reps.length - 1].s, 1) : '—';
+    var bt = $('[data-lt="' + i + '"]'); if (bt) bt.disabled = L.state !== 'swim';
+    var bg = $('[data-lg="' + i + '"]'); if (bg) bg.style.display = (L.state === 'wait' && L.startAt == null) || L.state === 'ready' ? '' : 'none';
+    var bu = $('[data-lu="' + i + '"]'); if (bu) bu.disabled = !L.reps.length;
+  });
+}
+
+/* --- الحسابات بعد الاختبار --- */
+function lvHrAt(L, e) { var w = L.smp.filter(function (x) { return x[0] >= e - 3 && x[0] <= e + 10; }); return w.length ? Math.max.apply(null, w.map(function (x) { return x[1]; })) : null; }
+function lvHr60(L) { if (L.end == null) return null; var w = L.smp.filter(function (x) { return Math.abs(x[0] - (L.end + 60)) <= 3; }); return w.length ? Math.round(w.reduce(function (a, x) { return a + x[1]; }, 0) / w.length) : null; }
+function lvWin(L) { var a = L.first != null ? L.first : 0, b = L.end != null ? L.end : (LV.T1 || a); return L.smp.filter(function (x) { return x[0] >= a && x[0] <= b + 1; }); }
+function lvPeak(L) { var w = lvWin(L); return w.length ? Math.max.apply(null, w.map(function (x) { return x[1]; })) : null; }
+function lvAvg(L) { var w = lvWin(L); return w.length ? Math.round(w.reduce(function (a, x) { return a + x[1]; }, 0) / w.length) : null; }
+function lvGap(L) { // ثواني بلا نبض أثناء الاختبار
+  if (L.first == null) return 0; var a = L.first, b = L.end != null ? L.end : (LV.T1 || a), w = lvWin(L), g = 0, prev = a;
+  w.forEach(function (x) { if (x[0] - prev > 3) g += x[0] - prev; prev = x[0]; }); if (b - prev > 3) g += b - prev; return Math.round(g);
+}
+function lvRel(L) { var o = L.first || 0, a = (L.end != null ? L.end : (LV.T1 || 0)) + 75; return L.smp.filter(function (x) { return x[0] >= o - 30 && x[0] <= a; }).map(function (x) { return { t: x[0] - o, hr: x[1] }; }); }
+function lvRecord(L, asks) {
+  var it = LV.it, sp = LV.spec, times = L.reps.map(function (r) { return r.e - r.s; }), hrs = L.reps.map(function (r) { return lvHrAt(L, r.e); });
+  var now = new Date(), cond = { pool: LV.pool, timing: 'live', hour: ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2) };
+  var live = { peak: lvPeak(L), avg: lvAvg(L), hr60: lvHr60(L), gap: lvGap(L), sensor: SENS[L.sid] ? SENS[L.sid].name : '' }, smp = lvRel(L);
+  var d, type;
+  if (it.key === 'step') { type = 'step'; d = { protocol: sp.pid, reps: times.map(function (x, i) { return { time: F(x, 1), hr: hrs[i] || '', lac: '', rpe: '' }; }), peak: live.peak || '', hr60: live.hr60 || '', hrmax: '', hrSrc: 'live', offset: '0:00', pool: LV.pool }; }
+  else if (it.key === '400') { type = '400'; d = { dist: '400', time: times[0] != null ? F(times[0], 2) : '', hrEnd: hrs[0] || '', hr60: live.hr60 || '', sr: '', hrSrc: 'live', pool: LV.pool }; }
+  else if (it.key === 'css') { type = 'css'; d = { d1: '400', t1: times[0] != null ? F(times[0], 2) : '', hr1: hrs[0] || '', d2: '200', t2: times[1] != null ? F(times[1], 2) : '', hr2: hrs[1] || '', pool: LV.pool }; }
+  else {
+    type = 'bt'; d = { test: it.bt.id, cond: cond };
+    if (sp.proto) { var pr = JSON.parse(JSON.stringify(sp.proto)); delete pr.note; d.proto = pr; d.vals = []; d.hr = []; d.rpe = '';
+      times.forEach(function (x, i) { var si = Math.floor(i / sp.setSize); (d.vals[si] = d.vals[si] || []).push(F(x, 2)); if ((i + 1) % sp.setSize === 0 || i === times.length - 1) d.hr[si] = hrs[i] || ''; }); }
+    else if (sp.dur) (sp.ask || []).forEach(function (a) { d[a[0]] = asks[a[0]] || ''; });
+    else if (sp.n === 1) d.t = times[0] != null ? F(times[0], 2) : '';
+    else times.forEach(function (x, i) { d['r' + (i + 1)] = F(x, 2); });
+  }
+  d.live = live; if (smp.length) d.samples = pack(smp);
+  return { id: uid(), swimmerId: L.sid, type: type, date: LV.date, data: d, notes: '' };
+}
+
+/* --- الشاشة 3: النتائج --- */
+function vLiveRes(app) {
+  if (!LV) return route('home');
+  var sp = LV.spec, n = Math.max.apply(null, LV.lanes.map(function (L) { return L.reps.length; }).concat([sp.n || 0]));
+  var h = '<h1>✅ ' + esc(LV.it.name) + ' · ' + A('النتائج', 'Résultats') + '</h1><div class="small muted" style="margin:-6px 0 12px">' + fmtDate(LV.date) + ' · ' + A('كل سباح تتحفظ نتيجتو في ملفو وحدو', 'Chaque nageur est enregistré dans sa propre fiche') + '</div>';
+  h += '<div class="card"><div class="tbl-wrap"><table><tr><th style="text-align:start">' + T('name') + '</th>' + (sp.dur ? (sp.ask || []).map(function (a) { return '<th>' + Tv([a[1], a[2]]) + '</th>'; }).join('') : Array.apply(null, Array(n)).map(function (_, i) { return '<th>' + (i + 1) + '</th>'; }).join('')) +
+    '<th>' + A('أعلى نبض', 'FC max') + '</th><th>' + A('المتوسط', 'Moy.') + '</th><th>' + A('استرجاع 60 ث', 'Récup 60 s') + '</th><th></th></tr>' + LV.lanes.map(function (L, li) {
+      var s = sw(L.sid) || {}, pk = lvPeak(L), h60 = lvHr60(L), gap = lvGap(L), hrr = pk && h60 ? pk - h60 : null;
+      var cells = sp.dur ? (sp.ask || []).map(function (a) { return '<td><input data-ask="' + li + '" data-k="' + a[0] + '" class="num" inputmode="decimal" style="min-width:90px"></td>'; }).join('')
+        : Array.apply(null, Array(n)).map(function (_, i) { var r = L.reps[i]; if (!r) return '<td class="muted">—</td>'; var hh = lvHrAt(L, r.e); return '<td class="num"' + (hh ? '' : ' style="background:var(--warnbg)"') + '><div style="font-weight:700">' + F(r.e - r.s, 1) + '</div><div class="small" style="color:' + (hh ? 'var(--bad)' : 'var(--warn)') + '">♥ ' + (hh || '—') + '</div></td>'; }).join('');
+      return '<tr><td style="text-align:start"><b>' + esc(s.name || '') + '</b>' + (gap > 3 ? '<div class="small" style="color:var(--warn)">' + A('بلا نبض ', 'Sans FC ') + gap + A(' ث', ' s') + '</div>' : '') + (!L.reps.length && !sp.dur ? '<div class="small" style="color:var(--bad)">' + A('ما تسجل حتى وصول', 'Aucune touche') + '</div>' : '') + '</td>' + cells +
+        '<td class="num" style="font-weight:700">' + (pk || '—') + '</td><td class="num">' + (lvAvg(L) || '—') + '</td><td class="num">' + (hrr != null ? hrr : '—') + '</td>' +
+        '<td><label class="row" style="gap:6px;margin:0;font-weight:600;color:var(--ink)"><input type="checkbox" data-keep="' + li + '" checked style="width:22px;height:22px;min-height:0"> ' + A('نحفظ', 'Garder') + '</label></td></tr>';
+    }).join('') + '</table></div></div>';
+  h += '<div class="info" style="margin-bottom:12px">' + A('الخانات الصفرا = النبض ما وصلش في ذيك اللحظة (تحت الماء). بعد الحفظ تقدر تكمّلها من «⌚ Polar» في صفحة الاختبار إذا السباح مربوط.', 'Cases jaunes : FC non reçue (sous l’eau). Après l’enregistrement, complétez via « ⌚ Polar » dans le test si le nageur est connecté.') + '</div>';
+  h += '<div class="row"><button class="btn pri big" id="lr-save">💾 ' + T('saveAll') + '</button><button class="btn" id="lr-back">↩ ' + A('رجوع للاختبار', 'Retour au test') + '</button><span class="sp"></span><button class="btn dan" id="lr-drop">' + A('إلغاء بلا حفظ', 'Abandonner') + '</button></div>';
+  app.innerHTML = h;
+  $('#lr-back').onclick = function () { LV.running = true; LV.iv = setInterval(lvTick, 100); keepAwake(true); route('live'); };
+  $('#lr-drop').onclick = function () { if (confirm(A('نمسحو نتائج هذا الاختبار؟', 'Supprimer les résultats de ce test ?'))) { LV = null; route('home'); } };
+  $('#lr-save').onclick = function () {
+    var k = 0;
+    LV.lanes.forEach(function (L, li) {
+      var keep = $('[data-keep="' + li + '"]'); if (keep && !keep.checked) return;
+      var asks = {}; $$('[data-ask="' + li + '"]').forEach(function (i) { asks[i.dataset.k] = i.value.trim(); });
+      if (!L.reps.length && !(sp.dur && Object.keys(asks).some(function (x) { return asks[x]; }))) return;
+      mutate('saveTest', { rec: lvRecord(L, asks) }); k++;
+    });
+    toast(k ? '✅ ' + k + ' ' + A('سباحين تحفظو', 'nageurs enregistrés') : T('nothing'));
+    var first = LV.lanes[0] && LV.lanes[0].sid; LV = null;
+    if (k === 1 && first) route('swimmer', { sid: first, tab: 'rpt' }); else route('home');
+  };
+}
+BT.on(function () {}); // (BT simple reste pour les tests individuels)
+
 /* ---------- jauge VO2max ---------- */
 function gauge(v, size, ci, onDark) {
   var fg = onDark ? '#fff' : '#0d2a6b', fg2 = onDark ? '#d4e3ff' : '#5c6f93';
@@ -1472,16 +1911,16 @@ function vTest(app) {
   var s = sw(S.sid), t = S.tid ? DB.tests.find(function (x) { return x.id === S.tid; }) : null;
   t = t ? JSON.parse(JSON.stringify(t)) : { id: uid(), swimmerId: s.id, type: S.type, date: today(), data: {} };
   TMP = { t: t, s: s, samples: (t.data.samples ? unpack(t.data.samples) : null) };
-  var backTab = t.type === 'day' ? 'recovery' : t.type === 'time' ? 'times' : 'tests';
+  var backTab = t.type === 'day' ? 'recovery' : t.type === 'time' ? 'times' : 'rpt';
   var h = '<button class="btn sm" id="bk">← ' + esc(s.name) + '</button><h1>' + ICON[t.type] + ' ' + T('T_' + t.type) + '</h1>' + (t.type !== 'time' && t.type !== 'day' ? guideHtml(t.type) : '') + '<div id="rdw"></div><form id="tf" autocomplete="off">' +
     '<div class="card"><div class="fr"><div class="f"><label>' + T('date') + '</label><input type="date" name="date" value="' + esc(t.date) + '"></div>' +
     (t.type !== 'leger' && t.type !== 'rest' && t.type !== 'day' && t.type !== 'time' ? '<div class="f"><label>' + T('pool') + '</label><select name="pool"><option value="25">25 m</option><option value="50"' + (t.data.pool == 50 ? ' selected' : '') + '>50 m</option></select></div>' : '') + '</div></div>';
   h += '<div id="form-body"></div>';
   h += '<div class="card"><div class="f"><label>' + T('notes') + '</label><textarea name="notes" rows="2">' + esc(t.notes) + '</textarea></div><div id="res"></div>' +
-    '<div class="row"><button class="btn pri big" id="save">' + T('save') + '</button>' + (S.tid ? '<span class="sp"></span><button type="button" class="btn dan" id="dl">' + T('del') + '</button>' : '') + '</div></div></form>';
+    (S.tid && t.type !== 'day' && !can('editRes') ? '<div class="note" style="margin-bottom:10px">🔒 ' + A('ما عندكش الصلاحية تعدّل نتيجة مسجلة: تقدر تشوفها برك.', 'Modification non autorisée : consultation seulement.') + '</div>' : '<div class="row"><button class="btn pri big" id="save">' + T('save') + '</button>' + (S.tid && can('editRes') ? '<span class="sp"></span><button type="button" class="btn dan" id="dl">' + T('del') + '</button>' : '') + '</div>') + '</div></form>';
   app.innerHTML = h;
   $('#bk').onclick = function () { route('swimmer', { tab: backTab }); };
-  if (S.tid) $('#dl').onclick = function () { if (confirm(T('confirmDel'))) { mutate('delTest', { id: t.id }); toast(T('deleted')); route('swimmer', { tab: backTab }); } };
+  if ($('#dl')) $('#dl').onclick = function () { if (confirm(T('confirmDel'))) { mutate('delTest', { id: t.id }); toast(T('deleted')); route('swimmer', { tab: backTab }); } };
   ({ step: fStep, '400': f400, css: fCss, leger: fLeger, rest: fRest, day: fDay, time: fTime })[t.type]($('#form-body'));
   var rdw = function () { var r = t.type !== 'day' && t.type !== 'time' ? readyOf(s, val('date') || today()) : null; $('#rdw').innerHTML = r && r.level === 'red' ? '<div class="alert" style="margin-bottom:14px">🔴 ' + T('redTest') + '</div>' : ''; };
   $('#tf [name=date]').addEventListener('change', rdw); rdw();
@@ -1489,9 +1928,10 @@ function vTest(app) {
   liveResults();
   $('#tf').onsubmit = function (e) {
     e.preventDefault();
+    if (!$('#save')) return;
     var rec = TMP.t; rec.date = e.target.date.value || today(); rec.notes = e.target.notes.value; rec.data = collect();
     if (TMP.samples && TMP.samples.length) rec.data.samples = pack(TMP.samples);
-    mutate('saveTest', { rec: rec }); toast(T('saved')); route('swimmer', { tab: backTab === 'tests' ? 'sum' : backTab });
+    mutate('saveTest', { rec: rec }); toast(T('saved')); route('swimmer', { tab: backTab });
   };
 }
 function pack(samples) { // [t,hr,…] réduit à 1 point / 2 s si long
@@ -1794,8 +2234,8 @@ function vSettings(app) {
     var cs = DB.coaches || [];
     if (!cs.length) h += '<p class="muted">—</p>';
     else h += '<div class="tbl-wrap"><table><tr><th>' + T('name') + '</th><th>' + T('phone') + '</th><th>' + T('code') + '</th><th>' + T('swimmers') + '</th><th></th><th></th></tr>' + cs.map(function (c) {
-      var n = DB.swimmers.filter(function (s) { return s.coachId === c.id; }).length;
-      return '<tr><td style="text-align:start"><b>' + esc(c.name) + '</b>' + (c.head ? ' <span class="chip warn">' + T('headS') + '</span>' : '') + '</td><td class="num">' + esc(c.phone || '') + '</td><td><span class="chip mono">' + esc(c.code) + '</span></td><td class="num">' + n + '</td><td><span class="chip ' + (c.active === false ? 'bad' : 'ok') + '">' + T(c.active === false ? 'inactive' : 'active') + '</span></td>' +
+      var n = DB.swimmers.filter(function (s) { return coachSees(c, s); }).length, pc = permOf(c), nOn = PERM_KEYS.filter(function (k) { return pc[k]; }).length;
+      return '<tr><td style="text-align:start"><b>' + esc(c.name) + '</b> <span class="chip">🔑 ' + nOn + '/' + PERM_KEYS.length + '</span></td><td class="num">' + esc(c.phone || '') + '</td><td><span class="chip mono">' + esc(c.code) + '</span></td><td class="num">' + n + '</td><td><span class="chip ' + (c.active === false ? 'bad' : 'ok') + '">' + T(c.active === false ? 'inactive' : 'active') + '</span></td>' +
         '<td style="white-space:nowrap"><button class="btn sm" data-view="' + c.id + '" title="' + T('viewAs') + '">👁</button> <button class="btn sm" data-ec="' + c.id + '">✎</button></td></tr>';
     }).join('') + '</table></div>';
     h += '</div><div class="card"><h3>🔐 ' + T('logT') + '</h3><div id="loglist" class="small muted">…</div></div><form class="card" id="pwf"><h3>🔑 ' + T('changePw') + '</h3><div class="fr"><div class="f"><label>' + T('oldPw') + '</label><input type="password" name="o"></div><div class="f"><label>' + T('newPw') + '</label><input type="password" name="n"></div></div><button class="btn pri">' + T('save') + '</button></form>';
@@ -1810,7 +2250,7 @@ function vSettings(app) {
   if ($('#chg')) $('#chg').onclick = function () { if (confirm(T('apiUrl') + ' ?')) { ls('vo2_api', null); ls('vo2_tk', null); render(); } };
   if (!isAdmin()) return;
   $('#pwf').onsubmit = function (e) { e.preventDefault(); API.call('changePw', { old: e.target.o.value, nw: e.target.n.value }).then(function (r) { toast(r.ok ? T('saved') : T(r.err)); if (r.ok) e.target.reset(); }).catch(function () { toast(T('neterr')); }); };
-  $('#bkp').onclick = function () { var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(DB, null, 1)], { type: 'application/json' })); a.download = 'vo2max-wathba-' + today() + '.json'; a.click(); };
+  $('#bkp').onclick = function () { var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(DB, null, 1)], { type: 'application/json' })); a.download = 'mr-wathba-performance-' + today() + '.json'; a.click(); };
   $('#addc').onclick = function () { coachForm({}); };
   API.call('log').then(function (r) {
     var el = $('#loglist'); if (!el) return;
@@ -1822,19 +2262,41 @@ function vSettings(app) {
   $$('[data-ec]').forEach(function (b) { b.onclick = function () { coachForm(DB.coaches.find(function (c) { return c.id === b.dataset.ec; })); }; });
   $$('[data-view]').forEach(function (b) { b.onclick = function () { VIEWAS = b.dataset.view; ls('vo2_viewas', VIEWAS); route('home'); }; });
 }
+var PERM_L = {
+  add: ['➕ يزيد سباح', '➕ Ajouter un nageur'], edit: ['✎ يعدّل ملف السباح', '✎ Modifier la fiche'], del: ['🗑 يحذف سباح', '🗑 Supprimer un nageur'],
+  vo2: ['🫁 اختبارات VO2max والأزمنة', '🫁 Tests VO2max et temps'], bt: ['🏋 اختبارات البطارية (قوة، سرعة، بروتوكولات)', '🏋 Tests de la batterie'],
+  editRes: ['✎ يعدّل ولا يحذف نتيجة مسجلة', '✎ Modifier / supprimer un résultat'], rep: ['📋 يشوف التقارير', '📋 Voir les rapports'],
+  day: ['🌙 يكتب الاسترجاع والتعب', '🌙 Saisir récupération et RPE'], polar: ['⌚ مزامنة Polar', '⌚ Synchroniser Polar'],
+  proto: ['🧩 يخلق ولا يعدّل البروتوكولات', '🧩 Créer / modifier des protocoles'], print: ['🖨 يطبع ولا ينسخ للواتساب', '🖨 Imprimer / copier WhatsApp']
+};
 function coachForm(c) {
-  var box = $('#cform');
+  var box = $('#cform'), isNew = !c.id, pc = isNew ? { add: false, edit: false, del: false, vo2: true, bt: false, editRes: false, rep: true, day: true, polar: false, proto: false, print: true, see: [] } : permOf(c);
+  var see = pc.see ? pc.see.slice() : DB.swimmers.filter(function (s) { return s.coachId === c.id; }).map(function (s) { return String(s.id); });
+  var list = DB.swimmers.slice().sort(function (a, b) { return (a.name || '').localeCompare(b.name || ''); });
+  var catN = function (s) { return window.BTV && BTV.catOf(s) ? BTV.catName(BTV.catOf(s)) : ''; };
   box.innerHTML = '<form class="kbox" id="cf" style="margin-bottom:12px"><div class="fr"><div class="f"><label>' + T('name') + '</label><input name="name" required value="' + esc(c.name) + '"></div>' +
     '<div class="f"><label>' + T('phone') + '</label><input name="phone" inputmode="tel" class="ltr" value="' + esc(c.phone) + '"></div>' +
     '<div class="f"><label>' + T('code') + '<span class="hint">' + T('codeHint') + '</span></label><input name="code" required minlength="6" class="mono ltr" value="' + esc(c.code) + '"></div>' +
     '<div class="f"><label>' + T('active') + '</label><select name="active"><option value="1">' + T('active') + '</option><option value="0"' + (c.active === false ? ' selected' : '') + '>' + T('inactive') + '</option></select></div></div>' +
-    '<label class="row" style="gap:8px;margin:0 0 10px"><input type="checkbox" name="head"' + (c.head ? ' checked' : '') + ' style="width:auto"> ' + T('headC') + '</label>' +
+    '<h3 style="margin:14px 0 8px">🔑 ' + A('واش يقدر يدير', 'Ce qu’il peut faire') + '</h3><div class="grid g2" style="gap:6px">' +
+    PERM_KEYS.map(function (k) { return '<label class="row" style="gap:8px;margin:0;padding:8px 10px;border:1px solid var(--line);border-radius:12px;font-weight:600;color:var(--ink);cursor:pointer"><input type="checkbox" data-pm="' + k + '"' + (pc[k] ? ' checked' : '') + ' style="width:22px;height:22px;min-height:0;flex:none"> ' + Tv(PERM_L[k]) + '</label>'; }).join('') + '</div>' +
+    '<h3 style="margin:16px 0 8px">👁 ' + A('السباحين اللي يشوفهم', 'Nageurs visibles') + ' <span class="chip" id="cf-n">' + see.length + '</span></h3>' +
+    '<div class="row" style="margin-bottom:8px"><input id="cf-q" placeholder="' + A('بحث…', 'Rechercher…') + '" style="flex:1;min-width:160px"><button type="button" class="btn sm" id="cf-all">' + A('الكل', 'Tous') + '</button><button type="button" class="btn sm" id="cf-none">' + A('حتى واحد', 'Aucun') + '</button></div>' +
+    '<div id="cf-sw" style="max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:12px;padding:4px 8px">' + (list.length ? list.map(function (s) { return '<label class="row" data-swn="' + esc((s.name || '').toLowerCase()) + '" style="gap:8px;margin:0;padding:7px 2px;border-bottom:1px solid var(--line);font-weight:600;color:var(--ink);cursor:pointer"><input type="checkbox" data-sv="' + esc(s.id) + '"' + (see.indexOf(String(s.id)) >= 0 ? ' checked' : '') + ' style="width:22px;height:22px;min-height:0;flex:none"> <span class="sp">' + esc(s.name) + '</span><span class="small muted">' + catN(s) + '</span></label>'; }).join('') : '<p class="muted small">—</p>') + '</div>' +
+    '<p class="small muted" style="margin:8px 0">' + A('ربط Polar، كلمة السر وإدارة المدربين تبقى للإدارة وحدها. كل صلاحية يتحقق منها السيرفر تاني.', 'Connexion Polar, mot de passe et gestion des entraîneurs restent à l’administration. Chaque droit est aussi vérifié par le serveur.') + '</p>' +
     '<div class="row"><button class="btn pri">' + T('save') + '</button><button type="button" class="btn" id="cc">' + T('cancel') + '</button><span class="sp"></span>' + (c.id ? '<button type="button" class="btn dan" id="cd">' + T('del') + '</button>' : '') + '</div></form>';
+  var cnt = function () { $('#cf-n').textContent = $$('[data-sv]').filter(function (i) { return i.checked; }).length; };
+  $$('[data-sv]').forEach(function (i) { i.onchange = cnt; });
+  $('#cf-q').oninput = function () { var q = this.value.trim().toLowerCase(); $$('[data-swn]').forEach(function (l) { l.style.display = !q || l.dataset.swn.indexOf(q) >= 0 ? '' : 'none'; }); };
+  $('#cf-all').onclick = function () { $$('[data-swn]').forEach(function (l) { if (l.style.display !== 'none') $('[data-sv]', l).checked = true; }); cnt(); };
+  $('#cf-none').onclick = function () { $$('[data-sv]').forEach(function (i) { i.checked = false; }); cnt(); };
   $('#cf [name=name]').focus();
   $('#cc').onclick = function () { box.innerHTML = ''; };
   if (c.id) $('#cd').onclick = function () { if (confirm(T('confirmDel'))) { API.call('delCoach', { id: c.id }).then(function (r) { if (!r.ok) return toast(T(r.err) || r.err); toast(T('deleted')); load().then(render); }); } };
   $('#cf').onsubmit = function (e) {
-    e.preventDefault(); var f = e.target, rec = Object.assign({}, c, { name: f.name.value.trim(), phone: f.phone.value.trim(), code: f.code.value.trim(), active: f.active.value === '1', head: f.head.checked });
+    e.preventDefault(); var f = e.target, perm = { see: $$('[data-sv]').filter(function (i) { return i.checked; }).map(function (i) { return i.dataset.sv; }) };
+    $$('[data-pm]').forEach(function (i) { perm[i.dataset.pm] = i.checked; });
+    var rec = Object.assign({}, c, { name: f.name.value.trim(), phone: f.phone.value.trim(), code: f.code.value.trim(), active: f.active.value === '1', perm: perm, head: perm.bt || perm.proto });
     if (!/^(?=.*[0-9])(?=.*[A-Za-z]).{6,}$/.test(rec.code)) return toast(T('weakCode'));
     f.querySelector('.pri').disabled = true;
     API.call('saveCoach', { rec: rec }).then(function (r) { if (!r.ok) { f.querySelector('.pri').disabled = false; return toast(T(r.err) || r.err); } toast(T('saved')); load().then(render); }).catch(function () { f.querySelector('.pri').disabled = false; toast(T('neterr')); });
@@ -1847,7 +2309,7 @@ function printCard(s) {
   // images des graphiques affichés
   var imgs = charts.map(function (c) { try { return '<img src="' + c.toBase64Image() + '" style="width:100%;max-height:230px;object-fit:contain">'; } catch (e) { return ''; } }).filter(Boolean);
   var h = '<div style="font-family:IBM Plex Sans Arabic,sans-serif" dir="' + (LANG === 'fr' ? 'ltr' : 'rtl') + '">' +
-    '<div style="display:flex;align-items:center;gap:14px;border-bottom:3px solid #0b3d91;padding-bottom:8px;margin-bottom:12px"><img src="logo.png" style="width:56px"><div style="flex:1"><div style="font-weight:700;font-size:18px;color:#0b3d91">' + T('card') + ' · VO2max</div><div class="small muted">Club Sportif Al-Wathba · Batna</div></div><div style="text-align:end"><b style="font-size:16px">' + esc(s.name) + '</b><div class="small muted">' + (P.age ? R(P.age, 1) + ' ' + T('yrs') : '') + (s.weight ? ' · <span class="ltr">' + esc(s.weight) + ' kg</span>' : '') + (s.height ? ' · <span class="ltr">' + esc(s.height) + ' cm</span>' : '') + '</div></div></div>' +
+    '<div style="display:flex;align-items:center;gap:14px;border-bottom:3px solid #0b3d91;padding-bottom:8px;margin-bottom:12px"><img src="logo.png" style="width:56px"><div style="flex:1"><div style="font-weight:700;font-size:18px;color:#0b3d91">' + T('card') + ' · MR WATHBA PERFORMANCE</div><div class="small muted">BY OKBA · Club Sportif Al-Wathba · Batna</div></div><div style="text-align:end"><b style="font-size:16px">' + esc(s.name) + '</b><div class="small muted">' + (P.age ? R(P.age, 1) + ' ' + T('yrs') : '') + (s.weight ? ' · <span class="ltr">' + esc(s.weight) + ' kg</span>' : '') + (s.height ? ' · <span class="ltr">' + esc(s.height) + ' cm</span>' : '') + '</div></div></div>' +
     summaryHtml(P).replace(/<canvas[^>]*><\/canvas>/g, '') +
     (imgs.length ? '<div class="grid g2">' + imgs.map(function (i) { return '<div class="card">' + i + '</div>'; }).join('') + '</div>' : '') +
     '<div class="small muted" style="margin-top:10px">' + T('printed') + ' ' + fmtDate(today()) + ' · Léger 1988 · Uth 2004 · Dmax (Cheng 1992) · CSS (Wakayoshi 1992)</div></div>';
@@ -1862,7 +2324,7 @@ window.VO2CORE = {
   db: function () { return DB; }, lang: function () { return LANG; }, viewAs: function () { return VIEWAS; },
   route: route, render: render, mutate: mutate, load: load, toast: toast, sw: sw, isAdmin: isAdmin, coachName: coachName,
   visibleSwimmers: visibleSwimmers, ageOf: ageOf, fmtDate: fmtDate, kpi: kpi, chartBase: chartBase, mk: mk, CH: CH,
-  initials: initials, readyOf: readyOf, n0: n0, n1: n1, lab: lab
+  initials: initials, readyOf: readyOf, n0: n0, n1: n1, lab: lab, can: can
 };
 document.addEventListener('DOMContentLoaded', function () { render(); if (API.tk()) flush(); });
 window.VO2APP = { load: load,  DB: function () { return DB; }, profile: profile, computeTest: computeTest, route: route, BT: BT };
