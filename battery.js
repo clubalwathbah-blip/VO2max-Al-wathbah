@@ -1,13 +1,16 @@
-/* Batterie de tests Al-Wathba — module (s'appuie sur VO2CORE) */
+/* MR WATHBA PERFORMANCE · BY OKBA — batterie de tests (module, s'appuie sur VO2CORE) · v4 */
 (function () {
 'use strict';
-var K = window.VO2CORE, C = K.C, $ = K.$, $$ = K.$$, esc = K.esc, T = K.T, R = K.R, F = K.F;
+var K = window.VO2CORE, C = K.C, $ = K.$, $$ = K.$$, esc = K.esc, R = K.R, F = K.F;
+// dictionnaire propre au module : ne modifie pas les textes de l'app VO2max
+var BD = {};
+function T(k) { var v = BD[k] || K.D[k]; return v ? (K.lang() === 'fr' ? v[1] : v[0]) : k; }
 function L() { return K.lang(); }
 function tv(v) { return L() === 'fr' ? v[1] : v[0]; }
 function DB() { return K.db(); }
 
 /* ---------------- i18n ---------------- */
-Object.assign(K.D, {
+Object.assign(BD, {
   bt_sys: ['الأنظمة', 'Filières'], AER: ['هوائي', 'Aérobie'], LAC: ['لاكتيكي', 'Lactique'], ALA: ['لالاكتيكي', 'Alactique'], END: ['تحمّل القوة', 'Endurance de force'], MAX: ['القوة القصوى', 'Force max'], POW: ['القدرة', 'Puissance'], FLX: ['المرونة', 'Souplesse'],
   water: ['🏊 في الماء', '🏊 Dans l’eau'], land: ['🏋 خارج الماء', '🏋 Hors de l’eau'],
   campaign: ['الحملة', 'Campagne'], cat: ['الفئة', 'Catégorie'], allCats: ['كل الفئات', 'Toutes catégories'], allGroups: ['كل الأفواج', 'Tous les groupes'],
@@ -203,7 +206,7 @@ function camps() { var set = {}; set[campOf(new Date())] = 1; recs().forEach(fun
 var ST = { camp: null, cat: '', group: '', test: '', cond: { pool: '25', timing: 'hand', warm: true }, retest: false };
 function curCamp() { return ST.camp || campOf(new Date()); }
 /* ================= protocoles des entraîneurs ================= */
-Object.assign(K.D, {
+Object.assign(BD, {
   protos: ['🧩 البروتوكولات', '🧩 Protocoles'], protoNew: ['＋ بروتوكول جديد', '＋ Nouveau protocole'], protoOf: ['بروتوكولات المدربين', 'Protocoles des entraîneurs'],
   pName: ['اسم البروتوكول', 'Nom du protocole'], pSys: ['النظام', 'Filière'], pCats: ['الفئات', 'Catégories'], pSets: ['عدد السلاسل', 'Séries'], pReps: ['التكرارات في كل سلسلة', 'Répétitions par série'],
   pAtt: ['المحاولات في كل سلسلة', 'Essais par série'], pDist: ['المسافة (م)', 'Distance (m)'], pStroke: ['السباحة', 'Nage'], pStart: ['الانطلاق', 'Départ'], pRestRep: ['الراحة بين التكرارات (ث)', 'Récup entre répétitions (s)'],
@@ -355,18 +358,18 @@ function vProtos(app) {
       return '<div class="card" style="' + (p.active === false ? 'opacity:.55' : '') + '"><div class="row"><b class="sp" style="font-size:17px">' + esc(p.name) + '</b>' + (p.active === false ? '<span class="chip">' + T('pArchived') + '</span>' : '') + '</div>' +
         '<div class="ltr small" style="margin:6px 0;font-weight:700;color:var(--blue)">' + esc(protoStr(p)) + '</div>' +
         '<div class="small muted">' + (p.by ? T('pBy') + ' ' + esc(p.by) + ' · ' : '') + (p.updated ? K.fmtDate(p.updated.slice(0, 10)) + ' · ' : '') + n + ' ' + T('nResults') + ' · ' + (p.cats && p.cats.length && p.cats.length < ALLC.length ? p.cats.map(function (c) { return (CATS.find(function (x) { return x[0] === c; }) || [])[L() === 'fr' ? 1 : 2]; }).join('، ') : T('allCats')) + '</div>' +
-        '<div class="row" style="margin-top:8px"><button class="btn sm pri" data-use="' + p.id + '">📝 ' + T('useIt') + '</button>' + (canEdit(p) ? '<button class="btn sm" data-pe="' + p.id + '">✎ ' + T('edit') + '</button><button class="btn sm" data-pa="' + p.id + '">' + (p.active === false ? T('pRestore') : T('pArchive')) + '</button>' : '') + '</div></div>';
+        '<div class="row" style="margin-top:8px">' + (canEdit(p) ? '<button class="btn sm" data-pe="' + p.id + '">✎ ' + T('edit') + '</button><button class="btn sm" data-pa="' + p.id + '">' + (p.active === false ? T('pRestore') : T('pArchive')) + '</button>' : '') + '</div></div>';
     }).join('') + '</div>';
   });
   if (!all.length) h += '<div class="card empty">' + T('protoNew') + '</div>';
-  h += '<h1 style="margin-top:18px">' + T('builtin') + '</h1>' + SYS.concat(['FLX']).map(function (k) { var g = TESTS.filter(function (t) { return t.sys === k; }); return g.length ? '<div class="card"><h3>' + T(k) + '</h3><div class="tlist">' + g.map(function (t) { return '<div class="it"><div class="sp"><b>' + esc(tv(t.name)) + '</b> <span class="chip">📌</span><div class="small muted">' + (t.cats.length === ALLC.length ? T('allCats') : t.cats.map(function (c) { return (CATS.find(function (x) { return x[0] === c; }) || [])[L() === 'fr' ? 1 : 2]; }).join('، ')) + '</div></div><button class="btn sm pri" data-useb="' + t.id + '">📝 ' + T('useIt') + '</button></div>'; }).join('') + '</div></div>' : ''; }).join('');
+  h += '<h1 style="margin-top:18px">' + T('builtin') + '</h1>' + SYS.concat(['FLX']).map(function (k) { var g = TESTS.filter(function (t) { return t.sys === k; }); return g.length ? '<div class="card"><h3>' + T(k) + '</h3><div class="tlist">' + g.map(function (t) { return '<div class="it"><div class="sp"><b>' + esc(tv(t.name)) + '</b> <span class="chip">📌</span><div class="small muted">' + (t.cats.length === ALLC.length ? T('allCats') : t.cats.map(function (c) { return (CATS.find(function (x) { return x[0] === c; }) || [])[L() === 'fr' ? 1 : 2]; }).join('، ')) + '</div></div></div>'; }).join('') + '</div></div>' : ''; }).join('');
   // fiabilité
   var rel = all.filter(function (p) { return p.active !== false; }).map(function (p) { var t = protoTest(p), r = teOf(t); return '<tr><td style="text-align:start">' + esc(p.name) + '</td><td class="num">' + R(r.te, 1) + '%</td><td class="num"><b>' + R(2.77 * r.te, 1) + '%</b></td><td class="small muted">' + (r.ref ? T('refVal') + ' (' + r.n + ' ' + T('pairs') + ')' : r.n + ' ' + T('pairs')) + '</td></tr>'; }).join('');
   if (rel) h += '<div class="card"><h3>' + T('relTitle') + '</h3><div class="tbl-wrap"><table><tr><th></th><th>' + T('te') + '</th><th>' + T('mdc') + '</th><th></th></tr>' + rel + '</table></div><p class="small muted">' + T('relNote') + '</p></div>';
   if (K.isAdmin()) h += '<div class="card"><h3>' + T('audit') + '</h3><div id="audit" class="small muted">…</div></div>';
   app.innerHTML = h;
   $('#bk').onclick = function () { K.route('home'); };
-  $('#pnew').onclick = function () { ST.pedit = { sys: 'AER', sets: 1, reps: 4, dist: 50, cats: [] }; K.render(); };
+  if ($('#pnew')) $('#pnew').onclick = function () { ST.pedit = { sys: 'AER', sets: 1, reps: 4, dist: 50, cats: [] }; K.render(); };
   $$('[data-pe]').forEach(function (b) { b.onclick = function () { ST.pedit = JSON.parse(JSON.stringify(protoById(b.dataset.pe))); K.render(); }; });
   $$('[data-pa]').forEach(function (b) { b.onclick = function () { var p = JSON.parse(JSON.stringify(protoById(b.dataset.pa))); p.active = p.active === false; saveProto(p); }; });
   $$('[data-useb]').forEach(function (b) { b.onclick = function () { ST.test = b.dataset.useb; ST.one = null; ST.retest = false; ST.back = 'home'; K.route('btEntry'); }; });
@@ -450,7 +453,7 @@ function bindCommon(rerender) {
 }
 
 /* ================= organisation par catégorie ================= */
-Object.assign(K.D, {
+Object.assign(BD, {
   prog: ['📋 برنامج الحملة', '📋 Programme de la campagne'], progEdit: ['✎ تحديد البرنامج', '✎ Définir le programme'], progEmpty: ['ما كاين حتى اختبار في البرنامج. المدرب الرئيسي يحددو.', 'Aucun test au programme. L’entraîneur principal le définit.'],
   progCopy: ['نسخ من الحملة اللي فاتت', 'Copier la campagne précédente'], done: ['تعدّاو', 'testés'], results2: ['📊 النتائج', '📊 Résultats'], enter: ['📝 إدخال', '📝 Saisir'], tSw: ['👥 السباحين', '👥 Nageurs'],
   builtin: ['📌 قوالب النادي (ثابتة)', '📌 Modèles du club (fixes)'], myProtos: ['🧩 بروتوكولات المدربين', '🧩 Protocoles des entraîneurs'], rank: ['المرتبة', 'Rang'],
@@ -629,7 +632,7 @@ function vEntry(app) {
   var one = ST.one ? K.sw(ST.one) : null;
   var list = one ? [one] : K.visibleSwimmers().filter(function (s) { return (!ST.cat || catOf(s) === ST.cat) && (!ST.group || s.group === ST.group); }).sort(function (a, b) { return (a.name || '').localeCompare(b.name || ''); });
   var cat = one ? catOf(one) : ST.cat;
-  var avail = cat ? testsForCat(cat) : TESTS.concat(protos().map(protoTest));
+  var avail = cat && !one ? testsForCat(cat) : TESTS.concat(protos().map(protoTest));
   if (ST.test && !avail.some(function (t) { return t.id === ST.test; })) { var tt = testById(ST.test); if (!(tt && tt.proto && tt.proto.active !== false)) ST.test = ''; else avail = avail.concat([tt]); }
   var t = testById(ST.test), P = t && t.proto;
   var groups = {}; K.visibleSwimmers().forEach(function (s) { if (s.group) groups[s.group] = 1; });
@@ -673,7 +676,7 @@ function vEntry(app) {
     }
   }
   app.innerHTML = h;
-  $('#bk').onclick = function () { var o = ST.one; ST.one = null; ST.retest = false; o ? K.route('swimmer', { sid: o }) : K.route(ST.back === 'btCat' && ST.cat ? 'btCat' : 'home'); };
+  $('#bk').onclick = function () { var o = ST.one; ST.one = null; ST.retest = false; o ? K.route('swimmer', { sid: o, tab: 'rpt' }) : K.route(ST.back === 'btCat' && ST.cat ? 'btCat' : 'home'); };
   $$('[data-cat]').forEach(function (b) { b.onclick = function () { ST.cat = b.dataset.cat; K.render(); }; });
   if ($('#grp')) $('#grp').onchange = function () { ST.group = this.value; K.render(); };
   $('#tsel').onchange = function () { ST.test = this.value; ST.retest = false; K.render(); };
@@ -723,11 +726,12 @@ function vEntry(app) {
     $$('#etab tr[data-sid]').forEach(function (tr) {
       var d = rowData(tr), has = P ? d.vals.some(function (row) { return (row || []).some(function (x) { return x; }); }) : t.inputs.some(function (i) { return i.t !== 'sel' && d[i.k]; });
       if (!has) return;
+      if (tr.dataset.rid && K.can && !K.can('editRes')) { K.toast(T('forbidden')); return; }
       d.cond = cond; if (ST.retest) d.retest = true;
       K.mutate('saveTest', { rec: { id: tr.dataset.rid || K.uid(), swimmerId: tr.dataset.sid, type: 'bt', date: date, data: d } }); n++;
     });
     K.toast(n ? n + ' ' + T('savedN') : T('nothing'));
-    if (n && ST.one) { var o = ST.one; ST.one = null; K.route('swimmer', { sid: o }); } else K.render();
+    if (n && ST.one) { var o = ST.one; ST.one = null; ST.date = null; K.route('swimmer', { sid: o, tab: 'rpt' }); } else K.render();
   };
 }
 
@@ -769,5 +773,16 @@ function settingsBind() {
   };
 }
 
-window.BTV = { views: { home: vHome, swimmer: vSwimmer, btEntry: vEntry, btReport: vReport, btProtos: vProtos, btCat: vCat, btRes: vRes }, settingsExtra: settingsExtra, settingsBind: settingsBind, TESTS: TESTS, catOf: catOf, campOf: campOf };
+/* --- API pour la page nageur unifiée (index.html) --- */
+function history(s, tid) {
+  var t = testById(tid); if (!t || !s) return [];
+  return recsOf(s.id).filter(function (r) { return r.data && r.data.test === tid && !r.data.retest; })
+    .sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : ((a.updated || '') < (b.updated || '') ? -1 : 1); })
+    .map(function (r) { var c = t.calc(r.data || {}, s); return c ? Object.assign({ rec: r }, c) : null; }).filter(Boolean);
+}
+function catList(t) { return (t.cats || []).length >= CATS.length ? T('allCats') : (t.cats || []).map(function (c) { var x = CATS.find(function (y) { return y[0] === c; }); return x ? (L() === 'fr' ? x[1] : x[2]) : c; }).join('، '); }
+function openEntry(sid, tid, date) { ST.test = tid; ST.one = sid; ST.retest = false; ST.date = date || null; ST.back = 'swimmer'; K.route('btEntry'); }
+window.BTV = { tests: function (all) { return TESTS.concat(protos(all).map(protoTest)); }, history: history, openEntry: openEntry,
+  verdict: function (t, cur, prev) { return verdict(t, cur, prev, null); }, protoStr: protoStr, catName: catName, catList: catList, testById: testById,
+  views: { home: vHome, swimmer: vSwimmer, btEntry: vEntry, btReport: vReport, btProtos: vProtos, btCat: vCat, btRes: vRes }, settingsExtra: settingsExtra, settingsBind: settingsBind, TESTS: TESTS, catOf: catOf, campOf: campOf };
 })();
