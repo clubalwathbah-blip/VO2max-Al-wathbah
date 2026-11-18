@@ -138,6 +138,15 @@ var TESTS = [
   { id: 'sqj', sys: 'END', w: 0, cats: from('ben'), name: ['Squat jumps في 30 ث', 'Squat jumps en 30 s'], unit: 'rep', better: 'high',
     inputs: [nm('n', tv(['العدد', 'Nombre']), 'rep', H.reps)], calc: function (d) { var x = C.num(d.n); return x != null ? { v: x, disp: x } : null; },
     g: ['ينزل حتى الفخذين أفقيين، ويقفز. كل قفزة كاملة تتحسب.', 'Descente cuisses parallèles puis saut ; chaque saut complet compte.'] },
+  { id: 'ruff', sys: 'END', w: 0, cats: CATS.map(function (c) { return c[0]; }), name: ['Ruffier-Dickson (النبض)', 'Ruffier-Dickson (FC)'], unit: 'idx', better: 'low',
+    inputs: [nm('p0', tv(['P0 نبض الراحة', 'P0 FC repos']), 'bpm', ['قبل الجهد', 'Avant l’effort']), nm('p1', tv(['P1 مباشرة بعد', 'P1 juste après']), 'bpm', ['أول 15 ث بعد الـ 30 squat', '15 premières s après les 30 squats']), nm('p2', tv(['P2 بعد دقيقة', 'P2 après 1 min']), 'bpm', ['الثواني 45–60 بعد الجهد', 'de 45 à 60 s après'])],
+    calc: function (d) {
+      var a = C.num(d.p0), b = C.num(d.p1), c = C.num(d.p2); if (!a || !b || !c) return null;
+      var ir = (a + b + c - 200) / 10, di = ((b - 70) + 2 * (c - a)) / 10;
+      var lv = ir < 0 ? ['ممتاز', 'excellent'] : ir < 5 ? ['جيد جداً', 'très bon'] : ir < 10 ? ['جيد', 'bon'] : ir < 15 ? ['متوسط', 'moyen'] : ['ضعيف', 'faible'];
+      return { v: a + b + c, disp: R(ir, 1), extra: tv(lv) + ' · Dickson ' + R(di, 1) + ' · ♥ ' + a + '/' + b + '/' + c };
+    },
+    g: ['يرتاح 1 دقيقة (P0)، ومن بعد <b>30 squat في 45 ثانية</b> (تبع الصوت)، ومن بعد يرقد. <b>P1</b> = النبض في أول 15 ث، <b>P2</b> = النبض بين 45 و60 ث. <b>المؤشر</b> = (P0+P1+P2−200)/10، كل ما يكون صغير القلب أقوى. مع الـ Verity Sense يتحسب وحدو في «⏱ اختبار لايف».', 'Repos 1 min (P0), puis <b>30 squats en 45 s</b> (au bip), puis allongé. <b>P1</b> = FC des 15 premières s, <b>P2</b> = FC de 45 à 60 s. <b>Indice</b> = (P0+P1+P2−200)/10 ; plus il est bas, meilleur c’est. Calcul automatique avec la Verity Sense dans « ⏱ Test en direct ».'] },
   // ---- force max
   { id: 'grip', sys: 'MAX', w: 0, cats: CATS.map(function (c) { return c[0]; }), name: ['Handgrip (قوة القبضة)', 'Handgrip'], unit: 'kg', better: 'high',
     inputs: [nm('r', tv(['اليد اليمنى', 'Main droite']), 'kg', ['الأحسن من 2 محاولات', 'Meilleur de 2 essais']), nm('l', tv(['اليد اليسرى', 'Main gauche']), 'kg', ['الأحسن من 2 محاولات', 'Meilleur de 2 essais'])],
@@ -315,7 +324,7 @@ function protoTest(p) {
     calc: function (d, s) { return protoCalc(d.proto || p, d, s); } };
 }
 /* --- fiabilité : erreur typique (re-tests) --- */
-var TE_DEF = { water: 1.2, count: 8, rm: 4, jump: 5, measure: 3, s: 1.5, '/100': 1.5, rep: 8, m: 3, cm: 3, kg: 3 };
+var TE_DEF = { idx: 4, water: 1.2, count: 8, rm: 4, jump: 5, measure: 3, s: 1.5, '/100': 1.5, rep: 8, m: 3, cm: 3, kg: 3 };
 function teOf(t) {
   var p = t.proto, key = p ? pMode(p) : t.unit, def = TE_DEF[key] || 3;
   var pairs = [];
@@ -351,6 +360,13 @@ function vProtos(app) {
   var all = protos(true), ed = ST.pedit, h = '<div class="row"><button class="btn sm" id="bk">← ' + T('home') + '</button><span class="sp"></span>' + (ed ? '' : '<button class="btn pri" id="pnew">' + T('protoNew') + '</button>') + '</div>';
   if (ed) { app.innerHTML = h + protoForm(ed); bindProtoForm(); $('#bk').onclick = function () { ST.pedit = null; K.render(); }; return; }
   h += '<h1>' + T('myProtos') + '</h1>';
+  h += '<div class="card" style="background:var(--sky2);border-color:#c9d8f2"><h3 style="margin-top:0">💡 ' + tv(['واش هو البروتوكول؟', 'Qu’est-ce qu’un protocole ?']) + '</h3>' +
+    '<p style="margin:4px 0 10px">' + tv(['البروتوكول هو <b>اختبار تصنعو أنت</b> بالشكل اللي تخدم بيه في المسبح ولا خارج الماء، باش تعاودو بنفس الطريقة كل مرة وتقارن السباح مع روحو.', 'Un protocole est <b>un test que vous créez</b> selon votre façon de travailler (bassin ou hors de l’eau), pour le refaire à l’identique et comparer le nageur à lui-même.']) + '</p>' +
+    '<div class="grid g3" style="gap:8px">' +
+    '<div class="kbox"><b>1 · ' + tv(['تصنعو', 'Créer']) + '</b><div class="small muted">' + tv(['«＋ بروتوكول جديد»: تختار النوع (هوائي، لاكتيكي…)، الشكل (مثلاً <b class="ltr">2×(4×100) R20″/2′</b>)، الشدة والفئات اللي يصلحلها.', '« ＋ Nouveau protocole » : type, forme (ex. <b>2×(4×100) R20″/2′</b>), intensité et catégories.']) + '</div></div>' +
+    '<div class="kbox"><b>2 · ' + tv(['تستعملو', 'Utiliser']) + '</b><div class="small muted">' + tv(['يبان في «＋ اختبار جديد» عند كل سباح تحت 🧩، وفي «⏱ اختبار لايف» باش يتسجل بالـ Verity Sense.', 'Il apparaît dans « ＋ Nouveau test » (🧩) et dans « ⏱ Test en direct » avec la Verity Sense.']) + '</div></div>' +
+    '<div class="kbox"><b>3 · ' + tv(['تقارن', 'Comparer']) + '</b><div class="small muted">' + tv(['كل نتيجة تتحفظ في ملف السباح، والتقرير يقارنها مع نتائجو القديمة في نفس البروتوكول (▲▼ والحكم).', 'Chaque résultat va dans la fiche du nageur ; le rapport le compare à ses anciens résultats du même protocole.']) + '</div></div></div>' +
+    '<p class="small muted" style="margin:10px 0 0">📌 ' + tv(['<b>قوالب النادي</b> (التحت) هوما الاختبارات الأساسية تاع التطبيق: ثابتين، ما يتبدلوش وما يتمسحوش. البروتوكول اللي ما بقيتش تستعملو «أرشفو» برك، النتائج القديمة تبقى.', '<b>Modèles du club</b> (en bas) : tests de base, fixes et non supprimables. Un protocole inutilisé s’archive ; ses résultats restent.']) + '</p></div>';
   SYS.forEach(function (k) {
     var g = all.filter(function (p) { return p.sys === k; }); if (!g.length) return;
     h += '<h2>' + T(k) + '</h2><div class="grid g2" style="margin-bottom:12px">' + g.map(function (p) {
@@ -361,7 +377,7 @@ function vProtos(app) {
         '<div class="row" style="margin-top:8px">' + (canEdit(p) ? '<button class="btn sm" data-pe="' + p.id + '">✎ ' + T('edit') + '</button><button class="btn sm" data-pa="' + p.id + '">' + (p.active === false ? T('pRestore') : T('pArchive')) + '</button>' : '') + '</div></div>';
     }).join('') + '</div>';
   });
-  if (!all.length) h += '<div class="card empty">' + T('protoNew') + '</div>';
+  if (!all.length) h += '<div class="card empty">' + tv(['مازال ما صنعت حتى بروتوكول. اضغط «＋ بروتوكول جديد» الفوق.', 'Aucun protocole pour l’instant. Cliquez « ＋ Nouveau protocole » en haut.']) + '</div>';
   h += '<h1 style="margin-top:18px">' + T('builtin') + '</h1>' + SYS.concat(['FLX']).map(function (k) { var g = TESTS.filter(function (t) { return t.sys === k; }); return g.length ? '<div class="card"><h3>' + T(k) + '</h3><div class="tlist">' + g.map(function (t) { return '<div class="it"><div class="sp"><b>' + esc(tv(t.name)) + '</b> <span class="chip">📌</span><div class="small muted">' + (t.cats.length === ALLC.length ? T('allCats') : t.cats.map(function (c) { return (CATS.find(function (x) { return x[0] === c; }) || [])[L() === 'fr' ? 1 : 2]; }).join('، ')) + '</div></div></div>'; }).join('') + '</div></div>' : ''; }).join('');
   // fiabilité
   var rel = all.filter(function (p) { return p.active !== false; }).map(function (p) { var t = protoTest(p), r = teOf(t); return '<tr><td style="text-align:start">' + esc(p.name) + '</td><td class="num">' + R(r.te, 1) + '%</td><td class="num"><b>' + R(2.77 * r.te, 1) + '%</b></td><td class="small muted">' + (r.ref ? T('refVal') + ' (' + r.n + ' ' + T('pairs') + ')' : r.n + ' ' + T('pairs')) + '</td></tr>'; }).join('');
@@ -728,6 +744,7 @@ function vEntry(app) {
       if (!has) return;
       if (tr.dataset.rid && K.can && !K.can('editRes')) { K.toast(T('forbidden')); return; }
       d.cond = cond; if (ST.retest) d.retest = true;
+      if (tr.dataset.rid) { var old = recs().find(function (r) { return r.id === tr.dataset.rid; }); if (old && old.data) ['samples', 'live', 'hrDur', 'hrSrc', 'polarEx', 'splits'].forEach(function (k) { if (old.data[k] != null) d[k] = old.data[k]; }); }
       K.mutate('saveTest', { rec: { id: tr.dataset.rid || K.uid(), swimmerId: tr.dataset.sid, type: 'bt', date: date, data: d } }); n++;
     });
     K.toast(n ? n + ' ' + T('savedN') : T('nothing'));
