@@ -1,4 +1,5 @@
 /* VO2max Al-Wathba — application */
+var APP_V = '5.2';
 (function () {
 'use strict';
 var C = window.VO2C;
@@ -2568,7 +2569,7 @@ function addRestRow(bpm, date, rmssd, initial) {
 
 /* ======================= paramètres ======================= */
 function vSettings(app) {
-  var h = '<button class="btn sm" id="bk">← ' + T('back') + '</button><h1>⚙ ' + T('settings') + '</h1>';
+  var h = '<button class="btn sm" id="bk">← ' + T('back') + '</button><h1>⚙ ' + T('settings') + ' <span class="chip" style="vertical-align:middle">' + A('النسخة ', 'Version ') + APP_V + '</span></h1>';
   if (isAdmin()) {
     h += '<div class="card"><div class="row" style="margin-bottom:8px"><h3 class="sp" style="margin:0">👥 ' + T('coaches') + '</h3><button class="btn pri sm" id="addc">＋ ' + T('addCoach') + '</button></div><div id="cform"></div>';
     var cs = DB.coaches || [];
