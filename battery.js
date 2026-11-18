@@ -744,7 +744,7 @@ function vEntry(app) {
       if (!has) return;
       if (tr.dataset.rid && K.can && !K.can('editRes')) { K.toast(T('forbidden')); return; }
       d.cond = cond; if (ST.retest) d.retest = true;
-      if (tr.dataset.rid) { var old = recs().find(function (r) { return r.id === tr.dataset.rid; }); if (old && old.data) ['samples', 'live', 'hrDur', 'hrSrc', 'polarEx', 'splits'].forEach(function (k) { if (old.data[k] != null) d[k] = old.data[k]; }); }
+      if (tr.dataset.rid) { var old = recs().find(function (r) { return r.id === tr.dataset.rid; }); if (old && old.data) ['samples', 'live', 'hrDur', 'hrSrc', 'polarEx', 'splits', 'hrZones', 'hrA', 'hrAuto', 'hrRaw'].forEach(function (k) { if (old.data[k] != null) d[k] = old.data[k]; }); }
       K.mutate('saveTest', { rec: { id: tr.dataset.rid || K.uid(), swimmerId: tr.dataset.sid, type: 'bt', date: date, data: d } }); n++;
     });
     K.toast(n ? n + ' ' + T('savedN') : T('nothing'));
