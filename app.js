@@ -1,5 +1,5 @@
 /* VO2max Al-Wathba — application */
-var APP_V = '5.2';
+var APP_V = '5.4';
 (function () {
 'use strict';
 var C = window.VO2C;
@@ -272,15 +272,42 @@ function guideHtml(k) { var g = GUIDE[k]; return g ? '<details class="guide"' + 
 // serveur du club : l'entraîneur n'a qu'à saisir son code
 var DEFAULT_API = 'https://script.google.com/macros/s/AKfycbzB_IabVM98T4knvuH67efkmvNgg27gp_t3ot9Q9pLlK4dGjbma4yaqrQiux9V9gBEY/exec';
 (function () { try { var q = new URLSearchParams(location.search).get('api'); if (q && /^https:\/\/script\.google\.com\/.+\/exec$/.test(q)) localStorage.setItem('vo2_api', q); } catch (e) {} })();
+// 📱 هوية الجهاز: رقم + سر عشوائيين، ما يخرجوش من هاذ المتصفح (السيرفر يحفظ غير البصمة تاع السر)
+function rndHex(n) { var a = new Uint8Array(n); (window.crypto || window.msCrypto).getRandomValues(a); return Array.prototype.map.call(a, function (x) { return ('0' + x.toString(16)).slice(-2); }).join(''); }
+function devInfo() {
+  var di = ls('mr_di'), dk = ls('mr_dk');
+  if (!/^[a-f0-9]{16,64}$/.test(di || '') || !/^[a-f0-9]{32,128}$/.test(dk || '')) { di = rndHex(12); dk = rndHex(24); ls('mr_di', di); ls('mr_dk', dk); }
+  var u = navigator.userAgent || '', os = /iPad|Macintosh.*Mobile|Macintosh/.test(u) && navigator.maxTouchPoints > 1 ? 'iPad' : /iPhone/.test(u) ? 'iPhone' : /Android/.test(u) ? 'Android' : /Windows/.test(u) ? 'Windows' : /Mac/.test(u) ? 'Mac' : /Linux/.test(u) ? 'Linux' : '?';
+  var br = /Bluefy/.test(u) ? 'Bluefy' : /Edg\//.test(u) ? 'Edge' : /SamsungBrowser/.test(u) ? 'Samsung' : /Firefox/.test(u) ? 'Firefox' : /CriOS|Chrome/.test(u) ? 'Chrome' : /Safari/.test(u) ? 'Safari' : '';
+  return { di: di, dk: dk, label: os + (br ? ' · ' + br : ''), code: di.slice(0, 4).toUpperCase() };
+}
+function wipeLocal(msg) { // جهاز ممنوع ولا مفكوك: نمسحو كلش من هاذ الجهاز
+  ['vo2_tk', 'vo2_cache', 'vo2_queue', 'vo2_viewas', 'mr_role'].forEach(function (k) { ls(k, null); });
+  DB = { swimmers: [], tests: [], coaches: [], me: null }; QUEUE = []; S.authMsg = msg || ''; render();
+}
 var API = {
   url: function () { return ls('vo2_api') || DEFAULT_API; },
   tk: function () { return ls('vo2_tk') || ''; },
-  call: function (a, p) {
-    p = p || {}; p.a = a; p.tk = API.tk();
+  raw: function (p) {
     if (API.url() === 'demo') return Promise.resolve(Local.call(p));
-    return fetch(API.url(), { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(p), redirect: 'follow' })
-      .then(function (r) { return r.json(); })
-      .then(function (r) { if (!r.ok && r.err === 'auth') { ls('vo2_tk', null); render(); throw new Error('auth'); } return r; });
+    return fetch(API.url(), { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(p), redirect: 'follow' }).then(function (r) { return r.json(); });
+  },
+  call: function (a, p, again) {
+    p = p || {}; p.a = a; p.tk = API.tk();
+    if (a === 'login' || a === 'devLogin') { var D = devInfo(); p.di = D.di; p.dk = D.dk; p.label = D.label; }
+    return API.raw(p).then(function (r) {
+      if (r && !r.ok && r.err === 'devRevoked') { wipeLocal('devRevoked'); throw new Error('auth'); }
+      if (r && !r.ok && r.err === 'auth') {
+        // المدرب: الجهاز المربوط يرجع يدخل وحدو
+        if (!again && ls('mr_role') === 'coach') return API.call('devLogin', {}, true).then(function (x) {
+          if (x.ok) { ls('vo2_tk', x.tk); var q = Object.assign({}, p); delete q.tk; return API.call(a, q, true); }
+          if (x.err === 'devNeedLink' || x.err === 'devBlocked') { wipeLocal(x.err); throw new Error('auth'); }
+          ls('vo2_tk', null); render(); throw new Error('auth');
+        });
+        ls('vo2_tk', null); render(); throw new Error('auth');
+      }
+      return r;
+    });
   }
 };
 // serveur local (mode essai / tests) — mêmes règles que le serveur
@@ -289,16 +316,31 @@ var Local = {
   put: function (d) { ls('vo2_demo', JSON.stringify(d)); },
   call: function (p) {
     var d = Local.db();
+    var now = new Date().toISOString(); d.ad = d.ad || [];
     if (p.a === 'login') {
-      if (!d.pw) { if (String(p.pw || '').length < 6) return { ok: false, err: 'short' }; d.pw = p.pw; Local.put(d); ls('vo2_demo_who', 'admin'); return { ok: true, tk: 'demo-admin', first: true, role: 'admin' }; }
+      var first = false; if (!d.pw) { if (String(p.pw || '').length < 6) return { ok: false, err: 'short' }; d.pw = p.pw; first = true; }
       d.log = d.log || [];
       var c = p.pw === d.pw ? null : d.c.find(function (x) { return x.code === p.pw && x.active !== false; });
-      var okk = p.pw === d.pw || !!c; d.log.push({ t: new Date().toISOString(), who: okk ? (c ? c.name : 'Administration') : '', ok: okk }); Local.put(d);
-      if (p.pw === d.pw) return { ok: true, tk: 'demo-admin', role: 'admin' };
-      return c ? { ok: true, tk: 'demo-coach-' + c.id, role: 'coach' } : { ok: false, err: 'bad' };
+      var okk = p.pw === d.pw || !!c; d.log.push({ t: now, who: okk ? (c ? c.name : 'Administration') : '', ok: okk });
+      if (!okk) { Local.put(d); return { ok: false, err: 'bad' }; }
+      if (!c) {
+        var ad = d.ad.find(function (x) { return x.id === p.di; });
+        if (!d.ad.some(function (x) { return x.ok && !x.blocked; })) { if (!ad) { ad = { id: p.di }; d.ad.push(ad); } Object.assign(ad, { h: p.dk, label: p.label, ok: true, blocked: false, at: now }); }
+        else if (!ad) { d.ad.push({ id: p.di, h: p.dk, label: p.label, ok: false, at: now }); Local.put(d); return { ok: false, err: 'devWait', code: String(p.di).slice(0, 4).toUpperCase() }; }
+        else if (ad.h !== p.dk) return { ok: false, err: 'devOther' };
+        else if (ad.blocked) return { ok: false, err: 'devBlocked' };
+        else if (!ad.ok) return { ok: false, err: 'devWait', code: String(p.di).slice(0, 4).toUpperCase() };
+        ad.last = now; Local.put(d); return { ok: true, tk: 'demo-admin|' + p.di, role: 'admin', first: first };
+      }
+      if (p.inv) { if (!c.inv || c.inv.tk !== p.inv) { Local.put(d); return { ok: false, err: 'linkUsed' }; } c.dev = { id: p.di, h: p.dk, label: p.label, at: now }; delete c.inv; }
+      else if (!c.dev) { Local.put(d); return { ok: false, err: 'devNeedLink' }; }
+      else if (c.dev.id !== p.di || c.dev.h !== p.dk) { Local.put(d); return { ok: false, err: 'devOther' }; }
+      c.dev.last = now; Local.put(d); return { ok: true, tk: 'demo-coach-' + c.id + '|' + p.di, role: 'coach' };
     }
-    var tk = p.tk || '', w = tk === 'demo-admin' ? { role: 'admin', name: 'Administration', perm: permOf(null) } : null;
-    if (!w && tk.indexOf('demo-coach-') === 0) { var co = d.c.find(function (x) { return x.id === tk.slice(11) && x.active !== false; }); if (co) w = { role: 'coach', id: co.id, name: co.name, head: co.head === true, perm: permOf(co), rec: co }; }
+    if (p.a === 'devLogin') { var cd = d.c.find(function (x) { return x.dev && x.dev.id === p.di && x.dev.h === p.dk; }); if (!cd) return { ok: false, err: 'devNeedLink' }; if (cd.active === false) return { ok: false, err: 'devBlocked' }; return { ok: true, tk: 'demo-coach-' + cd.id + '|' + p.di, role: 'coach' }; }
+    var tk0 = p.tk || '', tdi = tk0.indexOf('|') > 0 ? tk0.split('|')[1] : null, tk = tk0.split('|')[0], w = tk === 'demo-admin' ? { role: 'admin', name: 'Administration', perm: permOf(null), di: tdi } : null;
+    if (w && tdi && !d.ad.some(function (x) { return x.id === tdi && x.ok && !x.blocked; })) return { ok: false, err: 'devRevoked' };
+    if (!w && tk.indexOf('demo-coach-') === 0) { var co = d.c.find(function (x) { return x.id === tk.slice(11); }); if (co && (co.active === false || (tdi && (!co.dev || co.dev.id !== tdi)))) return { ok: false, err: 'devRevoked' }; if (co) w = { role: 'coach', id: co.id, name: co.name, head: co.head === true, perm: permOf(co), rec: co }; }
     if (!w) return { ok: false, err: 'auth' };
     var sees = function (s) { return w.role === 'admin' || (!!s && (w.perm.see ? w.perm.see.indexOf(String(s.id)) >= 0 : s.coachId === w.id)); };
     var need = function (k) { return w.role === 'admin' || !!w.perm[k]; };
@@ -311,7 +353,7 @@ var Local = {
     if (p.a === 'all') {
       var ss = d.s.filter(sees), ids = {}; ss.forEach(function (x) { ids[x.id] = 1; });
       r.swimmers = ss; r.tests = d.t.filter(function (t) { return ids[t.swimmerId]; });
-      r.coaches = w.role === 'admin' ? d.c : d.c.filter(function (c) { return c.id === w.id; }).map(function (c) { return { id: c.id, name: c.name }; });
+      r.coaches = w.role === 'admin' ? d.c.map(function (c) { var x = Object.assign({}, c); if (x.dev) x.dev = { label: x.dev.label, at: x.dev.at, last: x.dev.last, code: String(x.dev.id).slice(0, 4).toUpperCase() }; return x; }) : d.c.filter(function (c) { return c.id === w.id; }).map(function (c) { return { id: c.id, name: c.name }; });
       r.me = { role: w.role, id: w.id || null, name: w.name, head: !!w.head, perm: w.perm }; r.settings = d.set || {}; r.protos = d.p;
       if (w.role === 'admin') r.fails24 = (d.log || []).filter(function (x) { return !x.ok && Date.now() - new Date(x.t) < 864e5; }).length;
     }
@@ -324,7 +366,11 @@ var Local = {
     else if (p.a === 'delTest') { var dt = d.t.find(function (x) { return x.id === p.id; }); if (dt && !(canT(S_(dt.swimmerId), dt.type, true) && need('editRes'))) return F_; if (dt && btT(dt.type)) audit('résultat supprimé', (S_(dt.swimmerId) || {}).name + ' · ' + dt.date); d.t = d.t.filter(function (x) { return x.id !== p.id; }); }
     else if (p.a === 'saveSetting') { if (w.role !== 'admin') return F_; d.set = d.set || {}; d.set[p.key] = p.value; }
     else if (p.a === 'log') { r.log = (d.log || []).slice().reverse(); }
-    else if (p.a === 'saveCoach') { if (w.role !== 'admin') return F_; if (!/^(?=.*[0-9])(?=.*[A-Za-z]).{6,}$/.test(String(p.rec.code || ''))) return { ok: false, err: 'weakCode' }; if (d.c.some(function (c) { return c.code === p.rec.code && c.id !== p.rec.id; }) || p.rec.code === d.pw) return { ok: false, err: 'dupcode' }; r.rec = up(d.c, p.rec); }
+    else if (p.a === 'coachLink') { if (w.role !== 'admin') return F_; var cl = d.c.find(function (x) { return x.id === p.id; }); cl.inv = { tk: rndHex(20), at: now }; delete cl.dev; r.tk = cl.inv.tk; }
+    else if (p.a === 'coachUnbind') { if (w.role !== 'admin') return F_; var cu = d.c.find(function (x) { return x.id === p.id; }); if (cu) { delete cu.dev; delete cu.inv; } }
+    else if (p.a === 'devs') { if (w.role !== 'admin') return F_; r.me = w.di; r.list = d.ad.map(function (x) { return { id: x.id, code: String(x.id).slice(0, 4).toUpperCase(), label: x.label, ok: !!x.ok, blocked: !!x.blocked, at: x.at, last: x.last }; }); }
+    else if (p.a === 'devSet') { if (w.role !== 'admin') return F_; var dv = d.ad.find(function (x) { return x.id === p.id; }); if (dv) { if (p.op === 'ok') { dv.ok = true; dv.blocked = false; } else { if (!d.ad.some(function (x) { return x.ok && !x.blocked && x.id !== p.id; })) return { ok: false, err: 'lastDev' }; if (p.op === 'block') { dv.ok = false; dv.blocked = true; } else d.ad.splice(d.ad.indexOf(dv), 1); } } }
+    else if (p.a === 'saveCoach') { if (w.role !== 'admin') return F_; var pc = d.c.find(function (x) { return x.id === p.rec.id; }); delete p.rec.dev; delete p.rec.inv; if (pc && pc.dev) p.rec.dev = pc.dev; if (pc && pc.inv) p.rec.inv = pc.inv; if (!/^(?=.*[0-9])(?=.*[A-Za-z]).{6,}$/.test(String(p.rec.code || ''))) return { ok: false, err: 'weakCode' }; if (d.c.some(function (c) { return c.code === p.rec.code && c.id !== p.rec.id; }) || p.rec.code === d.pw) return { ok: false, err: 'dupcode' }; r.rec = up(d.c, p.rec); }
     else if (p.a === 'delCoach') { if (w.role !== 'admin') return F_; d.c = d.c.filter(function (c) { return c.id !== p.id; }); }
     else if (p.a === 'changePw') { if (p.old !== d.pw) return { ok: false, err: 'bad' }; if (String(p.nw).length < 6) return { ok: false, err: 'short' }; d.pw = p.nw; }
     Local.put(d);
@@ -562,20 +608,28 @@ function render() {
   if (window.BTV) Object.keys(window.BTV.views).forEach(function (k) { if (window.APP_MODE === 'bt' || (k !== 'home' && k !== 'swimmer')) V[k] = window.BTV.views[k]; });
   (V[S.view] || V.home)(app);
 }
+window.addEventListener('hashchange', function () { if (/inv=/.test(location.hash) && !API.tk()) { S.authMsg = ''; S.wait = null; render(); } });
 $('#lang-btn').onclick = function () { LANG = LANG === 'fr' ? 'ar' : 'fr'; ls('vo2_lang', LANG); render(); };
 $('#set-btn').onclick = function () { route('settings'); };
-$('#out-btn').onclick = function () { ls('vo2_tk', null); ls('vo2_viewas', null); VIEWAS = ''; DB = { swimmers: [], tests: [], coaches: [], me: null }; persist(); BT.disconnect(); vHome.loaded = false; route('home'); };
+$('#out-btn').onclick = function () { ls('vo2_tk', null); ls('vo2_viewas', null); S.devTried = true; VIEWAS = ''; DB = { swimmers: [], tests: [], coaches: [], me: null }; persist(); BT.disconnect(); vHome.loaded = false; route('home'); };
 
 /* ---------- setup & login ---------- */
 function authShell(inner) {
-  var bub = ''; for (var i = 0; i < 14; i++) bub += '<i style="left:' + (Math.random() * 100).toFixed(1) + '%;width:' + (4 + Math.random() * 8).toFixed(0) + 'px;height:' + (4 + Math.random() * 8).toFixed(0) + 'px;animation-duration:' + (8 + Math.random() * 12).toFixed(1) + 's;animation-delay:-' + (Math.random() * 12).toFixed(1) + 's"></i>';
-  var wave = function (cls, fill, d) { return '<svg class="' + cls + '" viewBox="0 0 2400 200" preserveAspectRatio="none"><path d="' + d + '" fill="' + fill + '"/></svg>'; };
-  var d1 = 'M0 100 C200 40 400 160 600 100 S1000 40 1200 100 S1600 160 1800 100 S2200 40 2400 100 V200 H0Z', d2 = 'M0 120 C300 70 500 170 800 120 S1300 70 1600 120 S2100 170 2400 120 V200 H0Z';
-  return '<div class="auth-wrap"><button class="hbtn auth-lang" id="auth-lang" type="button">' + (LANG === 'fr' ? 'ع' : 'FR') + '</button><div class="bubbles">' + bub + '</div>' +
-    '<div class="waves">' + wave('w3', 'rgba(91,155,255,.35)', d2) + wave('w1', 'rgba(47,212,240,.28)', d1) + wave('w2', 'rgba(59,123,255,.45)', d2) + '</div>' +
-    '<div class="auth-card"><img class="logo" src="logo.png" alt=""><div class="brand" style="font-size:27px;line-height:1.15">MR WATHBA<br>PERFORMANCE</div><div style="font:700 12px Rubik,sans-serif;letter-spacing:3px;color:var(--mute);margin:4px 0 6px">BY OKBA</div><div class="sub">' + T('authSub') + '</div>' + inner + '</div></div>';
+  return '<div class="lg-wrap"><button class="lg-lang" id="auth-lang" type="button">' + (LANG === 'fr' ? 'ع' : 'FR') + '</button>' +
+    '<div class="lg-glass"><img class="lg-logo" src="logo.png" alt=""><div class="lg-t">MR WATHBA PERFORMANCE</div><div class="lg-by">BY OKBA</div><div class="lg-sub">' + T('authSub') + '</div>' + inner + '</div>' +
+    '<div class="lg-foot">Club Sportif Al-Wathba · Batna</div></div>';
 }
 function bindAuthLang() { $('#auth-lang').onclick = function () { $('#lang-btn').click(); }; }
+var DEV_ERR = {
+  devWait: ['⏳ هاذ الجهاز يستنى موافقة الإدارة.', '⏳ Cet appareil attend l’accord de l’administration.'],
+  devNeedLink: ['🔗 حساب المدرب يتفتح غير بالرابط الشخصي اللي تبعثو الإدارة (مرة وحدة في الهاتف تاعك).', '🔗 Le compte entraîneur s’ouvre uniquement avec le lien personnel envoyé par l’administration.'],
+  devOther: ['📵 هاذ الحساب مربوط بجهاز آخر. إذا بدلت الهاتف، اطلب من الإدارة رابط جديد.', '📵 Ce compte est lié à un autre appareil. Nouveau téléphone : demandez un nouveau lien.'],
+  linkUsed: ['⛔ هاذ الرابط تستعمل من قبل ولا تبدّل. اطلب من الإدارة رابط جديد.', '⛔ Ce lien a déjà été utilisé ou remplacé. Demandez un nouveau lien.'],
+  devBlocked: ['⛔ هاذ الجهاز ممنوع.', '⛔ Cet appareil est bloqué.'],
+  devRevoked: ['🔒 الإدارة نحّات هاذ الجهاز، والبيانات تمسحت منو.', '🔒 L’administration a retiré cet appareil ; les données locales ont été effacées.'],
+  devOld: ['⬆️ حدّث التطبيق (أعد تحميل الصفحة).', '⬆️ Mettez l’application à jour (rechargez la page).']
+};
+function devErr(e) { return DEV_ERR[e] ? Tv(DEV_ERR[e]) : (T(e) || e); }
 function vSetup(app) {
   app.innerHTML = authShell('<p class="small muted">' + T('setupP') + '</p>' +
     '<div class="f"><input id="api" class="ltr" style="font-size:14px;letter-spacing:0" placeholder="https://script.google.com/macros/s/…/exec"></div>' +
@@ -586,21 +640,46 @@ function vSetup(app) {
   $('#demo').onclick = function (e) { e.preventDefault(); ls('vo2_api', 'demo'); render(); };
 }
 function vLogin(app) {
-  app.innerHTML = authShell('<form id="lf"><div class="f"><input type="password" id="pw" autocomplete="current-password" class="ltr" placeholder="••••••"></div>' +
-    '<button class="btn pri big" style="width:100%;justify-content:center">' + T('login') + ' →</button>' +
-    '<p class="small muted" style="margin:14px 0 4px">' + T('coachLogin') + '</p>' +
-    '</form>');
+  var inv = (location.hash.match(/inv=([a-f0-9]{16,80})/) || [])[1] || '', D = devInfo();
+  var msg = S.authMsg ? '<div class="lg-msg">' + devErr(S.authMsg) + '</div>' : '';
+  // المدرب اللي جهازو مربوط: يدخل وحدو
+  if (!inv && ls('mr_role') === 'coach' && !S.devTried) {
+    S.devTried = true; app.innerHTML = authShell('<div class="lg-msg" style="background:#ffffff14">⏳ ' + A('نفتح…', 'Ouverture…') + '</div>'); bindAuthLang();
+    API.call('devLogin', {}, true).then(function (r) { if (r.ok) { ls('vo2_tk', r.tk); S.authMsg = ''; return load().then(function () { vHome.loaded = true; route('home'); }); } S.authMsg = r.err; if (r.err === 'devNeedLink' || r.err === 'devBlocked') ls('mr_role', null); render(); }).catch(function () { S.authMsg = ''; app.innerHTML = authShell('<div class="lg-msg">' + T('neterr') + '</div>'); bindAuthLang(); });
+    return;
+  }
+  if (S.wait) {
+    app.innerHTML = authShell('<div class="lg-msg">' + devErr('devWait') + '</div><div class="lg-code">' + esc(S.wait.code) + '</div><div class="lg-note">' + esc(D.label) + '<br>' + A('قول للإدارة: ⚙ الإعدادات ← 📱 أجهزة الإدارة ← اقبل الجهاز اللي رقمو هذا.', 'Demandez : ⚙ Réglages ← 📱 Appareils ← accepter ce code.') + '</div><button class="lg-go" id="w-again" type="button">🔄 ' + A('عاود جرب', 'Réessayer') + '</button><button class="lg-link" id="w-back" type="button">' + A('رجوع', 'Retour') + '</button>');
+    bindAuthLang();
+    $('#w-back').onclick = function () { S.wait = null; render(); };
+    $('#w-again').onclick = function () { var b = this; b.disabled = true; API.call('login', { pw: S.lastPw }).then(function (r) { b.disabled = false; doneLogin(r); }).catch(function () { b.disabled = false; toast(T('neterr')); }); };
+    return;
+  }
+  var head = inv ? '<div class="lg-msg" style="background:#c9a24a26;border-color:#c9a24a88">🔗 ' + A('<b>ربط هاذ الجهاز بالحساب تاعك.</b> اكتب الكود تاعك <b>مرة وحدة</b>. من بعد التطبيق يتحل وحدو في هاذ الجهاز برك.', '<b>Lier cet appareil à votre compte.</b> Saisissez votre code <b>une seule fois</b> ; ensuite l’app s’ouvre seule sur cet appareil uniquement.') + '</div>' : '';
+  app.innerHTML = authShell(msg + head + '<form id="lf" autocomplete="off"><label class="lg-lab">' + (inv ? A('الكود تاعك', 'Votre code') : A('كلمة السر ولا كود المدرب', 'Mot de passe ou code entraîneur')) + '</label>' +
+    '<div class="lg-pin"><input type="password" id="pw" autocomplete="current-password" placeholder="••••••"><button type="button" id="pw-eye" aria-label="👁">👁</button></div>' +
+    '<button class="lg-go">' + (inv ? '🔗 ' + A('ربط الجهاز', 'Lier l’appareil') : T('login') + ' ←') + '</button></form>' +
+    (inv ? '' : '<div class="lg-note">' + A('المدربين: أول مرة، افتح الرابط الشخصي اللي بعثتهولك الإدارة.', 'Entraîneurs : la 1re fois, ouvrez le lien personnel envoyé par l’administration.') + '</div>') +
+    '<div class="lg-dev">📱 ' + esc(D.label) + ' · ' + D.code + '</div>');
   bindAuthLang();
   $('#pw').focus();
+  $('#pw-eye').onclick = function () { var i = $('#pw'); i.type = i.type === 'password' ? 'text' : 'password'; };
   $('#lf').onsubmit = function (e) {
-    e.preventDefault(); var b = $('#lf button'); b.disabled = true;
-    API.call('login', { pw: $('#pw').value }).then(function (r) {
-      b.disabled = false;
-      if (!r.ok) { toast(T(r.err) || r.err); $('.auth-card').animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-10px)' }, { transform: 'translateX(10px)' }, { transform: 'translateX(0)' }], { duration: 300 }); return; }
-      ls('vo2_tk', r.tk); if (r.first) toast(T('first'));
-      return load().then(function () { vHome.loaded = true; route('home'); });
-    }).catch(function () { b.disabled = false; toast(T('neterr')); });
+    e.preventDefault(); var b = $('#lf .lg-go'); b.disabled = true; S.lastPw = $('#pw').value;
+    API.call('login', inv ? { pw: S.lastPw, inv: inv } : { pw: S.lastPw }).then(function (r) { b.disabled = false; doneLogin(r, inv); }).catch(function () { b.disabled = false; toast(T('neterr')); });
   };
+}
+function doneLogin(r, inv) {
+  if (!r.ok) {
+    if (r.err === 'devWait') { S.wait = { code: r.code || devInfo().code }; return render(); }
+    S.wait = null; S.authMsg = /^dev|^link/.test(r.err) ? r.err : '';
+    if (S.authMsg) render(); else toast(T(r.err) || r.err);
+    var g = $('.lg-glass'); if (g && g.animate) g.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-10px)' }, { transform: 'translateX(10px)' }, { transform: 'translateX(0)' }], { duration: 300 });
+    return;
+  }
+  S.wait = null; S.authMsg = ''; S.lastPw = ''; ls('vo2_tk', r.tk); ls('mr_role', r.role); if (r.first) toast(T('first'));
+  if (inv) try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { location.hash = ''; }
+  return load().then(function () { vHome.loaded = true; route('home'); });
 }
 
 /* ---------- accueil ---------- */
@@ -747,12 +826,9 @@ function dayReport(s, date) {
   rep.ill = r && r.hrvZ != null && r.rhrZ != null && r.hrvZ < -1.5 && r.rhrZ > 1.5;
   if (rep.ill) rep.lvl = 'red';
   // ── مناطق النبض: من الاختبارات، ولا تقريبية من أعلى نبض في حصص Polar
-  var z = P.zones, approx = false;
-  if (!z) {
-    var mx = 0; days.forEach(function (x) { (x.ex || []).forEach(function (e) { if (e.hrMax > mx) mx = e.hrMax; }); });
-    if (mx >= 150) { z = C.hrZones(mx, P.hrrest); approx = true; }
-  }
-  rep.zones = z; rep.zApprox = approx;
+  // ما نقدّروش المناطق من أعلى نبض في حصة (يغلط): مصدر حقيقي برك
+  var Zs = swZones(s), z = Zs ? Zs.z : null, approx = false;
+  rep.zones = z; rep.zApprox = approx; rep.zLab = Zs ? Zs.lab : '';
   // ── حمل 7 أيام من Polar
   var w7 = 0, n7 = 0, a7 = 0, m7 = 0; days.forEach(function (x) { var k = (new Date(date) - new Date(x.date)) / 864e5; if (k >= 0 && k < 7) (x.ex || []).forEach(function (e) { if (isTraining(e)) { w7 += e.load || 0; n7++; } else { a7 += e.load || 0; m7++; } }); });
   rep.w7 = w7; rep.n7 = n7; rep.a7 = a7; rep.m7 = m7;
@@ -804,7 +880,7 @@ function reportDetails(rep) {
     A('<b>Cardio load (حمل الحصة):</b> Polar تحسبو من النبض والمدة. كل ما كانت الحصة أطول وأقوى، كبر الرقم.', '<b>Cardio load :</b> calculé par Polar à partir de la FC et de la durée. Plus la séance est longue et intense, plus il est élevé.'),
     A('<b>Strain / Tolérance:</b> الـ Strain = التعب تاع الأيام الأخيرة. الـ Tolérance = واش متعوّد عليه في الأسابيع لي فاتو. كي الـ Strain يفوت الـ Tolérance بزاف ← Excessif.', '<b>Strain / Tolérance :</b> fatigue récente vs habitude des semaines passées. Strain bien au-dessus de la tolérance = Excessif.'),
     A('<b>المناطق:</b> 1 = خفيف جداً (استرجاع) · 2 = هوائي سهل · 3 = متوسط · 4 = قوي (العتبة) · 5 = أقصى.', '<b>Zones :</b> 1 très facile · 2 aérobie facile · 3 modéré · 4 intense (seuil) · 5 maximal.') +
-      (rep.zApprox ? ' <span class="small muted">' + A('(المناطق تقريبية من أعلى نبض في حصص Polar، دير اختبار باش تولي دقيقة)', '(zones approximatives d’après la FC max des séances Polar ; un test les précisera)') + '</span>' : ''),
+      ' <span class="small muted">(' + (rep.zLab ? esc(rep.zLab) : A('ما كاينش نبض أقصى حقيقي: المناطق تاع التطبيق ما تبانش. مناطق Polar تبان إذا جات مع الحصة.', 'aucune FC max réelle : seules les zones Polar fournies avec la séance sont affichées')) + ')</span>',
     A('<b>ملاحظة:</b> هذا التقرير أداة مساعدة للمدرب. كيفاش يحس السباح روحو والملاحظة في المسبح يبقاو مهمين، وما يعوّضش رأي الطبيب.', '<b>Note :</b> outil d’aide à l’entraîneur ; le ressenti et l’observation restent essentiels ; ne remplace pas un avis médical.')
   ].map(function (x) { return '<p>' + x + '</p>'; }).join('') + '</div></details>');
   return out.join('');
@@ -1505,13 +1581,16 @@ function vChip(vd) {
 function pbIdx(hh, better) { var b = -1; hh.forEach(function (x, i) { if (b < 0 || (better === 'low' ? x.v <= hh[b].v : x.v >= hh[b].v)) b = i; }); return b; }
 
 /* --- ❤️ النبض في الاختبار (Verity Sense لايف ولا حصة Polar مربوطة) --- */
-function swZones(s) {
+// مناطق النبض: غير من مصدر حقيقي (ما نخترعوش). الترتيب: مناطق Polar تاع الحصة ← اختبار أقصى ← HRmax مكتوب في الملف ← مناطق Polar تاع آخر حصة
+function swZones(s, rec) {
+  var d = rec && rec.data || {}, mk2 = function (z) { return z.map(function (x, i) { return { z: i + 1, lo: Math.round(x.lo), hi: Math.round(x.hi) }; }); };
+  if (d.hrZones && d.hrZones.length >= 5) { var z0 = mk2(d.hrZones); return { z: z0, src: 'polar', mx: z0[z0.length - 1].hi, lab: A('مناطق Polar تاع هاذ الحصة (كيما في Polar Flow)', 'Zones Polar de cette séance (comme dans Polar Flow)') }; }
   var P = profile(s);
-  if (P.zones) return { z: P.zones, src: 'test' };
-  var mx = C.num(s.hrmaxKnown) || 0;
-  if (!mx) daysOf(s.id).forEach(function (x) { (x.ex || []).forEach(function (e) { if (e.hrMax > mx) mx = e.hrMax; }); });
-  var est = false; if (mx < 150) { var ag = ageOf(s); mx = Math.round(208 - 0.7 * (ag || 15)); est = true; }
-  var z = C.hrZones(mx, P.hrrest); return z ? { z: z, src: est ? 'age' : 'max', mx: mx } : null;
+  if (P.zones) return { z: P.zones, src: 'test', mx: P.hrmaxW || P.hrmaxL, lab: A('من النبض الأقصى المقاس في اختبار', 'D’après la FC max mesurée en test') + ' (' + Math.round(P.hrmaxW || P.hrmaxL) + ')' };
+  var k = C.num(s.hrmaxKnown); if (k) return { z: C.hrZones(k, P.hrrest), src: 'file', mx: k, lab: A('من النبض الأقصى المكتوب في ملف السباح', 'D’après la FC max saisie dans la fiche') + ' (' + k + ')' };
+  var lz = null; daysOf(s.id).forEach(function (x) { (x.ex || []).forEach(function (e) { if (e.zones && e.zones.length >= 5) lz = e.zones; }); });
+  if (lz) { var z1 = mk2(lz.slice().sort(function (a, b) { return a.lo - b.lo; })); return { z: z1, src: 'polar', mx: z1[z1.length - 1].hi, lab: A('مناطق Polar (ملف السباح في Polar Flow)', 'Zones Polar (profil Polar Flow du nageur)') }; }
+  return null;
 }
 function hrDurOf(rec, sm) {
   var d = rec.data || {}, k = C.num(d.hrDur) || (d.live && C.num(d.live.dur));
@@ -1521,20 +1600,32 @@ function hrDurOf(rec, sm) {
 }
 function hrStatsOf(rec, s) {
   if (!rec || !rec.data || !rec.data.samples || rec.data.samples.length < 10) return null;
-  var sm = unpack(rec.data.samples), dur = hrDurOf(rec, sm), w = sm.filter(function (p) { return p.t >= 0 && p.t <= dur + 1; });
+  var d = rec.data, sm = unpack(d.samples), dur = hrDurOf(rec, sm), w = sm.filter(function (p) { return p.t >= 0 && p.t <= dur + 1; });
   if (w.length < 3) return null;
-  var avg = Math.round(w.reduce(function (a, p) { return a + p.hr; }, 0) / w.length), peak = Math.max.apply(null, w.map(function (p) { return p.hr; }));
   var mean = function (a) { return a.length ? a.reduce(function (x, p) { return x + p.hr; }, 0) / a.length : null; };
-  var drift = null; if (dur >= 300) { var a1 = mean(w.filter(function (p) { return p.t < dur / 2; })), a2 = mean(w.filter(function (p) { return p.t >= dur / 2; })); if (a1 && a2) drift = (a2 - a1) / a1 * 100; }
+  var avg = Math.round(mean(w)), peak = Math.max.apply(null, w.map(function (p) { return p.hr; }));
+  // التغطية: شحال من الاختبار فيه نبض حقيقي
+  var gap = 0, prev = 0, step = d.hrSrc === 'polar' ? 6 : 4; w.forEach(function (p) { if (p.t - prev > step) gap += p.t - prev; prev = p.t; }); if (dur - prev > step) gap += dur - prev;
+  var cov = dur > 0 ? Math.max(0, Math.min(1, 1 - gap / dur)) : 0, good = cov >= 0.9;
+  // الثبات: أول لحظة يوصل فيها لمتوسط النص الثاني −5
+  var drift = null, plat = null, platHr = null, a1 = null, a2 = null;
+  if (dur >= 300) {
+    a1 = mean(w.filter(function (p) { return p.t < dur / 2; })); a2 = mean(w.filter(function (p) { return p.t >= dur / 2; }));
+    if (a1 && a2) drift = (a2 - a1) / a1 * 100;
+    var lvl = a2 - 5, f = w.find(function (p) { return p.hr >= lvl; }); if (f) { plat = f.t; platHr = Math.round(mean(w.filter(function (p) { return p.t >= f.t; }))); }
+  }
   var endW = sm.filter(function (p) { return p.t >= dur - 10 && p.t <= dur + 5; }), hrEnd = endW.length ? Math.max.apply(null, endW.map(function (p) { return p.hr; })) : null;
   var r60 = sm.filter(function (p) { return Math.abs(p.t - (dur + 60)) <= 3; }), hr60 = r60.length ? Math.round(mean(r60)) : null;
-  var gap = 0, prev = 0; w.forEach(function (p) { if (p.t - prev > 5) gap += p.t - prev; prev = p.t; }); if (dur - prev > 5) gap += dur - prev;
-  var Z = swZones(s), sec = [0, 0, 0, 0, 0];
-  if (Z) { var lo = Z.z.map(function (x) { return x.lo; }); for (var i = 1; i < w.length; i++) { var dt = Math.min(5, w[i].t - w[i - 1].t); if (dt > 0) sec[zIdx(w[i].hr, lo)] += dt; } }
-  var d = rec.data;
-  return { sm: sm, dur: dur, avg: avg, peak: peak, drift: drift, hrEnd: hrEnd, hr60: hr60, hrr: hrEnd && hr60 ? hrEnd - hr60 : null, gap: Math.round(gap), Z: Z, sec: sec,
-    src: d.hrSrc || (d.live ? 'live' : ''), sensor: d.live && d.live.sensor || '', pex: d.polarEx || '' };
+  // الإيقاع من أوقات الطولات (لايف)
+  var pace = null; if (d.splits && d.splits.length === 1 && d.splits[0].length >= 4) { var L = d.splits[0], m = L.reduce(function (a, b) { return a + b; }, 0) / L.length, sd = Math.sqrt(L.reduce(function (a, b) { return a + (b - m) * (b - m); }, 0) / (L.length - 1)), h = Math.floor(L.length / 2);
+    pace = { cv: sd / m * 100, h1: L.slice(0, h).reduce(function (a, b) { return a + b; }, 0) / h, h2: L.slice(L.length - h).reduce(function (a, b) { return a + b; }, 0) / h, n: L.length }; }
+  var Z = swZones(s, rec), sec = [0, 0, 0, 0, 0];
+  if (Z) { var lo = Z.z.map(function (x) { return x.lo; }); for (var i = 1; i < w.length; i++) { var dt = Math.min(step + 1, w[i].t - w[i - 1].t); if (dt > 0) sec[zIdx(w[i].hr, lo)] += dt; } }
+  return { sm: sm, dur: dur, avg: avg, peak: peak, drift: drift, a1: a1, a2: a2, plat: plat, platHr: platHr, hrEnd: hrEnd, hr60: hr60, hrr: hrEnd && hr60 ? hrEnd - hr60 : null, gap: Math.round(gap), cov: cov, good: good, Z: Z, sec: sec, pace: pace,
+    src: d.hrSrc || (d.live ? 'live' : ''), sensor: d.live && d.live.sensor || '', pex: d.polarEx || '', hrA: d.hrA, hrAuto: d.hrAuto, avg5: d.hrSrc === 'polar' && d.hrRate5 };
 }
+// وسم المصدر حدا كل رقم
+function srcTag(k) { var m = { m: [A('مقاس', 'mesuré'), '#0e9f6e', '#e3f7ee'], c: [A('محسوب', 'calculé'), '#1d6bff', '#e8f0ff'], e: [A('مقدّر', 'estimé'), '#a36a00', '#fff4dc'] }[k]; return '<span class="srct" style="color:' + m[1] + ';background:' + m[2] + '">' + m[0] + '</span>'; }
 function hrCardHtml(s, it, x, canLink) {
   var st = hrStatsOf(x.rec, s), h = '<div class="card" id="hr-card"><h3>❤️ ' + T('hrTest') + ' <span class="small muted">· ' + fmtDate(x.date) + ' · ' + esc(x.disp) + (st ? ' · ' + (st.src === 'polar' ? '⌚ Polar' : '⏱ ' + A('لايف', 'direct') + (st.sensor ? ' ' + esc(st.sensor) : '')) : '') + '</span></h3>';
   if (S.plk) return h + '<div id="plk"></div></div>';
@@ -1544,30 +1635,67 @@ function hrCardHtml(s, it, x, canLink) {
     else if (!it.bt) h += '<div class="small muted">' + A('للاختبار هذا: افتح النتيجة (اضغط على السطر) ← «⌚ Polar».', 'Pour ce test : ouvrez le résultat (clic sur la ligne) ← « ⌚ Polar ».') + '</div>';
     return h + '</div>';
   }
-  var k = function (l, v, sub) { return '<div class="rp-c"><div class="l">' + l + '</div><div class="v">' + v + '</div>' + (sub ? '<div class="small muted">' + sub + '</div>' : '') + '</div>'; };
   rpCss();
-  h += '<div class="rp-k">' + k(A('المتوسط', 'Moyenne'), st.avg + ' <small>bpm</small>', st.Z && st.Z.mx ? Math.round(st.avg / st.Z.mx * 100) + '% ' + A('من الأقصى', 'du max') : '') + k(A('الأعلى', 'Max'), st.peak + ' <small>bpm</small>') +
-    (st.drift != null ? k(A('انحراف النبض', 'Dérive cardiaque'), (st.drift > 0 ? '+' : '') + R(st.drift, 1) + '%', st.drift <= 3 ? A('✅ تحمّل هوائي مليح', '✅ bonne endurance') : st.drift <= 6 ? A('🟡 عادي', '🟡 moyen') : A('🔴 التعب بان في النص الثاني', '🔴 fatigue en 2e moitié')) : '') +
-    (st.hrr != null ? k(A('الاسترجاع 60 ث', 'Récup 60 s'), '−' + st.hrr, st.hrEnd + ' → ' + st.hr60) : '') + '</div>';
-  if (st.Z) { var tot = st.sec.reduce(function (a, b) { return a + b; }, 0) || 1; h += '<div class="small muted">' + A('الوقت في كل منطقة', 'Temps par zone') + (st.Z.src !== 'test' ? ' (' + A('مناطق تقريبية', 'zones approx.') + ')' : '') + '</div><div class="rp-z">' + st.sec.map(function (v, i) { return v ? '<i title="Z' + (i + 1) + ' ' + fmtMS(v) + '" style="width:' + (v / tot * 100) + '%;background:' + ZC[i] + '"></i>' : ''; }).join('') + '</div><div class="rp-zl">' + st.sec.map(function (v, i) { return '<span>Z' + (i + 1) + ' ' + Math.round(v / tot * 100) + '%</span>'; }).join('') + '</div>'; }
-  if (st.drift != null) h += '<div class="small muted" style="margin-top:6px">' + A('انحراف النبض = قداش طلع النبض في النص الثاني على النص الأول بنفس الجهد. كل ما يكون صغير، التحمل الهوائي أحسن.', 'Dérive = hausse de la FC en 2e moitié à effort égal. Plus elle est faible, meilleure est l’endurance.') + '</div>';
-  if (st.gap > 5) h += '<div class="small" style="color:var(--warn);margin-top:4px">' + A('بلا نبض ', 'Sans FC ') + st.gap + A(' ث', ' s') + '</div>';
+  var k = function (l, v, tag, sub) { return '<div class="rp-c"><div class="l">' + l + ' ' + srcTag(tag) + '</div><div class="v">' + v + '</div>' + (sub ? '<div class="small muted">' + sub + '</div>' : '') + '</div>'; };
+  var pct = st.Z && (st.Z.src === 'test' || st.Z.src === 'file') ? Math.round(st.avg / st.Z.mx * 100) + '% ' + A('من الأقصى المقاس', 'du max mesuré') : '';
+  if (!st.good) h += '<div class="note" style="margin-bottom:10px">⚠️ ' + A('النبض يغطي <b>' + Math.round(st.cov * 100) + '%</b> برك من الاختبار (' + st.gap + ' ث بلا نبض). الأرقام المقاسة تبان، بصح الحسابات (الثبات، الانحراف، المناطق، العتبة) ما تتحسبش باش ما نغلطوش.', 'La FC ne couvre que <b>' + Math.round(st.cov * 100) + ' %</b> du test (' + st.gap + ' s sans FC). Seules les valeurs mesurées sont affichées ; les calculs sont désactivés.') + '</div>';
+  h += '<div class="rp-k">' + k(A('متوسط النبض', 'FC moyenne'), st.avg + ' <small>bpm</small>', 'm', pct) + k(A('أعلى نبض', 'FC max'), st.peak + ' <small>bpm</small>', 'm', st.src === 'polar' && !st.hiRes ? '' : '') +
+    (st.good && st.platHr ? k(A('النبض بعد الثبات', 'FC du plateau'), st.platHr + ' <small>bpm</small>', 'c', A('من ', 'dès ') + fmtMS(st.plat)) : '') +
+    (st.hrr != null ? k(A('الاسترجاع 60 ث', 'Récup 60 s'), '−' + st.hrr, 'm', st.hrEnd + ' → ' + st.hr60) : '') + '</div>';
+  if (st.good && st.Z) { var tot = st.sec.reduce(function (a, b) { return a + b; }, 0) || 1; h += '<div class="small muted">' + A('الوقت في كل منطقة', 'Temps par zone') + ' · ' + esc(st.Z.lab) + '</div><div class="rp-z">' + st.sec.map(function (v, i) { return v ? '<i title="Z' + (i + 1) + ' ' + fmtMS(v) + '" style="width:' + (v / tot * 100) + '%;background:' + ZC[i] + '"></i>' : ''; }).join('') + '</div><div class="rp-zl">' + st.sec.map(function (v, i) { return '<span>Z' + (i + 1) + ' ' + Math.round(v / tot * 100) + '% <small class="muted">(' + st.Z.z[i].lo + '–' + st.Z.z[i].hi + ')</small></span>'; }).join('') + '</div>'; }
   h += '<div class="chart" style="height:210px;margin-top:8px"><canvas id="ch-hrt"></canvas></div>';
+  h += hrReportHtml(s, it, x, st);
   if (canLink) h += '<div class="row" style="margin-top:8px"><button type="button" class="btn sm" id="hr-link">⌚ ' + (st.src === 'polar' ? A('بدّل الحصة / الوقت', 'Changer séance / départ') : A('ربط حصة Polar', 'Lier une séance Polar')) + '</button>' + (st.src === 'polar' ? '<button type="button" class="btn sm dan" id="hr-unlink">✕ ' + A('نحّي النبض', 'Retirer la FC') + '</button>' : '') + '</div>';
   return h + '</div>';
+}
+// 📝 التقرير المكتوب: كل جملة فيها مصدرها، وواش ناقص مكتوب بوضوح
+function hrReportHtml(s, it, x, st) {
+  var tid = it.bt && it.bt.id, hh = histOf(s, it), i = hh.findIndex(function (y) { return y.rec && x.rec && y.rec.id === x.rec.id; }), prev = i > 0 ? hh[i - 1] : null, out = [], miss = [], d = x.rec.data || {};
+  var cnd = function (r) { var c = r && r.rec && r.rec.data && (r.rec.data.cond || {}); return [c && c.pool || r.rec.data.pool || '', c && c.timing || ''].join('|'); };
+  // النتيجة
+  out.push(['📋', A('النتيجة', 'Résultat'), '<b class="num">' + esc(x.disp) + '</b> ' + srcTag('m') + (x.extra ? ' · ' + bdi(x.extra) + ' ' + srcTag('c') : '')]);
+  if (prev) { if (cnd(prev) === cnd(x)) { var vd = vdOf(it, x, prev); out.push(['↕️', A('مقارنة مع ', 'Par rapport au ') + fmtDate(prev.date), esc(prev.disp) + ' → ' + esc(x.disp) + ' ' + vChip(vd) + (vd && vd.mdc ? ' <span class="small muted">(' + A('خطأ القياس ±', 'erreur de mesure ±') + R(vd.mdc, 1) + '%)</span>' : '')]); }
+    else miss.push(A('المقارنة مع ' + fmtDate(prev.date) + ' ما تصلحش: الظروف مختلفة (المسبح ولا طريقة التوقيت).', 'Comparaison avec le ' + fmtDate(prev.date) + ' impossible : conditions différentes.')); }
+  else miss.push(A('هاذي أول نتيجة: المقارنة تبدا من النتيجة الجاية.', 'Premier résultat : la comparaison commencera au prochain.'));
+  // النبض
+  out.push(['❤️', A('النبض', 'FC'), A('متوسط ', 'moy. ') + '<b class="num">' + st.avg + '</b> · ' + A('أعلى ', 'max ') + '<b class="num">' + st.peak + '</b> bpm ' + srcTag('m') + (st.src === 'polar' && !d.hrRaw ? ' <span class="small muted">(' + A('Polar يعطي متوسط كل 5 ث، الأعلى الحقيقي يقدر يكون أعلى بنبضة ولا زوج', 'Polar donne une moyenne / 5 s : le vrai pic peut être 1–2 bpm plus haut') + ')</span>' : '')]);
+  if (st.good && st.plat != null) out.push(['📈', A('الثبات', 'Plateau'), A('النبض ثبت بعد ', 'FC stabilisée après ') + '<b class="num">' + fmtMS(st.plat) + '</b> ' + A('على حوالي ', 'autour de ') + '<b class="num">' + st.platHr + '</b> bpm ' + srcTag('c')]);
+  if (st.good && st.drift != null) {
+    var dj = '';
+    if (st.pace && st.pace.cv <= 3) dj = st.drift <= 3 ? A('✅ بنفس السرعة النبض ما طلعش بزاف: تحمّل هوائي مليح.', '✅ À allure constante la FC monte peu : bonne endurance.') : st.drift <= 6 ? A('🟡 طلع شوية في النص الثاني بنفس السرعة.', '🟡 Légère hausse en 2e moitié à allure constante.') : A('🔴 طلع بزاف في النص الثاني بنفس السرعة: التعب بان.', '🔴 Forte hausse en 2e moitié à allure constante : fatigue.');
+    else dj = '<span class="muted">' + A('ما نحكموش عليه: ' + (st.pace ? 'السرعة ما كانتش ثابتة (اختلاف ' + R(st.pace.cv, 1) + '%)' : 'ما عندناش وقت كل طولة') + '. الحكم يصلح غير كي السرعة ثابتة.', 'Pas d’interprétation : ' + (st.pace ? 'allure irrégulière (CV ' + R(st.pace.cv, 1) + ' %)' : 'temps par longueur inconnus') + '.') + '</span>';
+    out.push(['〰️', A('انحراف النبض', 'Dérive'), A('النص الأول ', '1re moitié ') + '<b class="num">' + Math.round(st.a1) + '</b> · ' + A('النص الثاني ', '2e moitié ') + '<b class="num">' + Math.round(st.a2) + '</b> (' + (st.drift > 0 ? '+' : '') + R(st.drift, 1) + '%) ' + srcTag('c') + '<br>' + dj]);
+  }
+  if (st.hrr != null) out.push(['🌬️', A('الاسترجاع', 'Récupération'), A('هبط ', 'baisse de ') + '<b class="num">' + st.hrr + '</b> ' + A('نبضة في 60 ث', 'bpm en 60 s') + ' (' + st.hrEnd + ' → ' + st.hr60 + ') ' + srcTag('m')]);
+  else miss.push(A('الاسترجاع بعد 60 ث: الحساس ما سجلش دقيقة كاملة بعد الاختبار.', 'Récup 60 s : pas d’enregistrement une minute après le test.'));
+  // الإيقاع
+  if (st.pace) out.push(['⏱', A('الإيقاع', 'Allure'), A('متوسط الطولة: النص الأول ', 'Longueur moy. : 1re moitié ') + '<b class="num">' + F(st.pace.h1, 1) + '</b> · ' + A('الثاني ', '2e ') + '<b class="num">' + F(st.pace.h2, 1) + '</b> · ' + A('الانتظام ', 'régularité ') + 'CV <b class="num">' + R(st.pace.cv, 1) + '%</b> ' + srcTag('c') + (st.pace.cv <= 3 ? ' ✅' : '')]);
+  else if (tid && (BT_DUR[tid] || BT_LIVE[tid])) miss.push(A('الإيقاع (وقت كل طولة): دير الاختبار «⏱ لايف» واضغط «لمسة» في كل حيط.', 'Allure par longueur : faites le test « ⏱ en direct » avec « Touche » à chaque mur.'));
+  // العتبة (T20/T30 برك)
+  if ((tid === 't20' || tid === 't30') && st.good && st.platHr) out.push(['🎯', A('نبض العتبة التقريبي', 'FC de seuil approx.'), '≈ <b class="num">' + st.platHr + '</b> bpm ' + srcTag('e') + ' <span class="small muted">' + A('(متوسط النبض بعد الثبات في سباحة طويلة بإيقاع منتظم · Olbrecht' + (tid === 't20' ? '. الـ 20 د أقصر من T30، العتبة الحقيقية تقدر تكون أقل بشوية' : '') + ')', '(FC du plateau sur nage longue régulière · Olbrecht' + (tid === 't20' ? ' ; 20 min < T30, le vrai seuil peut être un peu plus bas' : '') + ')') + '</span>']);
+  // المناطق
+  if (!st.Z) miss.push(A('المناطق و«% من الأقصى»: ما عندناش نبض أقصى حقيقي. دير 400 م ولا التصاعدي لايف، ولا اكتب النبض الأقصى في ملف السباح.', 'Zones et % du max : aucune FC max réelle. Faites un 400 m ou le test progressif en direct, ou saisissez la FC max dans la fiche.'));
+  // الجودة
+  var q = A('النبض يغطي ', 'Couverture FC ') + '<b class="num">' + Math.round(st.cov * 100) + '%</b> ' + A('من الاختبار', 'du test') + (st.gap ? ' · ' + st.gap + A(' ث بلا نبض', ' s sans FC') : '');
+  if (st.src === 'polar') q += ' · ⌚ ' + A('حصة Polar', 'séance Polar') + (d.hrA != null ? ', ' + A('البداية عند ', 'départ à ') + fmtMS(d.hrA) + ' ' + (d.hrAuto ? A('(اقترحها التطبيق على أصعب جزء، تأكد منها في المنحنى)', '(proposé par l’app, à vérifier sur la courbe)') : A('(حددتها أنت)', '(fixé par vous)')) : '');
+  else if (st.sensor) q += ' · ⏱ ' + esc(st.sensor);
+  out.push(['🔎', A('جودة البيانات', 'Qualité des données'), q]);
+  var h = '<div class="rp-an" style="margin-top:12px"><div class="t">📝 ' + A('تقرير الاختبار', 'Rapport du test') + '</div><table class="rp-tb">' + out.map(function (r) { return '<tr><td>' + r[0] + '</td><th>' + r[1] + '</th><td>' + r[2] + '</td></tr>'; }).join('') + '</table>';
+  if (miss.length) h += '<div class="t" style="margin-top:10px">⚠️ ' + A('واش ما نقدروش نقولو (ناقص)', 'Ce qu’on ne peut pas dire (manquant)') + '</div><ul>' + miss.map(function (m) { return '<li>' + m + '</li>'; }).join('') + '</ul>';
+  return h + '<div class="small muted" style="margin-top:6px">' + srcTag('m') + ' ' + A('= من الحساس ولا الكرونو', '= capteur ou chrono') + ' · ' + srcTag('c') + ' ' + A('= حساب من أرقام مقاسة', '= calcul sur mesures') + ' · ' + srcTag('e') + ' ' + A('= تقدير علمي، ماشي قياس', '= estimation scientifique, pas une mesure') + '</div></div>';
 }
 function hrCardBind(s, it, x, canLink) {
   var st = hrStatsOf(x.rec, s);
   if (st && window.Chart && $('#ch-hrt')) {
     var oh = chartBase(); oh.plugins.legend = { display: false };
-    oh.scales = { x: { type: 'linear', ticks: { callback: function (v) { return fmtMS(Math.max(0, v)); } } }, y: { suggestedMin: 80 } };
+    oh.scales = { x: { type: 'linear', ticks: { callback: function (v) { return (v < 0 ? '−' : '') + fmtMS(Math.abs(v)); } } }, y: { suggestedMin: 80 } };
     var ys = st.sm.map(function (p) { return p.hr; }), lo = Math.min.apply(null, ys) - 5, hi = Math.max.apply(null, ys) + 5, vl = function (t, c) { return { type: 'line', data: [{ x: t, y: lo }, { x: t, y: hi }], borderColor: c, borderDash: [5, 4], borderWidth: 1.5, pointRadius: 0 }; };
     mk('ch-hrt', { type: 'scatter', data: { datasets: [{ type: 'line', data: st.sm.map(function (p) { return { x: p.t, y: p.hr }; }), borderColor: CH.red, borderWidth: 2, pointRadius: 0, tension: .2 }, vl(0, '#0e9f6e'), vl(st.dur, '#0d2a6b')] }, options: oh });
   }
   if ($('#hr-link')) $('#hr-link').onclick = function () { S.plk = { step: 1 }; render(); };
   if ($('#hr-unlink')) $('#hr-unlink').onclick = function () {
     if (!confirm(A('نحّيو النبض من هاذ النتيجة؟', 'Retirer la FC de ce résultat ?'))) return;
-    var r = JSON.parse(JSON.stringify(x.rec)); delete r.data.samples; delete r.data.hrDur; delete r.data.hrSrc; delete r.data.polarEx; mutate('saveTest', { rec: r }); render();
+    var r = JSON.parse(JSON.stringify(x.rec)); delete r.data.samples; delete r.data.hrDur; delete r.data.hrSrc; delete r.data.polarEx; delete r.data.hrZones; delete r.data.hrA; delete r.data.hrAuto; delete r.data.hrRaw; mutate('saveTest', { rec: r }); render();
   };
   if (S.plk && $('#plk')) plkRun(s, it, x);
 }
@@ -1582,7 +1710,7 @@ function plkRun(s, it, x) {
     box.innerHTML = '<div class="small muted" style="margin-bottom:6px">' + A('اختار الحصة اللي فيها الاختبار (حصص Verity Sense تاع Polar Flow):', 'Choisissez la séance contenant le test (séances Polar Flow) :') + '</div>' +
       (loc.length ? loc.map(function (o, i) { return '<button type="button" class="btn sm' + (o.date === date ? ' pri' : '') + '" data-plo="' + i + '" style="margin:3px">⌚ ' + fmtDate(o.date) + ' ' + esc(o.e.start || '') + ' · ' + (o.e.min || '—') + ' min · ♥ ' + (o.e.hrAvg || '—') + '/' + (o.e.hrMax || '—') + '</button>'; }).join('') : '<div class="small">' + A('ما لقيتش حصة قريبة من نهار الاختبار في البيانات اللي تجابت.', 'Aucune séance proche de la date du test dans les données synchronisées.') + '</div>') +
       '<div class="row" style="margin-top:8px"><button type="button" class="btn sm" id="plk-api">🔄 ' + A('جيب كل الحصص من Polar (بالأنترنت)', 'Toutes les séances Polar (internet)') + '</button>' + cancel + '</div><div id="plk-api-l" class="small" style="margin-top:6px"></div>';
-    $$('[data-plo]', box).forEach(function (b) { b.onclick = function () { var o = loc[+b.dataset.plo], rt = o.e.rate || 5; S.plk = { step: 2, id: o.e.id, date: o.date, start: o.e.start, sm: o.e.hr.map(function (v, k) { return { t: k * rt, hr: v }; }).filter(function (p) { return p.hr > 0; }) }; render(); }; });
+    $$('[data-plo]', box).forEach(function (b) { b.onclick = function () { var o = loc[+b.dataset.plo], rt = o.e.rate || 5; S.plk = { step: 2, id: o.e.id, date: o.date, start: o.e.start, zones: o.e.zones || null, raw: false, sm: o.e.hr.map(function (v, k) { return { t: k * rt, hr: v }; }).filter(function (p) { return p.hr > 0; }) }; render(); }; });
     $('#plk-api').onclick = function () {
       var el = $('#plk-api-l'); el.textContent = '⏳ …';
       API.call('polarExList', { sid: s.id }).then(function (r) {
@@ -1592,7 +1720,7 @@ function plkRun(s, it, x) {
           el.textContent = '⏳ ' + A('نجيب النبض…', 'Récupération de la FC…');
           API.call('polarExHr', { sid: s.id, id: b.dataset.pla }).then(function (q) {
             if (!q.ok) { el.textContent = '⚠️ ' + (q.err === 'polarNoHr' ? A('الحصة هذي ما فيهاش نبض.', 'Pas de FC dans cette séance.') : q.err); return; }
-            S.plk = { step: 2, id: b.dataset.pla, date: b.dataset.pld, start: b.dataset.pls, sm: unpack(q.hr) }; render();
+            S.plk = { step: 2, id: b.dataset.pla, date: b.dataset.pld, start: b.dataset.pls, zones: q.zones || null, raw: true, sm: unpack(q.hr) }; render();
           }).catch(function () { el.textContent = T('neterr'); });
         }; });
       }).catch(function () { el.textContent = T('neterr'); });
@@ -1601,9 +1729,9 @@ function plkRun(s, it, x) {
     var sm = P.sm, end = sm.length ? sm[sm.length - 1].t : 0, tid = it.bt && it.bt.id;
     if (P.dur == null) {
       P.dur = tid && BT_DUR[tid] ? BT_DUR[tid][0] : (it.bt && it.bt.unit === 's' && BT_LIVE[tid] && BT_LIVE[tid][0] === 1 && x.v ? Math.round(x.v) : null);
-      P.a = 0;
+      P.a = 0; P.auto = false;
       if (P.dur && P.dur < end) { // البداية: النافذة اللي فيها أعلى متوسط نبض
-        var best = -1; for (var a = 0; a + P.dur <= end; a += 5) { var w = sm.filter(function (p) { return p.t >= a && p.t <= a + P.dur; }); if (w.length) { var m = w.reduce(function (q, p) { return q + p.hr; }, 0) / w.length; if (m > best) { best = m; P.a = a; } } }
+        var best = -1; for (var a = 0; a + P.dur <= end; a += 5) { var w = sm.filter(function (p) { return p.t >= a && p.t <= a + P.dur; }); if (w.length) { var m = w.reduce(function (q, p) { return q + p.hr; }, 0) / w.length; if (m > best) { best = m; P.a = a; P.auto = true; } } }
       }
       if (!P.dur) P.dur = Math.max(30, end);
     }
@@ -1618,13 +1746,13 @@ function plkRun(s, it, x) {
       ch = mk('ch-plk', { type: 'scatter', data: { datasets: [{ type: 'line', data: sm.map(function (p) { return { x: p.t, y: p.hr }; }), borderColor: CH.red, borderWidth: 1.5, pointRadius: 0 }, vl(P.a, '#0e9f6e'), vl(P.a + P.dur, '#1d6bff')] }, options: o });
     };
     draw();
-    var rd = function () { var a = C.parseTime($('#plk-a').value), d = C.parseTime($('#plk-d').value); if (a != null && a >= 0) P.a = a; if (d && d > 0) P.dur = d; draw(); };
+    var rd = function () { var a = C.parseTime($('#plk-a').value), d = C.parseTime($('#plk-d').value); if (a != null && a >= 0 && Math.abs(a - P.a) > 0.5) { P.a = a; P.auto = false; } if (d && d > 0) P.dur = d; draw(); };
     $('#plk-a').onchange = rd; $('#plk-d').onchange = rd;
     $('#plk-b').onclick = function () { S.plk = { step: 1 }; render(); };
     $('#plk-ok').onclick = function () {
       rd(); var rel = sm.filter(function (p) { return p.t >= P.a - 30 && p.t <= P.a + P.dur + 75; }).map(function (p) { return { t: p.t - P.a, hr: p.hr }; });
       if (rel.length < 5) return toast(A('ما كاينش نبض في هاذ الوقت', 'Pas de FC sur cet intervalle'));
-      var r = JSON.parse(JSON.stringify(x.rec)); r.data.samples = pack(rel); r.data.hrDur = Math.round(P.dur); r.data.hrSrc = 'polar'; r.data.polarEx = P.id;
+      var r = JSON.parse(JSON.stringify(x.rec)); r.data.samples = pack(rel); r.data.hrDur = Math.round(P.dur); r.data.hrSrc = 'polar'; r.data.polarEx = P.id; r.data.hrA = Math.round(P.a); r.data.hrAuto = !!P.auto; r.data.hrRaw = !!P.raw; if (P.zones && P.zones.length >= 5) r.data.hrZones = P.zones.map(function (z) { return { lo: z.lo, hi: z.hi }; }).sort(function (a, b) { return a.lo - b.lo; }); else delete r.data.hrZones;
       mutate('saveTest', { rec: r }); S.plk = null; toast(T('saved')); render();
     };
   }
@@ -1652,7 +1780,7 @@ function rptHtml(s) {
     var rows = items.filter(function (it) { return it.sys === g; }).map(function (it) { var hh = histOf(s, it); return hh.length ? { it: it, h: hh } : null; }).filter(Boolean);
     if (!rows.length) return '';
     rows.sort(function (a, b) { return a.h[a.h.length - 1].date < b.h[b.h.length - 1].date ? 1 : -1; });
-    return '<div class="card"><h3>' + T('g_' + g) + '</h3><div class="tlist">' + rows.map(function (x) {
+    return '<div class="card grp g-' + g + '"><h3>' + T('g_' + g) + '</h3><div class="tlist">' + rows.map(function (x) {
       var hh = x.h, cur = hh[hh.length - 1], prev = hh.length > 1 ? hh[hh.length - 2] : null, vd = vdOf(x.it, cur, prev), isPb = hh.length > 1 && pbIdx(hh, x.it.better) === hh.length - 1;
       nT += hh.length; if (vd && vd.k === 'real') { if (vd.ch > 0) up++; else down++; } if (!last || cur.date > last) last = cur.date;
       return '<div class="it" data-tk="' + esc(x.it.key) + '" style="cursor:pointer"><span class="ic">' + x.it.icon + '</span><div class="sp" style="min-width:0"><b>' + esc(x.it.name) + '</b>' + (isPb ? ' <span class="chip ok">' + T('pb') + '</span>' : '') +
@@ -1680,7 +1808,7 @@ function vPick(app) {
   GROUPS.concat(['FOL']).forEach(function (g) {
     var list = items.filter(function (it) { return it.sys === g; }); if (!list.length) return;
     list.sort(function (a, b) { return (b.ok ? 1 : 0) - (a.ok ? 1 : 0) || (a.proto ? 1 : 0) - (b.proto ? 1 : 0); });
-    h += '<div class="card"><h3>' + T('g_' + g) + '</h3><div class="grid g3">' + list.map(function (it) {
+    h += '<div class="card grp g-' + g + '"><h3>' + T('g_' + g) + '</h3><div class="grid g3">' + list.map(function (it) {
       var hh = it.fol ? [] : histOf(s, it), lastD = hh.length ? hh[hh.length - 1].date : null;
       return '<button class="btn" style="justify-content:flex-start;text-align:start;min-height:64px;' + (it.ok ? '' : 'opacity:.7') + '" data-pk="' + esc(it.key) + '"><span class="ic">' + it.icon + '</span><span style="min-width:0"><b>' + esc(it.name) + '</b>' +
         (it.desc ? '<br><span class="small muted' + (it.proto ? ' ltr' : '') + '" style="font-weight:400">' + esc(it.desc) + '</span>' : '') +
@@ -1879,7 +2007,7 @@ function livePickHtml(items, it) {
   h += '<div class="seg" style="margin-bottom:10px">' + [['water', '🏊 ' + A('في الماء', 'Dans l’eau')], ['land', '🏋 ' + A('خارج الماء', 'Hors de l’eau')]].map(function (x) { return '<button type="button" class="btn sm' + (env === x[0] ? ' on' : '') + '" data-lenv="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div>';
   GROUPS.forEach(function (g) {
     var l = items.filter(function (x) { return x.sys === g && liveEnv(x) === env; }); if (!l.length) return;
-    h += '<div class="lv-gh">' + T('g_' + g) + '</div><div class="grid g3" style="gap:8px;margin-bottom:6px">' + l.map(function (x) { return '<button type="button" class="btn' + (it && x.key === it.key ? ' pri' : '') + '" data-lk="' + esc(x.key) + '" style="justify-content:flex-start;text-align:start;min-height:52px"><span class="ic">' + x.icon + '</span><span style="min-width:0"><b>' + esc(x.name) + '</b>' + (x.desc ? '<br><span class="small" style="font-weight:400;opacity:.8">' + esc(x.desc) + '</span>' : '') + '</span></button>'; }).join('') + '</div>';
+    h += '<div class="lv-gh g-' + g + '">' + T('g_' + g) + '</div><div class="grid g3" style="gap:8px;margin-bottom:6px">' + l.map(function (x) { return '<button type="button" class="btn' + (it && x.key === it.key ? ' pri' : '') + '" data-lk="' + esc(x.key) + '" style="justify-content:flex-start;text-align:start;min-height:52px"><span class="ic">' + x.icon + '</span><span style="min-width:0"><b>' + esc(x.name) + '</b>' + (x.desc ? '<br><span class="small" style="font-weight:400;opacity:.8">' + esc(x.desc) + '</span>' : '') + '</span></button>'; }).join('') + '</div>';
   });
   if (env === 'land') h += '<div class="small muted">' + A('خارج الماء: الدوائر بالوقت (Pompes، Squats…)، Gainage، والـ Ruffier-Dickson. الجري (Léger) عندو شاشتو في «＋ اختبار جديد».', 'Hors de l’eau : circuits chronométrés, gainage et Ruffier-Dickson. Le Léger a son écran dans « ＋ Nouveau test ».') + '</div>';
   return h;
@@ -2536,7 +2664,11 @@ function stopRunner() { if (RUN.on) { clearInterval(RUN.iv); RUN.on = false; kee
 /* --- FC repos --- */
 function fRest(box) {
   var rows = (TMP.t.data.rows || []).slice(); while (rows.length < 3) rows.push({});
-  box.innerHTML = '<div class="card"><div class="info small">' + T('restHelp') + '</div></div>' + btPanel('<div class="row" style="margin-top:10px"><button type="button" class="btn pri" id="rec5">⏺ ' + T('rec5') + '</button><span class="num" id="rec-t" style="font-size:24px"></span></div>') +
+  var nights = daysOf(TMP.s.id).filter(function (x) { return C.num(x.rhr); }).slice(-7).reverse();
+  var loop = '<div class="card"><h3>🌙 ' + A('نبض الليل من الـ Loop', 'FC de nuit (Loop)') + ' <span class="srct" style="color:#a36a00;background:#fff4dc">' + A('للمقارنة برك', 'comparaison seulement') + '</span></h3>' +
+    (nights.length ? '<div class="rp-chips">' + nights.map(function (x) { return '<span>' + fmtDate(x.date).slice(0, 5) + ' · <b>' + x.rhr + '</b> bpm</span>'; }).join('') + '</div>' : '<div class="small muted">' + A('ما كاينش بيانات ليل من Polar لهاذ السباح.', 'Aucune donnée de nuit Polar pour ce nageur.') + '</div>') +
+    '<div class="small muted" style="margin-top:6px">' + A('هذا متوسط النبض وهو راقد (Polar Nightly Recharge)، وديما أقل من نبض الصباح وهو فايق. ما يدخلش في حساب VO2max (معادلة Uth)، لأنو يطلّع VO2max أعلى من الحقيقة. نبض الراحة الصحيح = 5 دقايق بالـ Verity Sense في الصباح.', 'Moyenne pendant le sommeil (Nightly Recharge), toujours plus basse que la FC de repos du matin éveillé. Non utilisée pour la VO2max (Uth), qu’elle surestimerait. FC de repos correcte = 5 min Verity Sense le matin.') + '</div></div>';
+  box.innerHTML = '<div class="card"><div class="info small">' + T('restHelp') + '</div></div>' + loop + btPanel('<div class="row" style="margin-top:10px"><button type="button" class="btn pri" id="rec5">⏺ ' + T('rec5') + '</button><span class="num" id="rec-t" style="font-size:24px"></span></div>') +
     '<div class="card"><table id="rest-rows"><tr><th>' + T('morning') + '</th><th>' + T('date') + '</th><th>bpm<small>' + T('restBpmH') + '</small></th><th>RMSSD<small>' + T('optional') + '</small></th></tr></table><button type="button" class="btn sm" id="addr" style="margin-top:8px">' + T('addRow') + '</button>' +
     '<div style="margin-top:10px"><label>' + T('csv') + '</label><div id="src-box"></div></div></div>';
   rows.forEach(function (r) { addRestRow(r.bpm, r.date, r.rmssd, true); });
@@ -2574,12 +2706,16 @@ function vSettings(app) {
     h += '<div class="card"><div class="row" style="margin-bottom:8px"><h3 class="sp" style="margin:0">👥 ' + T('coaches') + '</h3><button class="btn pri sm" id="addc">＋ ' + T('addCoach') + '</button></div><div id="cform"></div>';
     var cs = DB.coaches || [];
     if (!cs.length) h += '<p class="muted">—</p>';
-    else h += '<div class="tbl-wrap"><table><tr><th>' + T('name') + '</th><th>' + T('phone') + '</th><th>' + T('code') + '</th><th>' + T('swimmers') + '</th><th></th><th></th></tr>' + cs.map(function (c) {
+    else h += '<div class="tbl-wrap"><table><tr><th>' + T('name') + '</th><th>' + T('phone') + '</th><th>' + T('code') + '</th><th>' + T('swimmers') + '</th><th></th><th>📱 ' + A('الجهاز', 'Appareil') + '</th><th></th></tr>' + cs.map(function (c) {
       var n = DB.swimmers.filter(function (s) { return coachSees(c, s); }).length, pc = permOf(c), nOn = PERM_KEYS.filter(function (k) { return pc[k]; }).length;
       return '<tr><td style="text-align:start"><b>' + esc(c.name) + '</b> <span class="chip">🔑 ' + nOn + '/' + PERM_KEYS.length + '</span></td><td class="num">' + esc(c.phone || '') + '</td><td><span class="chip mono">' + esc(c.code) + '</span></td><td class="num">' + n + '</td><td><span class="chip ' + (c.active === false ? 'bad' : 'ok') + '">' + T(c.active === false ? 'inactive' : 'active') + '</span></td>' +
+        '<td style="text-align:start;white-space:nowrap">' + (c.dev ? '<span class="chip ok">✅ ' + esc(c.dev.label || '') + ' · ' + esc(c.dev.code || '') + '</span>' + (c.dev.last ? '<div class="small muted">' + A('آخر دخول ', 'vu le ') + fmtDate(String(c.dev.last).slice(0, 10)) + '</div>' : '') : c.inv ? '<span class="chip warn">🔗 ' + A('الرابط ما تفتحش', 'lien non ouvert') + '</span>' : '<span class="chip">' + A('بلا جهاز', 'aucun') + '</span>') +
+        '<div class="row" style="gap:4px;margin-top:4px"><button class="btn sm" data-lnk="' + c.id + '">🔗 ' + (c.dev ? A('رابط جديد', 'Nouveau lien') : A('الرابط', 'Lien')) + '</button>' + (c.dev || c.inv ? '<button class="btn sm dan" data-unb="' + c.id + '" title="' + A('فك الجهاز', 'Retirer l’appareil') + '">✕</button>' : '') + '</div><div id="lnk-' + c.id + '"></div></td>' +
         '<td style="white-space:nowrap"><button class="btn sm" data-view="' + c.id + '" title="' + T('viewAs') + '">👁</button> <button class="btn sm" data-ec="' + c.id + '">✎</button></td></tr>';
     }).join('') + '</table></div>';
-    h += '</div><div class="card"><h3>🔐 ' + T('logT') + '</h3><div id="loglist" class="small muted">…</div></div><form class="card" id="pwf"><h3>🔑 ' + T('changePw') + '</h3><div class="fr"><div class="f"><label>' + T('oldPw') + '</label><input type="password" name="o"></div><div class="f"><label>' + T('newPw') + '</label><input type="password" name="n"></div></div><button class="btn pri">' + T('save') + '</button></form>';
+    h += '<div class="info" style="margin-top:10px">📱 ' + A('كل مدرب يدخل من <b>جهاز واحد</b>. اضغط «🔗 الرابط» وابعثو للمدرب: يفتحو في الهاتف تاعو ويكتب الكود تاعو <b>مرة وحدة</b>، ومن بعد التطبيق يتحل وحدو. الرابط يخدم مرة وحدة: إذا تفتح في هاتف آخر ما يخدمش. «رابط جديد» يفك الجهاز القديم.', 'Chaque entraîneur utilise <b>un seul appareil</b>. « 🔗 Lien » : il l’ouvre sur son téléphone et saisit son code <b>une fois</b>. Le lien est à usage unique. « Nouveau lien » retire l’ancien appareil.') + '</div>';
+    h += '</div><div class="card"><h3>📱 ' + A('أجهزة الإدارة', 'Appareils de l’administration') + '</h3><div id="devlist" class="small muted">…</div></div>';
+    h += '<div class="card"><h3>🔐 ' + T('logT') + '</h3><div id="loglist" class="small muted">…</div></div><form class="card" id="pwf"><h3>🔑 ' + T('changePw') + '</h3><div class="fr"><div class="f"><label>' + T('oldPw') + '</label><input type="password" name="o"></div><div class="f"><label>' + T('newPw') + '</label><input type="password" name="n"></div></div><button class="btn pri">' + T('save') + '</button></form>';
   }
   if (window.BTV && window.BTV.settingsExtra && isAdmin()) h += window.BTV.settingsExtra();
   if (isAdmin()) h += '<div class="card"><h3>🔗 ' + T('apiUrl') + '</h3><p class="small ltr muted" style="word-break:break-all">' + esc(API.url()) + '</p><div class="row"><button class="btn" id="bkp">⬇ ' + T('backup') + '</button><button class="btn" id="chg">' + T('apiUrl') + ' ✎</button><span class="sp"></span><button class="btn dan" id="lo">🚪 ' + T('logout') + '</button></div></div>';
@@ -2601,6 +2737,36 @@ function vSettings(app) {
     }).join('') + '</table></div>';
   }).catch(function () {});
   $$('[data-ec]').forEach(function (b) { b.onclick = function () { coachForm(DB.coaches.find(function (c) { return c.id === b.dataset.ec; })); }; });
+  $$('[data-lnk]').forEach(function (b) { b.onclick = function () {
+    var c = DB.coaches.find(function (x) { return x.id === b.dataset.lnk; });
+    if (c.dev && !confirm(A('رابط جديد يفك الجهاز تاع ' + c.name + ' (' + (c.dev.label || '') + '). نكملو؟', 'Un nouveau lien retire l’appareil actuel de ' + c.name + '. Continuer ?'))) return;
+    b.disabled = true;
+    API.call('coachLink', { id: c.id }).then(function (r) {
+      b.disabled = false; if (!r.ok) return toast(T(r.err) || r.err);
+      var url = location.origin + location.pathname + '#inv=' + r.tk, box = $('#lnk-' + c.id);
+      var txt = 'MR WATHBA PERFORMANCE · BY OKBA\n' + A('السلام ' + c.name + '، هذا الرابط تاعك (يخدم في هاتف واحد، مرة وحدة). افتحو في الهاتف تاعك واكتب الكود تاعك:', 'Bonjour ' + c.name + ', votre lien personnel (un seul téléphone, une seule fois). Ouvrez-le sur votre téléphone et saisissez votre code :') + '\n' + url;
+      box.innerHTML = '<div class="kbox" style="margin-top:6px;white-space:normal"><div class="small ltr" style="word-break:break-all">' + esc(url) + '</div><div class="row" style="gap:6px;margin-top:6px"><button class="btn sm" data-cp="1">📋 ' + A('نسخ', 'Copier') + '</button><a class="btn sm" target="_blank" rel="noopener" href="https://wa.me/' + String(c.phone || '').replace(/[^0-9]/g, '') + '?text=' + encodeURIComponent(txt) + '">WhatsApp</a></div></div>';
+      $('[data-cp]', box).onclick = function () { (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(function () { toast('✅'); }).catch(function () { prompt('', url); }); };
+      c.inv = { at: today() }; delete c.dev; persist();
+    }).catch(function () { b.disabled = false; toast(T('neterr')); });
+  }; });
+  $$('[data-unb]').forEach(function (b) { b.onclick = function () {
+    var c = DB.coaches.find(function (x) { return x.id === b.dataset.unb; });
+    if (!confirm(A('نفكّو الجهاز تاع ' + c.name + '؟ يخرج من التطبيق ويحتاج رابط جديد.', 'Retirer l’appareil de ' + c.name + ' ? Il devra recevoir un nouveau lien.'))) return;
+    API.call('coachUnbind', { id: c.id }).then(function (r) { if (!r.ok) return toast(T(r.err) || r.err); toast(T('saved')); load().then(render); }).catch(function () { toast(T('neterr')); });
+  }; });
+  var devPaint = function () {
+    API.call('devs').then(function (r) {
+      var el = $('#devlist'); if (!el) return; if (!r.ok) { el.textContent = '—'; return; }
+      el.innerHTML = '<div class="tlist">' + r.list.map(function (d) {
+        var me = d.id === r.me;
+        return '<div class="it"><span class="ic">' + (d.blocked ? '⛔' : d.ok ? '✅' : '⏳') + '</span><div class="sp"><b>' + esc(d.label || '?') + '</b> <span class="chip mono">' + esc(d.code) + '</span>' + (me ? ' <span class="chip ok">' + A('هاذ الجهاز', 'cet appareil') + '</span>' : '') + '<div class="small muted">' + (d.blocked ? A('ممنوع', 'bloqué') : d.ok ? A('مقبول', 'accepté') : A('يستنى الموافقة', 'en attente')) + (d.last ? ' · ' + A('آخر دخول ', 'vu le ') + fmtDate(String(d.last).slice(0, 10)) : '') + '</div></div>' +
+          (!d.ok ? '<button class="btn sm pri" data-dv="' + d.id + '" data-op="ok">✅ ' + A('قبول', 'Accepter') + '</button>' : '') + (!me && !d.blocked ? '<button class="btn sm" data-dv="' + d.id + '" data-op="block">⛔ ' + A('منع', 'Bloquer') + '</button>' : '') + (!me ? '<button class="btn sm dan" data-dv="' + d.id + '" data-op="del">🗑</button>' : '') + '</div>';
+      }).join('') + '</div><div class="small muted" style="margin-top:6px">' + A('أي جهاز جديد يدخل بكلمة سر الإدارة يبان هنا «يستنى»، وما يتفتحلو والو حتى تقبلو. إذا ضاع هاتفك: امنعو من جهاز آخر.', 'Tout nouvel appareil utilisant le mot de passe admin apparaît « en attente » jusqu’à votre accord.') + '</div>';
+      $$('[data-dv]', el).forEach(function (b) { b.onclick = function () { if (b.dataset.op !== 'ok' && !confirm('?')) return; API.call('devSet', { id: b.dataset.dv, op: b.dataset.op }).then(function (x) { if (!x.ok) return toast(x.err === 'lastDev' ? A('لازم يبقى جهاز مقبول واحد على الأقل', 'Il faut garder au moins un appareil accepté') : x.err); devPaint(); }).catch(function () { toast(T('neterr')); }); }; });
+    }).catch(function () {});
+  };
+  devPaint();
   $$('[data-view]').forEach(function (b) { b.onclick = function () { VIEWAS = b.dataset.view; ls('vo2_viewas', VIEWAS); route('home'); }; });
 }
 var PERM_L = {
@@ -2673,7 +2839,7 @@ function printReport(s) {
       nT += hh.length; if (vd && vd.k === 'real') { if (vd.ch > 0) up++; else down++; } if (!last || cur.date > last) last = cur.date;
       if (hh.length >= 2) imgs.push({ t: x.it.icon + ' ' + x.it.name, u: chartImg(evoCfg(hh, x.it), 360, 150) });
       var hs = hrStatsOf(cur.rec, s);
-      return '<tr><td style="text-align:start"><b>' + esc(x.it.name) + '</b>' + (cur.extra ? '<div class="small muted">' + bdi(cur.extra) + '</div>' : '') + (hs ? '<div class="small" style="color:#b42318">♥ ' + A('متوسط', 'moy.') + ' ' + hs.avg + ' · max ' + hs.peak + (hs.drift != null ? ' · ' + A('انحراف', 'dérive') + ' ' + (hs.drift > 0 ? '+' : '') + R(hs.drift, 1) + '%' : '') + '</div>' : '') + '</td>' +
+      return '<tr><td style="text-align:start"><b>' + esc(x.it.name) + '</b>' + (cur.extra ? '<div class="small muted">' + bdi(cur.extra) + '</div>' : '') + (hs ? '<div class="small" style="color:#b42318">♥ ' + A('متوسط', 'moy.') + ' ' + hs.avg + ' · max ' + hs.peak + (hs.good && hs.drift != null && hs.pace && hs.pace.cv <= 3 ? ' · ' + A('انحراف', 'dérive') + ' ' + (hs.drift > 0 ? '+' : '') + R(hs.drift, 1) + '%' : '') + '</div>' : '') + '</td>' +
         '<td class="num"><b>' + esc(cur.disp) + '</b><div class="small muted">' + fmtDate(cur.date) + '</div></td>' +
         '<td class="num">' + (prev ? esc(prev.disp) + '<div class="small muted">' + fmtDate(prev.date) + '</div>' : '—') + '</td>' +
         '<td>' + (vd ? vChip(vd) : '<span class="small muted">' + A('أول نتيجة', '1er résultat') + '</span>') + '</td>' +
