@@ -302,6 +302,66 @@ body,button,input,select,textarea{font-family:"PT Bold Heading","Rubik","Lalezar
   .card{box-shadow:none;border:1px solid #dde4ef;break-inside:avoid;background:#fff}
   .hero,.zone td:first-child,.dot,.chip{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
+
+/* ===== ألوان كيما منصة الساحل: كحلي · سماوي · ذهبي ===== */
+:root{--nv:#13306b;--nv2:#0a1d47;--sk:#2aa3df;--sk2:#7fd0f5;--gd:#c9a24a;--gd2:#f3dd9b;--bg:#eef4fb}
+html{background:#eef4fb}
+body{background:radial-gradient(900px 480px at 92% -8%,rgba(42,163,223,.16),transparent 60%),radial-gradient(700px 380px at -5% 30%,rgba(201,162,74,.08),transparent 60%),linear-gradient(180deg,#f7fbff,#eaf2fb);background-attachment:fixed}
+header{background:radial-gradient(circle at 8% 30%,#2aa3df55,transparent 35%),linear-gradient(100deg,#0a1d47,#13306b 60%,#1d5fae);box-shadow:0 14px 34px #13306b40}
+.hd img{background:none;border-radius:0;padding:0;box-shadow:none;filter:drop-shadow(1.5px 0 0 #d9b45a) drop-shadow(-1.5px 0 0 #d9b45a) drop-shadow(0 1.5px 0 #d9b45a) drop-shadow(0 -1.5px 0 #d9b45a) drop-shadow(0 6px 12px #02082e66)}
+/* ===== شاشة الدخول كيما الساحل ===== */
+.lg-wrap{position:fixed;inset:0;overflow:auto;display:grid;place-items:center;padding:20px;color:#fff;font-family:"PT Bold Heading","Lalezar",Tahoma,sans-serif;background:radial-gradient(circle at 80% 10%,#2aa3df44,transparent 40%),radial-gradient(circle at 10% 90%,#c9a24a22,transparent 40%),linear-gradient(160deg,#0a1d47,#13306b 55%,#1d5fae)}
+.lg-wrap:after{content:"";position:fixed;inset:auto 0 0 0;height:180px;background:repeating-linear-gradient(90deg,transparent 0 22px,#ffffff08 22px 24px);pointer-events:none}
+.lg-glass{position:relative;z-index:1;width:min(460px,100%);padding:30px 30px 22px;border-radius:30px;background:#ffffff12;border:1.5px solid #ffffff38;box-shadow:0 30px 80px #02082e66;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;flex-direction:column;align-items:center;text-align:center;animation:pop .6s cubic-bezier(.2,.9,.3,1.2)}
+.lg-logo{width:120px;filter:drop-shadow(2px 0 0 #d9b45a) drop-shadow(-2px 0 0 #d9b45a) drop-shadow(0 2px 0 #d9b45a) drop-shadow(0 -2px 0 #d9b45a) drop-shadow(0 14px 26px #02082e88);animation:float 4s ease-in-out infinite}
+.lg-t{margin-top:16px;font:900 26px/1.15 Rubik,sans-serif;letter-spacing:1px;direction:ltr}
+.lg-by{margin-top:8px;display:inline-block;border:1px solid #c9a24a99;color:#f3dd9b;border-radius:20px;padding:2px 16px;font:700 12px Rubik,sans-serif;letter-spacing:3px;direction:ltr}
+.lg-sub{margin:10px 0 4px;color:#cfe3ff;font-size:15px}
+.lg-lab{align-self:stretch;display:block;margin-top:16px;font-size:14px;color:#dbe9ff;text-align:start}
+#lf{align-self:stretch}
+.lg-pin{position:relative;margin-top:8px}
+.lg-pin input{width:100%;height:56px;border-radius:16px;border:1.5px solid #ffffff55;background:#ffffff1c;color:#fff;font-size:22px;letter-spacing:6px;text-align:center;padding:0 54px;direction:ltr;box-shadow:none}
+.lg-pin input:focus{background:#ffffff26;border-color:#f3dd9b;box-shadow:0 0 0 4px #c9a24a33}
+.lg-pin input::placeholder{letter-spacing:4px;color:#bcd2f5}
+.lg-pin button{position:absolute;inset-inline-start:8px;top:8px;width:40px;height:40px;border:0;border-radius:12px;background:#ffffff22;color:#fff;cursor:pointer}
+.lg-go{width:100%;margin-top:14px;height:56px;border:0;border-radius:16px;font:900 18px "PT Bold Heading","Lalezar",Tahoma;color:#0a1d47;background:linear-gradient(90deg,#f3dd9b,#c9a24a);box-shadow:0 10px 24px #c9a24a44;cursor:pointer}
+.lg-go:disabled{opacity:.6}
+.lg-link{margin-top:10px;border:0;background:none;color:#cfe3ff;cursor:pointer;font:inherit}
+.lg-msg{align-self:stretch;margin-top:14px;padding:10px 12px;border-radius:14px;background:#ffffff1a;border:1px solid #ffffff33;color:#fff;font-size:14.5px;line-height:1.6;text-align:start}
+.lg-code{margin-top:14px;font:900 46px Rubik,sans-serif;letter-spacing:10px;color:#f3dd9b;direction:ltr}
+.lg-note{margin-top:12px;color:#bcd2f5;font-size:13px;line-height:1.6}
+.lg-dev{margin-top:12px;color:#9fb8e6;font:600 11.5px Rubik,sans-serif;direction:ltr}
+.lg-lang{position:fixed;top:16px;inset-inline-end:16px;z-index:3;border:1.5px solid #ffffff55;background:#ffffff18;color:#fff;border-radius:12px;padding:6px 14px;font-weight:700;cursor:pointer}
+.lg-foot{position:fixed;bottom:12px;left:0;right:0;text-align:center;color:#ffffff66;font:600 12px Rubik,sans-serif;z-index:1;pointer-events:none}
+.hd .t b small{color:#f3dd9b!important;opacity:1!important}
+h1{color:#13306b}
+.btn.pri{background:linear-gradient(90deg,#13306b,#1d5fae);box-shadow:0 8px 18px #13306b30}
+.btn.pri:hover{background:linear-gradient(90deg,#0a1d47,#2aa3df)}
+.tabs{background:#fff;border-color:#d9e4f3;box-shadow:0 8px 24px #13306b10}
+.tabs .btn.on{background:linear-gradient(90deg,#13306b,#2aa3df);box-shadow:0 8px 18px #2aa3df44}
+.av{background:linear-gradient(135deg,#13306b,#2aa3df);box-shadow:0 0 0 3px #fff,0 0 0 5px #c9a24a88}
+.statbar>.card{position:relative;overflow:hidden;border-top:4px solid #13306b}
+.statbar>.card:nth-child(2){border-top-color:#2aa3df}.statbar>.card:nth-child(3){border-top-color:#13a06c}.statbar>.card:nth-child(4){border-top-color:#c9a24a}
+.statbar>.card:after{content:"";position:absolute;inset-inline-end:-24px;bottom:-24px;width:80px;height:80px;border-radius:50%;background:radial-gradient(circle,#2aa3df1f,transparent 70%)}
+.kpi .v{color:#13306b}
+.chip.ok{background:#dcf5ea;color:#0b7a4f}.chip.bad{background:#fde3e8;color:#a3243b}.chip.warn{background:#fdf0d4;color:#8a5a00}
+/* بطاقات الأنواع: شريط ملون في الفوق */
+.grp{padding-top:0;overflow:hidden}
+.grp>h3{margin:0 -16px 12px;padding:11px 16px;color:#fff;font-size:17px}
+.g-AER>h3,.lv-gh.g-AER{background:linear-gradient(100deg,#0b6f9f,#2aa3df)}
+.g-LAC>h3,.lv-gh.g-LAC{background:linear-gradient(100deg,#a3243b,#e2676f)}
+.g-ALA>h3,.lv-gh.g-ALA{background:linear-gradient(100deg,#8a6a1c,#c9a24a)}
+.g-END>h3,.lv-gh.g-END{background:linear-gradient(100deg,#0a7a6a,#2fc4a6)}
+.g-MAX>h3,.lv-gh.g-MAX{background:linear-gradient(100deg,#5b3fb0,#9b84f0)}
+.g-POW>h3,.lv-gh.g-POW{background:linear-gradient(100deg,#b4531a,#f0923f)}
+.g-FLX>h3,.lv-gh.g-FLX{background:linear-gradient(100deg,#0a1d47,#3b5fae)}
+.g-HR>h3,.lv-gh.g-HR,.g-FOL>h3{background:linear-gradient(100deg,#13306b,#1d5fae)}
+.it .ic,.ic{background:#e4effd}
+/* وسم المصدر */
+.srct{display:inline-block;border-radius:999px;padding:0 8px;font:700 11px/18px Rubik,"PT Bold Heading",Tahoma;vertical-align:middle;white-space:nowrap}
+.rp-tb{width:100%;border-collapse:collapse;margin-top:6px}.rp-tb td,.rp-tb th{border-bottom:1px solid #e3e9f3;padding:7px 6px;text-align:start;vertical-align:top;font-size:13.5px;background:none}
+.rp-tb th{white-space:nowrap;color:#13306b;width:1%}.rp-tb td:first-child{width:1%}
+.rp-an{background:#f7fbff;border-color:#d9e4f3;border-inline-start:4px solid #2aa3df}
 </style>
 </head>
 <body>
