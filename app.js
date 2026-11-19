@@ -1,5 +1,5 @@
 /* VO2max Al-Wathba — application */
-var APP_V = '5.4';
+var APP_V = '5.6';
 (function () {
 'use strict';
 var C = window.VO2C;
@@ -1760,7 +1760,7 @@ function plkRun(s, it, x) {
 }
 // ⏱ الأوقات المتقطعة (كل 25/50) تاع الاختبار لايف
 function splitsHtml(d) {
-  var pool = +(d.cond && d.cond.pool || d.pool || (d.live && d.live.pool) || 25) || 25, sp = d.splits;
+  var pool = +(d.splitM || d.cond && d.cond.pool || d.pool || (d.live && d.live.pool) || 25) || 25, sp = d.splits;
   var h = '<div class="card"><h3>⏱ ' + A('الأوقات المتقطعة', 'Temps intermédiaires') + ' <span class="small muted">· ' + A('كل ', 'tous les ') + pool + A(' م', ' m') + '</span></h3><div class="tbl-wrap"><table><tr><th>' + A('التكرار', 'Rép.') + '</th>' +
     Array.apply(null, Array(Math.max.apply(null, sp.map(function (r) { return r.length; })))).map(function (_, i) { return '<th>' + ((i + 1) * pool) + A(' م', ' m') + '</th>'; }).join('') + '<th>' + A('المجموع', 'Total') + '</th></tr>';
   sp.forEach(function (r, i) {
@@ -1865,25 +1865,31 @@ var BT_DUR = { t12: [720, [['dist', 'المسافة الكلية (م)', 'Distanc
 // 🏋 خارج الماء
 var BT_TIMED = { push: 30, situp: 30, sqj: 30 };   // عمل بالوقت ← نكتبو العدد
 var BT_MEAS = { plank: 1, hang: 1 };               // يقيس حتى يحبس ← الوقت
-function liveEnv(it) { return it.bt ? (it.bt.w ? 'water' : 'land') : it.key === 'leger' ? 'land' : 'water'; }
+function liveEnv(it) { return it.bt ? (it.bt.w ? 'water' : 'land') : it.key === 'leger' || it.key === 'rest' ? 'land' : 'water'; }
 function liveSpec(it, pid) {
   if (!it) return null;
   if (it.key === 'step') { var id = C.PROTOCOLS[pid] ? pid : '5x100', P = C.PROTOCOLS[id]; return { n: P.reps, next: 'send', send: P.cycle, dist: P.dist, pid: id }; }
   if (it.key === '400') return { n: 1, dist: 400 };
   if (it.key === 'css') return { n: 2, next: 'manual', dists: [400, 200] };
+  if (it.key === 'leger') return { land: 'leger', forceAll: true };
+  if (it.key === 'rest') return { land: 'rest', forceAll: true, phases: [{ k: 'pre', dur: 300 }] };
   if (!it.bt) return null;
   var tid = it.bt.id, p = it.bt.proto;
   if (BT_LIVE[tid]) { var b = BT_LIVE[tid]; return { n: b[0], next: 'send', send: b[1], dist: b[2] }; }
   if (BT_DUR[tid]) return { n: 0, dur: BT_DUR[tid][0], ask: BT_DUR[tid][1] };
   if (BT_TIMED[tid]) return { land: 'count', phases: [{ k: 'work', dur: BT_TIMED[tid], si: 0 }] };
-  if (BT_MEAS[tid]) return { land: 'meas', phases: [{ k: 'meas', si: 0, ri: 0 }] };
+  if (BT_MEAS[tid]) return { land: 'meas', unitS: true, phases: [{ k: 'meas', si: 0, ri: 0 }] };
+  if (tid === 'cooper') return { n: 0, dur: 720, run: true, ask: [['dist', 'المسافة الكلية (م)', 'Distance totale (m)']] };
+  if (tid === 'r30') return { n: 2, next: 'manual', dist: 30, run: true };
   if (tid === 'ruff') return { land: 'ruff', phases: [{ k: 'pre', dur: 60 }, { k: 'work', dur: 45, metro: 1.5, si: 0 }, { k: 'post', dur: 60 }] };
   if (p && /^(AER|LAC|ALA)$/.test(p.sys) && +p.dist > 0) { var sets = Math.max(1, +p.sets || 1), reps = Math.max(1, +p.reps || 1); return { n: sets * reps, next: 'rest', rest: +p.restRep || 0, restSet: +p.restSet || 0, setSize: reps, dist: +p.dist, proto: p }; }
   if (p && !/^(AER|LAC|ALA)$/.test(p.sys)) {
     var m = p.mode || 'count', ns = Math.max(1, +p.sets || 1), ph = [];
     if (m === 'count' && +p.work > 0) { for (var i = 0; i < ns; i++) { ph.push({ k: 'work', dur: +p.work, si: i }); if (i < ns - 1 && +p.restSet) ph.push({ k: 'rest', dur: +p.restSet }); } return { land: 'count', phases: ph, proto: p }; }
-    if (m === 'measure' && p.unit === 's') { var nr = Math.max(1, +p.reps || 1); for (var j = 0; j < ns; j++) for (var r = 0; r < nr; r++) { ph.push({ k: 'meas', si: j, ri: r }); var last = j === ns - 1 && r === nr - 1; if (!last) { var rs = r === nr - 1 ? +p.restSet : +p.restRep; if (rs) ph.push({ k: 'rest', dur: rs }); } } return { land: 'meas', phases: ph, proto: p }; }
+    if (m === 'measure') { var nr = Math.max(1, +p.reps || 1); for (var j = 0; j < ns; j++) for (var r = 0; r < nr; r++) { ph.push({ k: 'meas', si: j, ri: r }); var last = j === ns - 1 && r === nr - 1; if (!last) { var rs = r === nr - 1 ? +p.restSet : +p.restRep; if (rs) ph.push({ k: 'rest', dur: rs }); } } return { land: 'meas', unitS: p.unit === 's', phases: ph, proto: p }; }
   }
+  // أي اختبار آخر: كرونو + نبض لايف، وفي اللخر نكتبو النتيجة
+  if (!p && it.bt.inputs && it.bt.inputs.length) return { land: 'any', phases: [{ k: 'meas', si: 0, ri: 0 }], inputs: it.bt.inputs };
   return null;
 }
 function liveItems() { return catalog(null).filter(function (it) { return !it.hide && !it.archived && liveSpec(it, '5x100'); }); }
@@ -1924,21 +1930,29 @@ function lvSample(sid, hr) { if (!LV || !LV.running) return; LV.lanes.forEach(fu
 /* --- المحرك --- */
 function lvNow() { return (Date.now() - LV.T0) / 1000; }
 function repDist(sp, i) { return sp.dists ? sp.dists[i] || 0 : sp.dist || 0; }
-function lapsOf(sp, i) { var d = repDist(sp, i), pl = +LV.pool || 25; return d > pl ? Math.round(d / pl) : 1; }
+function lapsOf(sp, i) { var d = repDist(sp, i), st = +LV.split || 0; return st && d > st ? Math.round(d / st) : 1; }
 function lvBegin(L, at) {
   L.first = at; L.repStart = at; L.sp = []; L.laps = [];
-  if (LV.spec.land) { L.state = 'land'; L.pi = 0; L.pStart = at; L.ph = []; L.mt = 0; } else L.state = 'swim';
+  if (LV.spec.land === 'leger') { L.state = 'lg'; if (!LV.lg) LV.lg = { t0: at, stage: 1, sh: 0, next: at + C.legerInterval(1) }; }
+  else if (LV.spec.land) { L.state = 'land'; L.pi = 0; L.pStart = at; L.ph = []; L.mt = 0; } else L.state = 'swim';
   beep(1000, .4);
 }
 function landNext(L, t) {
   var sp = LV.spec, ph = sp.phases[L.pi]; L.ph.push({ k: ph.k, s: L.pStart, e: t, si: ph.si, ri: ph.ri });
   L.pi++; L.mt = 0;
-  if (L.pi >= sp.phases.length) { L.end = t; L.state = sp.land === 'ruff' ? 'done' : 'rec60'; beep(880, .6); return; }
+  if (L.pi >= sp.phases.length) { L.end = t; L.state = sp.land === 'ruff' || sp.land === 'rest' ? 'done' : 'rec60'; beep(880, .6); return; }
   L.pStart = t; var nx = sp.phases[L.pi]; beep(nx.k === 'rest' ? 660 : 1000, nx.k === 'rest' ? .25 : .45);
 }
 function lvTick() {
   if (!LV || !LV.running) return;
   var t = lvNow(), sp = LV.spec;
+  // 🏃 Léger: نفس البيبات للكل
+  if (LV.lg && LV.lanes.some(function (L) { return L.state === 'lg'; }) && t >= LV.lg.next) {
+    var G = LV.lg; G.sh++;
+    if (G.sh >= C.legerShuttles(G.stage)) { G.stage++; G.sh = 0; beep(1000, .12); setTimeout(function () { beep(1000, .12); }, 200); setTimeout(function () { beep(1000, .12); }, 400); }
+    else beep(880, .18);
+    G.next += C.legerInterval(G.stage);
+  }
   LV.lanes.forEach(function (L) {
     if (L.state === 'wait' && L.startAt != null) {
       if (t >= L.startAt) lvBegin(L, L.startAt);
@@ -1968,8 +1982,9 @@ function lvTick() {
 function lvTouch(i) {
   var L = LV.lanes[i], sp = LV.spec, t = lvNow();
   if (L.state === 'land') { if (sp.phases[L.pi].k === 'meas') { landNext(L, t); lvPaint(); } return; }
+  if (L.state === 'lg') { L.lgStage = LV.lg.stage; L.lgSh = LV.lg.sh; L.end = t; L.state = 'rec60'; beep(660, .3); lvPaint(); return; }
   if (L.state !== 'swim') return;
-  if (sp.dur) { L.laps.push(t); beep(1100, .08); lvPaint(); return; }
+  if (sp.dur) { if (!+LV.split) return; L.laps.push(t); beep(1100, .08); lvPaint(); return; }
   if (L.sp.length + 1 < lapsOf(sp, L.reps.length)) { L.sp.push(t); beep(1100, .08); lvPaint(); return; }
   lvArrive(i);
 }
@@ -1992,7 +2007,7 @@ function lvUndo(i) {
 function lvGo(i) { var L = LV.lanes[i], t = lvNow(); if (L.state === 'wait') lvBegin(L, t); else if (L.state === 'ready') { L.repStart = t; L.sp = []; L.state = 'swim'; beep(1000, .35); } lvPaint(); }
 function lvStart() {
   try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.resume) actx.resume(); } catch (e) {}
-  LV.T0 = Date.now(); LV.running = true; keepAwake(true);
+  LV.T0 = Date.now(); LV.running = true; keepAwake(true); LV.lg = null; if (LV.spec.forceAll) LV.mode = 'all';
   LV.lanes.forEach(function (L, i) { L.state = 'wait'; L.reps = []; L.smp = []; L.sp = []; L.laps = []; L.first = null; L.end = null; L.startAt = LV.mode === 'solo' ? null : LV.mode === 'stagger' ? 5 + i * LV.gap : 5; });
   clearInterval(LV.iv); LV.iv = setInterval(lvTick, 100);
   route('live');
@@ -2009,12 +2024,12 @@ function livePickHtml(items, it) {
     var l = items.filter(function (x) { return x.sys === g && liveEnv(x) === env; }); if (!l.length) return;
     h += '<div class="lv-gh g-' + g + '">' + T('g_' + g) + '</div><div class="grid g3" style="gap:8px;margin-bottom:6px">' + l.map(function (x) { return '<button type="button" class="btn' + (it && x.key === it.key ? ' pri' : '') + '" data-lk="' + esc(x.key) + '" style="justify-content:flex-start;text-align:start;min-height:52px"><span class="ic">' + x.icon + '</span><span style="min-width:0"><b>' + esc(x.name) + '</b>' + (x.desc ? '<br><span class="small" style="font-weight:400;opacity:.8">' + esc(x.desc) + '</span>' : '') + '</span></button>'; }).join('') + '</div>';
   });
-  if (env === 'land') h += '<div class="small muted">' + A('خارج الماء: الدوائر بالوقت (Pompes، Squats…)، Gainage، والـ Ruffier-Dickson. الجري (Léger) عندو شاشتو في «＋ اختبار جديد».', 'Hors de l’eau : circuits chronométrés, gainage et Ruffier-Dickson. Le Léger a son écran dans « ＋ Nouveau test ».') + '</div>';
+  if (env === 'land') h += '<div class="small muted">' + A('خارج الماء: Léger، Cooper، سرعة 30 م، الدوائر بالوقت، Gainage، Ruffier-Dickson، نبض الراحة، وكل الاختبارات الأخرى (كرونو + نبض، والنتيجة تكتبها في اللخر). من 1 حتى 4 سباحين.', 'Hors de l’eau : Léger, Cooper, sprint 30 m, circuits, gainage, Ruffier-Dickson, FC de repos et tous les autres tests (chrono + FC, résultat saisi à la fin). De 1 à 4 nageurs.') + '</div>';
   return h;
 }
 function vLiveSetup(app) {
   var items = liveItems(), pre = (S.liveSids || []).slice(0, 4);
-  LS = LS || { key: '', pid: '5x100', pool: '25', mode: 'all', gap: 10, env: 'water', pickOpen: true, sids: [pre[0] || '', pre[1] || '', pre[2] || '', pre[3] || ''] };
+  LS = LS || { key: '', pid: '5x100', pool: '25', split: 0, mode: 'all', gap: 10, env: 'water', pickOpen: true, sids: [pre[0] || '', pre[1] || '', pre[2] || '', pre[3] || ''] };
   if (LV && LV.running) return route('live');
   var it = items.find(function (x) { return x.key === LS.key; }), sw0 = visibleSwimmers().slice().sort(function (a, b) { return (a.name || '').localeCompare(b.name || ''); });
   var spx = it ? liveSpec(it, LS.pid) : null, land = !!(spx && spx.land);
@@ -2024,9 +2039,10 @@ function vLiveSetup(app) {
   h += '<div class="card">' + livePickHtml(items, it);
   if (it && !LS.pickOpen) {
     h += '<div class="fr" style="margin-top:10px">' + (LS.key === 'step' ? '<div class="f"><label>' + T('protocol') + '</label><select id="ls-p">' + Object.keys(C.PROTOCOLS).map(function (k) { return '<option value="' + k + '"' + (k === LS.pid ? ' selected' : '') + '>' + C.PROTOCOLS[k].label + '</option>'; }).join('') + '</select></div>' : '') +
-      (land ? '' : '<div class="f"><label>' + T('pool') + '</label><select id="ls-pool"><option value="25">25 m</option><option value="50"' + (LS.pool === '50' ? ' selected' : '') + '>50 m</option></select></div>') + '</div>' +
-      '<label>' + A('الانطلاق', 'Départ') + '</label><div class="seg" style="margin-bottom:8px">' + [['all', A('الكل مع بعض', 'Tous ensemble')], ['stagger', A('بفاصل', 'Décalé')], ['solo', A('كل واحد وحدو', 'Chacun son départ')]].map(function (m) { return '<button type="button" class="btn sm' + (LS.mode === m[0] ? ' on' : '') + '" data-lm="' + m[0] + '">' + m[1] + '</button>'; }).join('') + '</div>' +
-      (LS.mode === 'stagger' ? '<div class="f" style="max-width:220px"><label>' + A('الفاصل بين السباحين (ث)', 'Écart entre nageurs (s)') + '</label><input id="ls-gap" class="num mono" inputmode="numeric" value="' + LS.gap + '"></div>' : '') +
+      (land || spx.run ? '' : '<div class="f"><label>' + T('pool') + '</label><select id="ls-pool"><option value="25">25 m</option><option value="50"' + (LS.pool === '50' ? ' selected' : '') + '>50 m</option></select></div>') + '</div>' +
+      (land ? '' : splitPickHtml(spx)) +
+      (spx.forceAll ? '<div class="small muted" style="margin-bottom:6px">' + A('الانطلاق: الكل مع بعض (نفس البيبات).', 'Départ : tous ensemble (mêmes bips).') + '</div>' : '<label>' + A('الانطلاق', 'Départ') + '</label><div class="seg" style="margin-bottom:8px">') + (spx.forceAll ? '' : [['all', A('الكل مع بعض', 'Tous ensemble')], ['stagger', A('بفاصل', 'Décalé')], ['solo', A('كل واحد وحدو', 'Chacun son départ')]].map(function (m) { return '<button type="button" class="btn sm' + (LS.mode === m[0] ? ' on' : '') + '" data-lm="' + m[0] + '">' + m[1] + '</button>'; }).join('') + '</div>') +
+      (LS.mode === 'stagger' && !spx.forceAll ? '<div class="f" style="max-width:220px"><label>' + A('الفاصل بين السباحين (ث)', 'Écart entre nageurs (s)') + '</label><input id="ls-gap" class="num mono" inputmode="numeric" value="' + LS.gap + '"></div>' : '') +
       '<div class="small muted">' + esc(it.desc || '') + '</div>' + liveHowHtml(it, spx);
   }
   h += '</div>';
@@ -2047,24 +2063,43 @@ function vLiveSetup(app) {
   if ($('#ls-pool')) $('#ls-pool').onchange = function () { LS.pool = this.value; render(); };
   if ($('#ls-gap')) $('#ls-gap').oninput = function () { LS.gap = Math.max(1, C.num(this.value) || 10); };
   $$('[data-lm]').forEach(function (b) { b.onclick = function () { LS.mode = b.dataset.lm; render(); }; });
+  $$('[data-lsp]').forEach(function (b) { b.onclick = function () { LS.split = +b.dataset.lsp; render(); }; });
   $$('[data-ls]').forEach(function (sel) { sel.onchange = function () { LS.sids[+sel.dataset.ls] = this.value; render(); }; });
   $$('[data-sc]').forEach(function (b) { b.onclick = function () { sensConnect(LS.sids[+b.dataset.sc]); }; });
   $$('[data-so]').forEach(function (b) { b.onclick = function () { sensOff(LS.sids[+b.dataset.so]); render(); }; });
   $('#ls-go').onclick = function () {
     var it2 = liveItems().find(function (x) { return x.key === LS.key; }), sp = liveSpec(it2, LS.pid); if (!it2 || !sp) return;
-    LV = { key: LS.key, it: it2, spec: sp, mode: LS.mode, gap: LS.gap || 10, pool: sp.land ? 'land' : LS.pool, date: today(), lanes: LS.sids.filter(Boolean).map(function (sid) { return { sid: sid, smp: [], reps: [] }; }) };
+    LV = { key: LS.key, it: it2, spec: sp, mode: LS.mode, gap: LS.gap || 10, pool: sp.land ? 'land' : sp.run ? 'run' : LS.pool, split: sp.land ? 0 : splitOpts(sp).indexOf(+LS.split) >= 0 ? +LS.split : 0, date: today(), lanes: LS.sids.filter(Boolean).map(function (sid) { return { sid: sid, smp: [], reps: [] }; }) };
     lvStart();
   };
+}
+// ⏱ قبل الاختبار: المدرب يختار كل قداش ياخذ الوقت (25 / 50 / 100) ولا الوصول برك
+function splitOpts(sp) {
+  if (sp.run) return sp.dur ? [100, 200, 400] : [];
+  var pl = +LS.pool || 25, mx = sp.dur ? 1e9 : Math.max.apply(null, (sp.dists || [sp.dist || 0]));
+  return [25, 50, 100].filter(function (v) { return v >= pl && v % pl === 0 && v < mx; });
+}
+function splitPickHtml(sp) {
+  if (!sp) return '';
+  var o = splitOpts(sp); if (o.indexOf(+LS.split) < 0) LS.split = 0;
+  if (!o.length) return '';
+  return '<label>⏱ ' + (sp.run ? A('طول الدورة (لمسة في كل دورة)', 'Longueur du tour (touche à chaque tour)') : A('الأوقات المتقطعة', 'Temps intermédiaires')) + '</label><div class="seg" style="margin-bottom:8px">' +
+    [[0, sp.dur ? A('بلا لمسات (نكتب المسافة في اللخر)', 'Sans touches (distance à la fin)') : A('وقت الوصول برك', 'Arrivée seulement')]].concat(o.map(function (v) { return [v, (sp.run ? A('دورة ', 'tour ') : A('كل ', 'tous les ')) + v + A(' م', ' m')]; }))
+      .map(function (x) { return '<button type="button" class="btn sm' + (+LS.split === x[0] ? ' on' : '') + '" data-lsp="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div>';
 }
 // كيفاش يخدم الاختبار هذا في اللايف (سطر قصير للمدرب)
 function liveHowHtml(it, sp) {
   if (!sp) return '';
   var t;
-  if (sp.land === 'ruff') t = A('1 دقيقة راحة (P0) ← 45 ث: 30 squat مع الصوت (bip كل 1.5 ث) ← يرقد دقيقة (P1 وP2). كلش يتحسب وحدو من الحساس.', '1 min repos (P0) ← 45 s : 30 squats au bip (toutes les 1,5 s) ← allongé 1 min (P1, P2). Tout est calculé par le capteur.');
+  if (sp.land === 'leger') t = A('البيبات تخرج من الهاتف للكل. كي يحبس سباح (ما لحقش الخط مرتين) اضغط «⏹ وقف» في الخانة تاعو: المرحلة والذهاب والإياب يتسجلو وحدهم، والنبض الأقصى والاسترجاع 60 ث.', 'Bips pour tous. Quand un nageur s’arrête (2 lignes manquées), « ⏹ Stop » dans sa case : palier, navette, FC max et récup 60 s enregistrés.');
+  else if (sp.land === 'rest') t = A('السباحين راقدين ساكتين 5 دقايق بالحساس. النتيجة = متوسط آخر 2 دقايق، تتحسب وحدها.', 'Allongés au calme 5 min avec le capteur. Résultat = moyenne des 2 dernières minutes.');
+  else if (sp.land === 'any') t = A('الكرونو والنبض يتسجلو. اضغط «⏹ وقف» كي يكمّل، ومن بعد تكتب النتيجة.', 'Chrono et FC enregistrés. « ⏹ Stop » à la fin, puis saisissez le résultat.');
+  else if (sp.run && !sp.dur) t = A('تضغط ▶ كي ينطلق و«🏁 وصل» كي يقطع خط 30 م. المحاولة الثانية: ▶ من جديد بعد الراحة.', '▶ au départ, « 🏁 Arrivée » aux 30 m. 2e essai : ▶ après la récup.');
+  else if (sp.land === 'ruff') t = A('1 دقيقة راحة (P0) ← 45 ث: 30 squat مع الصوت (bip كل 1.5 ث) ← يرقد دقيقة (P1 وP2). كلش يتحسب وحدو من الحساس.', '1 min repos (P0) ← 45 s : 30 squats au bip (toutes les 1,5 s) ← allongé 1 min (P1, P2). Tout est calculé par le capteur.');
   else if (sp.land === 'count') t = A('العمل والراحة بالعداد والصوت. في اللخر تكتب العدد تاع كل سلسلة.', 'Travail et récup au chrono et au bip. À la fin, saisissez le nombre de chaque série.');
   else if (sp.land === 'meas') t = A('تضغط «⏹ وقف» كي يحبس السباح، والوقت يتسجل وحدو.', 'Appuyez « ⏹ Stop » quand le nageur s’arrête : le temps est enregistré.');
-  else if (sp.dur) t = A('اضغط «⏱ لمسة» في كل حيط: التطبيق يحسب الطولات والمسافة، ووقت كل طولة.', 'Appuyez « ⏱ Touche » à chaque mur : longueurs, distance et temps de chaque longueur.');
-  else t = A('اضغط «⏱ لمسة» في كل حيط باش تاخذ الأوقات المتقطعة (كل ', 'Appuyez « ⏱ Touche » à chaque mur pour les temps intermédiaires (tous les ') + LS.pool + A(' م)، واللمسة الأخيرة تولي «🏁 وصل» وحدها. إذا ما تحبش المتقطعة اضغط «🏁» مباشرة.', ' m) ; la dernière devient « 🏁 Arrivée ». Sans intermédiaires, appuyez « 🏁 » directement.');
+  else if (sp.dur) t = +LS.split ? A('اضغط «⏱ لمسة» كل ' + LS.split + ' م: التطبيق يحسب المسافة ووقت كل ' + LS.split + ' م. في اللخر تزيد الأمتار اللي بقاو.', 'Appuyez « ⏱ Touche » tous les ' + LS.split + ' m : distance et temps calculés ; ajoutez les mètres restants à la fin.') : A('العداد يخدم وحدو حتى اللخر، ومن بعد تكتب المسافة الكلية.', 'Le chrono tourne jusqu’à la fin ; saisissez ensuite la distance totale.');
+  else t = +LS.split ? A('اضغط «⏱ لمسة» كل ' + LS.split + ' م، واللمسة الأخيرة تولي «🏁 وصل» وحدها. الزر الصغير 🏁 = وصل مباشرة.', 'Appuyez « ⏱ Touche » tous les ' + LS.split + ' m ; la dernière devient « 🏁 Arrivée ». Petit 🏁 = arrivée directe.') : A('تضغط «🏁 وصل» غير كي يوصل السباح.', 'Appuyez « 🏁 Arrivée » seulement à l’arrivée.');
   return '<div class="info" style="margin-top:10px">💡 ' + t + '</div>';
 }
 
@@ -2072,6 +2107,7 @@ function liveHowHtml(it, sp) {
 var PH_L = { pre: ['🪑 راحة قبل الجهد', '🪑 Repos avant'], work: ['💪 عمل', '💪 Travail'], rest: ['😮‍💨 راحة', '😮‍💨 Récup'], meas: ['⏱ يقيس…', '⏱ En cours…'], post: ['🛌 استرجاع (راقد)', '🛌 Récup (allongé)'] };
 function lvStateTxt(L) {
   var t = lvNow(), sp = LV.spec;
+  if (L.state === 'lg') { var G = LV.lg; return '🏃 ' + A('المرحلة ', 'Palier ') + G.stage + ' · ' + G.sh + '/' + C.legerShuttles(G.stage) + ' · ' + C.legerSpeed(G.stage).toFixed(1) + ' km/h'; }
   if (L.state === 'land') {
     var ph = sp.phases[L.pi], el = t - L.pStart, nSets = sp.phases.filter(function (p) { return p.k === 'work' || p.k === 'meas'; }).length;
     var lab = Tv(PH_L[ph.k]) + (sp.land === 'ruff' && ph.k === 'work' ? ' · 30 squat' : '') + (ph.si != null && nSets > 1 ? ' · ' + A('سلسلة ', 'série ') + (ph.si + 1) + (ph.ri != null && ph.ri > 0 ? '.' + (ph.ri + 1) : '') : '');
@@ -2082,12 +2118,12 @@ function lvStateTxt(L) {
 function vLive(app) {
   if (!LV) return route('liveSetup');
   var sp = LV.spec, nm = LV.it.name + (sp.pid ? ' · ' + C.PROTOCOLS[sp.pid].label : '');
-  var h = '<div class="row" style="margin-bottom:12px"><div class="sp"><h1 style="margin:0">⏱ ' + esc(nm) + '</h1><div class="small muted">' + fmtDate(LV.date) + (sp.land ? ' · 🏋' : ' · ' + LV.pool + ' m') + ' · ' + { all: A('الكل مع بعض', 'Tous ensemble'), stagger: A('بفاصل ', 'Décalé ') + LV.gap + A(' ث', ' s'), solo: A('كل واحد وحدو', 'Chacun son départ') }[LV.mode] + '</div></div>' +
+  var h = '<div class="row" style="margin-bottom:12px"><div class="sp"><h1 style="margin:0">⏱ ' + esc(nm) + '</h1><div class="small muted">' + fmtDate(LV.date) + (sp.land ? ' · 🏋' : sp.run ? ' · 🏃' : ' · ' + LV.pool + ' m') + ' · ' + { all: A('الكل مع بعض', 'Tous ensemble'), stagger: A('بفاصل ', 'Décalé ') + LV.gap + A(' ث', ' s'), solo: A('كل واحد وحدو', 'Chacun son départ') }[LV.mode] + '</div></div>' +
     '<div class="num" id="lv-clock" style="font:700 40px Rubik;min-width:130px;text-align:center">0:00</div><button class="btn dan big" id="lv-end">■ ' + A('إنهاء', 'Terminer') + '</button></div>';
   h += '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr))">' + LV.lanes.map(function (L, i) {
     var s = sw(L.sid) || {}, info;
     if (sp.land) info = '<span id="lv-rep-' + i + '"></span>';
-    else if (sp.dur) info = A('الطولات', 'Longueurs') + ' <b class="num" id="lv-rep-' + i + '" style="color:var(--ink)">0</b> · ' + A('المسافة', 'Distance') + ' <b class="num" id="lv-last-' + i + '" style="color:var(--ink)">0 m</b>';
+    else if (sp.dur) info = (sp.run ? A('الدورات', 'Tours') : A('الطولات', 'Longueurs')) + ' <b class="num" id="lv-rep-' + i + '" style="color:var(--ink)">0</b> · ' + A('المسافة', 'Distance') + ' <b class="num" id="lv-last-' + i + '" style="color:var(--ink)">0 m</b>';
     else info = A('التكرار', 'Rép.') + ' <b class="num" id="lv-rep-' + i + '" style="color:var(--ink)">0/' + sp.n + '</b> · ' + A('السابق', 'Préc.') + ' <b class="num" id="lv-last-' + i + '" style="color:var(--ink)">—</b>';
     return '<div class="card" style="margin:0;display:flex;flex-direction:column;gap:8px"><div class="row"><span class="ic" style="width:38px;height:38px;font:700 18px Rubik;background:var(--blue);color:#fff">' + (i + 1) + '</span><b class="sp" style="font-size:20px">' + esc(s.name || '') + '</b><span class="small" id="lv-sn-' + i + '"></span></div>' +
       '<div class="row" style="align-items:flex-end;gap:16px"><div><div class="num" id="lv-hr-' + i + '" style="font:700 80px/0.95 Rubik;color:var(--bad)">--</div><div class="small muted">bpm</div></div>' +
@@ -2095,7 +2131,7 @@ function vLive(app) {
       '<div class="num" id="lv-cur-' + i + '" style="font:700 30px Rubik">0:00.0</div><div class="small muted num" id="lv-sp-' + i + '"></div></div></div>' +
       '<div class="row" style="margin-top:auto">' + (sp.land ? '' : '<button type="button" class="btn" data-lu="' + i + '" style="min-height:64px">↩ ' + A('تراجع', 'Annuler') + '</button>') +
       '<button type="button" class="btn" data-lg="' + i + '" style="min-height:64px;font-size:18px">▶</button>' +
-      (sp.land === 'ruff' || sp.land === 'count' ? '' : '<button type="button" class="btn pri" data-lt="' + i + '" style="flex:1;min-height:72px;font-size:24px;justify-content:center">🏁</button>') +
+      (sp.land === 'ruff' || sp.land === 'count' || sp.land === 'rest' ? '' : '<button type="button" class="btn pri" data-lt="' + i + '" style="flex:1;min-height:72px;font-size:24px;justify-content:center">🏁</button>') +
       (!sp.land && !sp.dur ? '<button type="button" class="btn" data-la="' + i + '" title="' + A('وصل مباشرة', 'Arrivée directe') + '" style="min-height:64px;font-size:20px">🏁</button>' : '') + '</div></div>';
   }).join('') + '</div>';
   app.innerHTML = h;
@@ -2110,14 +2146,18 @@ function lapTimes(r) { var a = [], p = r.s; (r.sp || []).forEach(function (x) { 
 function lvPaint() {
   if (S.view === 'liveSetup' && LS) { LS.sids.forEach(function (sid, i) { if (!sid) return; var st = sensState(sid), e = $('#ls-hr-' + i), f = $('#ls-st-' + i); if (e) e.textContent = st.hr || '--'; if (f) { f.innerHTML = st.txt; f.style.color = 'var(--' + (st.cls === 'ok' ? 'ok' : st.cls === 'warn' ? 'warn' : 'mute') + ')'; } }); return; }
   if (S.view !== 'live' || !LV) return;
-  var t = LV.running ? lvNow() : LV.T1 || 0, ck = $('#lv-clock'), sp = LV.spec, pl = +LV.pool || 25; if (ck) ck.textContent = t < 0 ? '0:00' : F(t, 0);
+  var t = LV.running ? lvNow() : LV.T1 || 0, ck = $('#lv-clock'), sp = LV.spec, pl = +LV.split || +LV.pool || 25; if (ck) ck.textContent = t < 0 ? '0:00' : F(t, 0);
   LV.lanes.forEach(function (L, i) {
     var st = sensState(L.sid), hr = $('#lv-hr-' + i), sn = $('#lv-sn-' + i);
     if (hr) { hr.textContent = st.hr || '--'; hr.style.color = st.lost ? 'var(--mute)' : 'var(--bad)'; }
     if (sn) { sn.innerHTML = st.txt; sn.style.color = 'var(--' + (st.cls === 'ok' ? 'ok' : st.cls === 'warn' ? 'warn' : 'mute') + ')'; }
     var se = $('#lv-st-' + i); if (se) se.textContent = lvStateTxt(L);
     var cur = $('#lv-cur-' + i), rp = $('#lv-rep-' + i), la = $('#lv-last-' + i), spl = $('#lv-sp-' + i), bt = $('[data-lt="' + i + '"]'), ba = $('[data-la="' + i + '"]');
-    if (sp.land) {
+    if (sp.land === 'leger') {
+      if (cur) cur.textContent = L.first != null ? F((L.end != null ? L.end : t) - L.first, 0) : '0:00';
+      if (rp) rp.textContent = L.lgStage ? A('وقف في المرحلة ', 'Arrêt palier ') + L.lgStage + ' · ' + L.lgSh : '';
+      if (bt) { bt.disabled = L.state !== 'lg'; bt.textContent = '⏹ ' + A('وقف', 'Stop'); }
+    } else if (sp.land) {
       var ph = L.state === 'land' ? sp.phases[L.pi] : null;
       if (cur) cur.textContent = ph ? (ph.dur ? F(Math.max(0, ph.dur - (t - L.pStart)), 0) : F(t - L.pStart, 1)) : L.first != null ? '✓' : '0:00';
       if (rp) rp.textContent = L.ph ? L.ph.filter(function (p) { return p.k === 'work' || p.k === 'meas'; }).length + '/' + sp.phases.filter(function (p) { return p.k === 'work' || p.k === 'meas'; }).length : '';
@@ -2127,7 +2167,7 @@ function lvPaint() {
       if (sp.dur) {
         if (rp) rp.textContent = L.laps.length; if (la) la.textContent = L.laps.length * pl + A(' م', ' m');
         if (spl) { var lp = L.laps.length ? L.laps[L.laps.length - 1] - (L.laps.length > 1 ? L.laps[L.laps.length - 2] : L.first) : null; spl.textContent = lp ? A('آخر طولة ', 'Dernière longueur ') + F(lp, 1) : ''; }
-        if (bt) { bt.disabled = L.state !== 'swim'; bt.textContent = '⏱ ' + A('لمسة', 'Touche') + ' · ' + ((L.laps.length + 1) * pl) + A(' م', ' m'); }
+        if (bt) { bt.disabled = L.state !== 'swim'; bt.style.display = +LV.split ? '' : 'none'; bt.textContent = '⏱ ' + A('لمسة', 'Touche') + ' · ' + ((L.laps.length + 1) * pl) + A(' م', ' m'); }
       } else {
         if (rp) rp.textContent = L.reps.length + '/' + sp.n;
         if (la) la.textContent = L.reps.length ? F(L.reps[L.reps.length - 1].e - L.reps[L.reps.length - 1].s, 1) : '—';
@@ -2170,12 +2210,15 @@ function lvRecord(L, asks) {
   else if (L.reps.some(function (r) { return r.sp && r.sp.length; })) splits = L.reps.map(function (r) { return lapTimes(r).map(function (q) { return +q.toFixed(1); }); });
   if (it.key === 'step') { type = 'step'; d = { protocol: sp.pid, reps: times.map(function (x, i) { return { time: F(x, 1), hr: hrs[i] || '', lac: '', rpe: '' }; }), peak: live.peak || '', hr60: live.hr60 || '', hrmax: '', hrSrc: 'live', offset: '0:00', pool: LV.pool }; }
   else if (it.key === '400') { type = '400'; d = { dist: '400', time: times[0] != null ? F(times[0], 2) : '', hrEnd: hrs[0] || '', hr60: live.hr60 || '', sr: '', hrSrc: 'live', pool: LV.pool }; }
+  else if (it.key === 'leger') { type = 'leger'; d = { stage: asks.stage || '', shuttle: asks.shuttle || '', hrmax: live.peak || '', hr60: live.hr60 || '', lastDone: '' }; }
+  else if (it.key === 'rest') { type = 'rest'; d = { rows: asks.bpm ? [{ date: LV.date, bpm: asks.bpm, rmssd: '' }] : [] }; }
   else if (it.key === 'css') { type = 'css'; d = { d1: '400', t1: times[0] != null ? F(times[0], 2) : '', hr1: hrs[0] || '', d2: '200', t2: times[1] != null ? F(times[1], 2) : '', hr2: hrs[1] || '', pool: LV.pool }; }
   else {
     type = 'bt'; d = { test: it.bt.id, cond: cond };
     if (sp.land) {
       var sets = lvSets(L);
       if (sp.land === 'ruff') { d.p0 = asks.p0 || ''; d.p1 = asks.p1 || ''; d.p2 = asks.p2 || ''; }
+      else if (sp.land === 'any') sp.inputs.forEach(function (x) { d[x.k] = asks[x.k] || ''; });
       else if (sp.proto) {
         var pr = JSON.parse(JSON.stringify(sp.proto)); delete pr.note; d.proto = pr; d.vals = []; d.hr = []; d.rpe = '';
         sets.forEach(function (p, k) { var v = asks['v' + k]; if (v == null || v === '') return; (d.vals[p.si] = d.vals[p.si] || [])[p.ri || 0] = v; var m = lvMax(L, p.s, p.e + 10); if (m) d.hr[p.si] = Math.max(d.hr[p.si] || 0, m); });
@@ -2192,7 +2235,7 @@ function lvRecord(L, asks) {
   }
   d.live = live; if (smp.length) d.samples = pack(smp);
   d.hrDur = Math.round(((L.end != null ? L.end : LV.T1 || 0) - (L.first || 0)) * 10) / 10; d.hrSrc = 'live';
-  if (splits) d.splits = splits;
+  if (splits) { d.splits = splits; d.splitM = +LV.split; }
   return { id: uid(), swimmerId: L.sid, type: type, date: LV.date, data: d, notes: '' };
 }
 
@@ -2202,25 +2245,34 @@ function vLiveRes(app) {
   var sp = LV.spec, n = Math.max.apply(null, LV.lanes.map(function (L) { return L.reps.length; }).concat([sp.n || 0]));
   var h = '<h1>✅ ' + esc(LV.it.name) + ' · ' + A('النتائج', 'Résultats') + '</h1><div class="small muted" style="margin:-6px 0 12px">' + fmtDate(LV.date) + ' · ' + A('كل سباح تتحفظ نتيجتو في ملفو وحدو', 'Chaque nageur est enregistré dans sa propre fiche') + '</div>';
   var heads, cellsOf;
-  if (sp.land === 'ruff') {
+  if (sp.land === 'leger') {
+    heads = '<th>' + A('المرحلة', 'Palier') + '</th><th>' + A('الذهاب والإياب', 'Navette') + '</th>';
+    cellsOf = function (L, li) { return '<td><input data-ask="' + li + '" data-k="stage" class="num" inputmode="numeric" value="' + (L.lgStage || '') + '" style="min-width:60px"></td><td><input data-ask="' + li + '" data-k="shuttle" class="num" inputmode="numeric" value="' + (L.lgSh != null ? L.lgSh : '') + '" style="min-width:60px"></td>'; };
+  } else if (sp.land === 'rest') {
+    heads = '<th>' + A('نبض الراحة (متوسط آخر 2 د)', 'FC repos (moy. 2 dern. min)') + '</th>';
+    cellsOf = function (L, li) { var e = L.end != null ? L.end : (LV.T1 || 0), v = L.first != null ? lvMean(L, e - 120, e) : null; return '<td><input data-ask="' + li + '" data-k="bpm" class="num" inputmode="numeric" value="' + (v || '') + '" style="min-width:80px"></td>'; };
+  } else if (sp.land === 'any') {
+    heads = sp.inputs.map(function (x) { return '<th>' + esc(x.l) + (x.u ? ' <span class="small muted">(' + esc(x.u) + ')</span>' : '') + '</th>'; }).join('');
+    cellsOf = function (L, li) { return sp.inputs.map(function (x) { return '<td><input data-ask="' + li + '" data-k="' + esc(x.k) + '" class="num" inputmode="decimal" style="min-width:80px"></td>'; }).join(''); };
+  } else if (sp.land === 'ruff') {
     heads = ['P0', 'P1', 'P2', A('المؤشر', 'Indice')].map(function (x) { return '<th>' + x + '</th>'; }).join('');
     cellsOf = function (L, li) { var r = lvRuff(L); return ['p0', 'p1', 'p2'].map(function (k) { return '<td><input data-ask="' + li + '" data-k="' + k + '" class="num" inputmode="numeric" value="' + (r[k] || '') + '" style="min-width:70px"></td>'; }).join('') + '<td class="num" style="font-weight:700" id="ruf-' + li + '">—</td>'; };
   } else if (sp.land) {
     var nS = sp.phases.filter(function (p) { return p.k === 'work' || p.k === 'meas'; }).length;
     heads = Array.apply(null, Array(nS)).map(function (_, k) { return '<th>' + (nS > 1 ? A('سلسلة ', 'Série ') + (k + 1) : sp.land === 'count' ? A('العدد', 'Nombre') : A('الوقت (ث)', 'Temps (s)')) + '</th>'; }).join('');
-    cellsOf = function (L, li) { var ss = lvSets(L); return Array.apply(null, Array(nS)).map(function (_, k) { var p = ss[k], v = p && sp.land === 'meas' ? R(p.e - p.s, 1) : '', m = p ? lvMax(L, p.s, p.e + 10) : null; return '<td>' + (p ? '<input data-ask="' + li + '" data-k="v' + k + '" class="num" inputmode="decimal" value="' + v + '" placeholder="' + (sp.land === 'count' ? A('العدد', 'nb') : 's') + '" style="min-width:70px"><div class="small" style="color:var(--bad)">♥ ' + (m || '—') + '</div>' : '<span class="muted">—</span>') + '</td>'; }).join(''); };
+    cellsOf = function (L, li) { var ss = lvSets(L); return Array.apply(null, Array(nS)).map(function (_, k) { var p = ss[k], v = p && sp.land === 'meas' && sp.unitS ? R(p.e - p.s, 1) : '', m = p ? lvMax(L, p.s, p.e + 10) : null; return '<td>' + (p ? '<input data-ask="' + li + '" data-k="v' + k + '" class="num" inputmode="decimal" value="' + v + '" placeholder="' + (sp.land === 'count' ? A('العدد', 'nb') : 's') + '" style="min-width:70px"><div class="small" style="color:var(--bad)">♥ ' + (m || '—') + '</div>' : '<span class="muted">—</span>') + '</td>'; }).join(''); };
   } else if (sp.dur) {
     heads = (sp.ask || []).map(function (a) { return '<th>' + Tv([a[1], a[2]]) + '</th>'; }).join('');
-    cellsOf = function (L, li) { return (sp.ask || []).map(function (a) { var pre = a[0] === 'dist' && L.laps && L.laps.length ? L.laps.length * (+LV.pool || 25) : ''; return '<td><input data-ask="' + li + '" data-k="' + a[0] + '" class="num" inputmode="decimal" value="' + pre + '" style="min-width:90px">' + (pre ? '<div class="small muted">' + L.laps.length + ' ' + A('طولة + الباقي', 'long. + reste') + '</div>' : '') + '</td>'; }).join(''); };
+    cellsOf = function (L, li) { return (sp.ask || []).map(function (a) { var pre = a[0] === 'dist' && L.laps && L.laps.length ? L.laps.length * (+LV.split || 25) : ''; return '<td><input data-ask="' + li + '" data-k="' + a[0] + '" class="num" inputmode="decimal" value="' + pre + '" style="min-width:90px">' + (pre ? '<div class="small muted">' + L.laps.length + ' ' + A('طولة + الباقي', 'long. + reste') + '</div>' : '') + '</td>'; }).join(''); };
   } else {
     heads = Array.apply(null, Array(n)).map(function (_, i) { return '<th>' + (i + 1) + '</th>'; }).join('');
     cellsOf = function (L) { return Array.apply(null, Array(n)).map(function (_, i) { var r = L.reps[i]; if (!r) return '<td class="muted">—</td>'; var hh = lvHrAt(L, r.e), lt = r.sp && r.sp.length ? lapTimes(r) : null; return '<td class="num"' + (hh ? '' : ' style="background:var(--warnbg)"') + '><div style="font-weight:700">' + F(r.e - r.s, 1) + '</div>' + (lt ? '<div class="small muted" style="white-space:nowrap">' + lt.map(function (q) { return F(q, 1); }).join(' · ') + '</div>' : '') + '<div class="small" style="color:' + (hh ? 'var(--bad)' : 'var(--warn)') + '">♥ ' + (hh || '—') + '</div></td>'; }).join(''); };
   }
   h += '<div class="card"><div class="tbl-wrap"><table><tr><th style="text-align:start">' + T('name') + '</th>' + heads +
-    '<th>' + A('أعلى نبض', 'FC max') + '</th><th>' + A('المتوسط', 'Moy.') + '</th>' + (sp.land === 'ruff' ? '' : '<th>' + A('استرجاع 60 ث', 'Récup 60 s') + '</th>') + '<th></th></tr>' + LV.lanes.map(function (L, li) {
+    '<th>' + A('أعلى نبض', 'FC max') + '</th><th>' + A('المتوسط', 'Moy.') + '</th>' + (sp.land === 'ruff' || sp.land === 'rest' ? '' : '<th>' + A('استرجاع 60 ث', 'Récup 60 s') + '</th>') + '<th></th></tr>' + LV.lanes.map(function (L, li) {
       var s = sw(L.sid) || {}, pk = lvPeak(L), h60 = lvHr60(L), gap = lvGap(L), hrr = pk && h60 ? pk - h60 : null, none = L.first == null || (!sp.land && !sp.dur && !L.reps.length);
       return '<tr><td style="text-align:start"><b>' + esc(s.name || '') + '</b>' + (gap > 3 ? '<div class="small" style="color:var(--warn)">' + A('بلا نبض ', 'Sans FC ') + gap + A(' ث', ' s') + '</div>' : '') + (none ? '<div class="small" style="color:var(--bad)">' + A('ما تسجل والو', 'Rien d’enregistré') + '</div>' : '') + '</td>' + cellsOf(L, li) +
-        '<td class="num" style="font-weight:700">' + (pk || '—') + '</td><td class="num">' + (lvAvg(L) || '—') + '</td>' + (sp.land === 'ruff' ? '' : '<td class="num">' + (hrr != null ? hrr : '—') + '</td>') +
+        '<td class="num" style="font-weight:700">' + (pk || '—') + '</td><td class="num">' + (lvAvg(L) || '—') + '</td>' + (sp.land === 'ruff' || sp.land === 'rest' ? '' : '<td class="num">' + (hrr != null ? hrr : '—') + '</td>') +
         '<td><label class="row" style="gap:6px;margin:0;font-weight:600;color:var(--ink)"><input type="checkbox" data-keep="' + li + '"' + (none ? '' : ' checked') + ' style="width:22px;height:22px;min-height:0"> ' + A('نحفظ', 'Garder') + '</label></td></tr>';
     }).join('') + '</table></div></div>';
   h += '<div class="info" style="margin-bottom:12px">' + (sp.land ? A('تقدر تصحح أي رقم قبل الحفظ. ♥ = أعلى نبض في كل سلسلة.', 'Vous pouvez corriger chaque valeur avant d’enregistrer. ♥ = FC max de chaque série.') : A('الخانات الصفرا = النبض ما وصلش في ذيك اللحظة (تحت الماء). بعد الحفظ تقدر تكمّلها من «⌚ Polar» في صفحة الاختبار إذا السباح مربوط.', 'Cases jaunes : FC non reçue (sous l’eau). Après l’enregistrement, complétez via « ⌚ Polar » dans le test si le nageur est connecté.')) + '</div>';
