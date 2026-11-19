@@ -1,5 +1,5 @@
 /* VO2max Al-Wathba — application */
-var APP_V = '5.6';
+var APP_V = '5.7';
 (function () {
 'use strict';
 var C = window.VO2C;
@@ -366,6 +366,9 @@ var Local = {
     else if (p.a === 'delTest') { var dt = d.t.find(function (x) { return x.id === p.id; }); if (dt && !(canT(S_(dt.swimmerId), dt.type, true) && need('editRes'))) return F_; if (dt && btT(dt.type)) audit('résultat supprimé', (S_(dt.swimmerId) || {}).name + ' · ' + dt.date); d.t = d.t.filter(function (x) { return x.id !== p.id; }); }
     else if (p.a === 'saveSetting') { if (w.role !== 'admin') return F_; d.set = d.set || {}; d.set[p.key] = p.value; }
     else if (p.a === 'log') { r.log = (d.log || []).slice().reverse(); }
+    else if (p.a === 'raw') { r.raw = { days: {} }; }
+    else if (p.a === 'pdfStatus') { r.done = Object.keys(d.pdf || {}).filter(function (k) { return k.indexOf(p.month + '_') === 0; }).map(function (k) { return k.split('_')[1]; }); }
+    else if (p.a === 'pdfSave') { d.pdf = d.pdf || {}; d.pdf[p.month + '_' + p.sid] = String(p.html || '').length; window.__lastPdf = p.html; r.url = '#pdf'; }
     else if (p.a === 'coachLink') { if (w.role !== 'admin') return F_; var cl = d.c.find(function (x) { return x.id === p.id; }); cl.inv = { tk: rndHex(20), at: now }; delete cl.dev; r.tk = cl.inv.tk; }
     else if (p.a === 'coachUnbind') { if (w.role !== 'admin') return F_; var cu = d.c.find(function (x) { return x.id === p.id; }); if (cu) { delete cu.dev; delete cu.inv; } }
     else if (p.a === 'devs') { if (w.role !== 'admin') return F_; r.me = w.di; r.list = d.ad.map(function (x) { return { id: x.id, code: String(x.id).slice(0, 4).toUpperCase(), label: x.label, ok: !!x.ok, blocked: !!x.blocked, at: x.at, last: x.last }; }); }
@@ -432,7 +435,34 @@ function n1(x) { return x == null ? '—' : R(x, 1); }
 function n0(x) { return x == null ? '—' : Math.round(x); }
 function initials(n) { return String(n || '?').trim().split(/\s+/).slice(0, 2).map(function (w) { return w[0]; }).join('').toUpperCase(); }
 var ICON = { step: '📈', '400': '🏊', css: '⏱', leger: '🏃', rest: '😴', day: '🌙', time: '🏅' };
-function daysOf(id) { return DB.tests.filter(function (t) { return t.swimmerId === id && t.type === 'day'; }).map(function (t) { var d = t.data || {}; return { id: t.id, date: t.date, hrv: d.hrv, rhr: d.rhr, sleepH: d.sleepH, sleepScore: d.sleepScore, recharge: d.recharge, br: d.br, ans: d.ans, min: d.min, rpe: d.rpe, load: C.num(d.min) && C.num(d.rpe) != null ? C.num(d.min) * C.num(d.rpe) : null, polar: d.polar, cl: d.cl, str: d.str, tol: d.tol, clr: d.clr, cls: d.cls, ex: d.ex || [], chr: d.chr || null }; }).sort(function (a, b) { return a.date < b.date ? -1 : 1; }); }
+// 🗂 تفاصيل النبض (Drive): ملف لكل سباح لكل شهر، تتجاب كي نحتاجوها برك وتبقى في الهاتف
+var RAW = {}, RAWQ = {};
+function rawKey(sid, m) { return sid + '|' + m; }
+function rawGet(sid, m) {
+  var k = rawKey(sid, m); if (RAW[k]) return RAW[k];
+  try { var x = localStorage.getItem('mr_raw_' + k); if (x) return (RAW[k] = JSON.parse(x)); } catch (e) {}
+  return null;
+}
+function ensureRaw(sid, months) {
+  var miss = months.filter(function (m) { var k = rawKey(sid, m); return /^\d{4}-\d{2}$/.test(m) && !rawGet(sid, m) && !RAWQ[k]; });
+  if (!miss.length || API.url() === 'demo') return false;
+  miss.forEach(function (m) {
+    var k = rawKey(sid, m); RAWQ[k] = 'wait';
+    API.call('raw', { sid: sid, month: m }).then(function (r) {
+      if (!r || !r.ok) { RAWQ[k] = 'fail'; return; }
+      RAW[k] = r.raw || { days: {} }; RAWQ[k] = 'ok';
+      var put = function () { localStorage.setItem('mr_raw_' + k, JSON.stringify(RAW[k])); };
+      try { put(); } catch (e) { try { Object.keys(localStorage).filter(function (x) { return x.indexOf('mr_raw_') === 0 && x !== 'mr_raw_' + k; }).forEach(function (x) { localStorage.removeItem(x); }); put(); } catch (e2) {} }
+      render();
+    }).catch(function () { RAWQ[k] = 'fail'; });
+  });
+  return true;
+}
+function rawWaiting(sid, m) { return RAWQ[rawKey(sid, m)] === 'wait'; }
+function rawFailed(sid, m) { return RAWQ[rawKey(sid, m)] === 'fail'; }
+function daysOf(id) { return DB.tests.filter(function (t) { return t.swimmerId === id && t.type === 'day'; }).map(function (t) { var d = t.data || {}, rw = rawGet(id, String(t.date).slice(0, 7)), rd = rw && rw.days && rw.days[t.date] || {};
+  var ex = (d.ex || []).map(function (e) { var x = rd.ex && rd.ex[e.id]; return !e.hr && x && x.hr ? Object.assign({}, e, { hr: x.hr, rate: x.rate || e.rate || 5 }) : e; });
+  return { id: t.id, date: t.date, hrv: d.hrv, rhr: d.rhr, sleepH: d.sleepH, sleepScore: d.sleepScore, recharge: d.recharge, br: d.br, ans: d.ans, min: d.min, rpe: d.rpe, load: C.num(d.min) && C.num(d.rpe) != null ? C.num(d.min) * C.num(d.rpe) : null, polar: d.polar, cl: d.cl, str: d.str, tol: d.tol, clr: d.clr, cls: d.cls, ex: ex, chr: d.chr || rd.chr || null, hasChr: !!(d.chr || d.hasChr) }; }).sort(function (a, b) { return a.date < b.date ? -1 : 1; }); }
 function readyOf(s, date) { return C.readiness(daysOf(s.id), date || today(), ageOf(s, date)); }
 function isHead() { return DB.me && DB.me.role === 'coach' && DB.me.head; }
 /* --- permissions (v4) : l'administration choisit, pour chaque entraîneur, les nageurs visibles et les droits --- */
@@ -684,6 +714,7 @@ function doneLogin(r, inv) {
 
 /* ---------- accueil ---------- */
 function vHome(app) {
+  setTimeout(monthPdfAuto, 4000);
   var list = visibleSwimmers().sort(function (a, b) { return (a.name || '').localeCompare(b.name || ''); });
   var h = '';
   if (isAdmin() && (DB.coaches || []).length) {
@@ -759,7 +790,7 @@ function vSwForm(app) {
 function vSwimmer(app) {
   var s = sw(S.sid); if (!s) return route('home');
   var P = profile(s);
-  var h = '<div class="row"><button class="btn sm" id="bk">← ' + T('swimmers') + '</button><span class="sp"></span>' + (can('vo2') || can('bt') || can('day') ? '<button class="btn pri" id="nt">＋ ' + T('newTest') + '</button>' : '') + (can('print') && can('rep') ? '<button class="btn sm" id="pr">🖨 ' + T('print') + '</button>' : '') + (can('edit') ? '<button class="btn sm" id="ed">✎ ' + T('edit') + '</button>' : '') + '</div>' +
+  var h = '<div class="row"><button class="btn sm" id="bk">← ' + T('swimmers') + '</button><span class="sp"></span>' + (can('vo2') || can('bt') || can('day') ? '<button class="btn pri" id="nt">＋ ' + T('newTest') + '</button>' : '') + (can('print') && can('rep') ? '<button class="btn sm" id="pr">🖨 ' + T('print') + '</button><button class="btn sm" id="mpdf">📄 ' + A('تقرير الشهر', 'Rapport du mois') + '</button>' : '') + (can('edit') ? '<button class="btn sm" id="ed">✎ ' + T('edit') + '</button>' : '') + '</div>' +
     '<div class="row" style="margin:12px 0"><div class="av" style="width:58px;height:58px;font-size:22px">' + esc(initials(s.name)) + '</div><div class="sp"><h1 style="margin:0">' + esc(s.name) + '</h1><div class="small muted">' +
     (P.age ? '<span class="num">' + R(P.age, 1) + '</span> ' + T('yrs') : '') + (window.BTV && BTV.catOf(s) ? ' · <span class="chip">' + BTV.catName(BTV.catOf(s)) + '</span>' : '') + (s.weight ? ' · <span class="ltr">' + esc(s.weight) + ' kg</span>' : '') + (s.height ? ' · <span class="ltr">' + esc(s.height) + ' cm</span>' : '') + (s.level ? ' · ' + (s.level == 7 ? T('comp') : T('level') + ' ' + s.level) : '') + (isAdmin() && s.coachId ? ' · 👤 ' + esc(coachName(s.coachId)) : '') + '</div></div>' +
     (P.ready ? '<span class="chip ' + P.ready.level + '"><span class="dot ' + P.ready.level + '"></span> ' + T(P.ready.level).split(':')[0] + '</span>' : '') + '</div>';
@@ -777,6 +808,7 @@ function vSwimmer(app) {
   $('#bk').onclick = function () { route('home'); };
   if ($('#ed')) $('#ed').onclick = function () { route('swForm'); };
   if ($('#pr')) $('#pr').onclick = function () { printCard(s); };
+  if ($('#mpdf')) $('#mpdf').onclick = function () { monthPdfPanel(s); };
   if ($('#nt')) $('#nt').onclick = function () { route('pick', { sid: s.id }); };
   $$('[data-pick]').forEach(function (b) { b.onclick = function () { route('pick', { sid: s.id }); }; });
   $$('[data-tk]').forEach(function (b) { b.onclick = function () { route('swTest', { tkey: b.dataset.tk }); }; });
@@ -819,9 +851,10 @@ function dayReport(s, date) {
   var cl = lastWith(days, date, 'cls') || lastWith(days, date, 'clr'), cat = clCat(cl);
   var need = r ? r.sleepNeed : (age != null && age < 13 ? 9 : 8);
   var rep = { s: s, date: date, d: d, y: y, r: r, cl: cl, cat: cat, age: age, need: need, P: P };
-  // ── المستوى النهائي
+  // ── المستوى النهائي: يتحسب غير إذا كاين قياس الليل (نوم ولا HRV ولا نبض راحة ولا Recharge)
   var lvl = r ? r.level : null;
-  if (cat === 'excess') lvl = !lvl || lvl === 'green' ? 'yellow' : 'red';
+  rep.loadHigh = cat === 'excess';
+  if (r && cat === 'excess') lvl = lvl === 'green' ? 'yellow' : 'red';
   rep.lvl = lvl || 'none';
   rep.ill = r && r.hrvZ != null && r.rhrZ != null && r.hrvZ < -1.5 && r.rhrZ > 1.5;
   if (rep.ill) rep.lvl = 'red';
@@ -945,10 +978,14 @@ function drawReport(s) {
   var days = daysOf(s.id); if (!days.length) { box.innerHTML = ''; return; }
   var dates = days.map(function (x) { return x.date; }).reverse().slice(0, 30);
   if (!S.rdate || dates.indexOf(S.rdate) < 0) S.rdate = dates[0];
+  var dd = days.find(function (x) { return x.date === S.rdate; }), mo = String(S.rdate).slice(0, 7);
+  var needD = dd && ((dd.hasChr && !dd.chr) || (dd.ex || []).some(function (e) { return e.hasHr && !e.hr; }));
+  if (needD) ensureRaw(s.id, [mo]);
   var rep = dayReport(s, S.rdate);
   box.innerHTML = '<div class="card"><div class="row" style="margin-bottom:10px"><h2 class="sp" style="margin:0">📋 ' + A('التقرير اليومي', 'Rapport du jour') + '</h2>' +
     '<select id="rp-d" class="rp-np" style="width:auto">' + dates.map(function (x) { return '<option value="' + x + '"' + (x === S.rdate ? ' selected' : '') + '>' + fmtDate(x) + '</option>'; }).join('') + '</select>' +
     (can('print') ? '<button class="btn sm rp-np" id="rp-cp">📲 ' + A('نسخ (واتساب)', 'Copier') + '</button><button class="btn sm rp-np" id="rp-pr">🖨 ' + A('طباعة', 'Imprimer') + '</button>' : '') + '</div>' +
+    (needD && rawWaiting(s.id, mo) ? '<div class="info" style="margin-bottom:10px">⏳ ' + A('نجيب منحنيات النبض تاع هاذ النهار…', 'Chargement des courbes de FC du jour…') + '</div>' : needD && rawFailed(s.id, mo) ? '<div class="note" style="margin-bottom:10px">📶 ' + A('منحنيات النبض تحتاج أنترنت أول مرة. الأرقام تحت صحيحة.', 'Les courbes de FC demandent internet la première fois. Les chiffres ci-dessous sont exacts.') + '</div>' : '') +
     '<div id="rp-body">' + (rep ? reportHtml(rep) : '<p class="muted">' + T('noDays') + '</p>') + '</div></div>';
   if (rep) drawReportCharts(rep);
   $('#rp-d').onchange = function () { S.rdate = this.value; killCharts(); render(); };
@@ -1034,7 +1071,10 @@ function zIdx(b, lo) { var k = 0; for (var i = 0; i < lo.length; i++) if (b >= l
 // مصادر الطاقة (تقديري من النبض، ولا نسب Polar إذا بعثتهم)
 function energy(e, rep) {
   if (!e.hr || !e.hr.length) return null;
-  var rest = C.num(rep.d.rhr) || 60, mx = Math.max(e.hrMax || 0, rep.zones ? rep.zones[4].hi : 0, Math.max.apply(null, e.hr)) || 190;
+  // ما نخترعوش: نحتاجو نبض راحة ونبض أقصى حقيقيين، ولا نسب Polar
+  var rest = C.num(rep.d.rhr), mx = rep.zones ? rep.zones[4].hi : null;
+  if ((!rest || !mx) && !(e.choP != null && e.fatP != null)) return null;
+  rest = rest || 60; mx = mx || Math.max(e.hrMax || 0, Math.max.apply(null, e.hr));
   var kc = e.kcal || null, ws = e.hr.map(function (b) { return b > 0 ? Math.max(b - 70, 5) : 0; }), W = ws.reduce(function (a, b) { return a + b; }, 0) || 1, perMin = 60 / (e.rate || 5);
   var cho = [], fat = [], tc = 0, tf = 0, tp = 0;
   e.hr.forEach(function (b, i) {
@@ -1052,7 +1092,12 @@ function reportVisual(rep) {
   rpCss();
   var d = rep.d, r = rep.r, L = rep.lvl, sc = rpScore(rep), days = daysOf(rep.s.id).filter(function (x) { return x.date <= rep.date; }).slice(-7);
   var head = { green: ['🟢', A('جاهز: حصة عادية حسب البرنامج', 'Prêt : séance normale')], yellow: ['🟡', A('تعب خفيف: نقّص الشدة اليوم', 'Fatigue légère : réduire l’intensité')], red: ['🔴', A('تعب: حصة استرجاع ولا راحة', 'Fatigue : récupération ou repos')], none: ['⚪', A('ما كاينش بيانات كافية', 'Données insuffisantes')] }[L];
-  var why = []; if (r) r.flags.forEach(function (f) { why.push(T('f_' + f)); }); if (rep.cat === 'excess') why.push(A('حمل الأيام الأخيرة زايد', 'charge récente excessive')); if (rep.ill) why.push(A('HRV هابط + نبض الراحة طالع', 'VFC basse + FC repos haute'));
+  var why = []; if (r) r.flags.forEach(function (f) { why.push(T('f_' + f)); }); if (r && rep.cat === 'excess') why.push(A('حمل الأيام الأخيرة زايد', 'charge récente excessive')); if (rep.ill) why.push(A('HRV هابط + نبض الراحة طالع', 'VFC basse + FC repos haute'));
+  if (!r) {
+    var h0 = '<div class="rp-hero none"><div class="ic">⚪</div><div class="sp"><b style="font-size:19px">' + A('ما كاينش قياس الليل لهاذ النهار', 'Pas de mesure de nuit pour ce jour') + '</b><div class="small">' + esc(rep.s.name) + ' · ' + fmtDate(rep.date) + ' · ' + A('الجاهزية ما تتحسبش بلا نوم ولا HRV ولا نبض راحة (الـ Loop ما تزامنش ولا ما تلبسش).', 'Forme non calculée sans sommeil, VFC ou FC de repos (Loop non synchronisée ou non portée).') + '</div>' +
+      (rep.loadHigh ? '<div class="small" style="margin-top:4px">🔥 ' + A('حمل الأيام الأخيرة (Polar) زايد', 'Charge récente (Polar) élevée') + ' <span class="srct" style="color:#1d6bff;background:#e8f0ff">' + A('محسوب من الحصص', 'calculé sur les séances') + '</span></div>' : '') + '</div></div>';
+    head = null; L = 'none'; var h = h0;
+  } else
   var h = '<div class="rp-hero ' + L + '"><div class="ic">' + head[0] + '</div><div class="sp"><b style="font-size:19px">' + head[1] + '</b><div class="small">' + esc(rep.s.name) + ' · ' + fmtDate(rep.date) + (why.length ? ' · ' + A('السبب: ', '') + why.join('، ') : '') + '</div>' +
     (r && r.baseN < 7 ? '<div class="small">⚠️ ' + A('تقييم أوّلي (' + r.baseN + '/7 ليالي)', 'provisoire (' + r.baseN + '/7 nuits)') + '</div>' : '') + '</div>' +
     (sc != null ? '<div class="rp-score"><b>' + sc + '</b><small>' + A('الجاهزية /100', 'forme /100') + '</small></div>' : '') + '</div>';
@@ -1342,9 +1387,10 @@ function polarBind(s) {
       PSYNC[s.id] = 1; toast(PT('wait'));
       API.call('polarSync', { sid: s.id }).then(function (x) { if (x && x.ok) { toast('✅ ' + x.days + ' ' + PT('got')); if (x.days) load().then(render); else polarBind(s); } }).catch(function () {});
     }
-    var when = L && L.last ? new Date(L.last).toLocaleString(LANG === 'fr' ? 'fr-FR' : 'ar-DZ', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : PT('none');
+    var p2 = function (x) { return ('0' + x).slice(-2); }, ld = L && L.last ? new Date(L.last) : null;
+    var when = ld ? p2(ld.getDate()) + '/' + p2(ld.getMonth() + 1) + ' · ' + p2(ld.getHours()) + ':' + p2(ld.getMinutes()) : PT('none');
     box.innerHTML = '<div class="card" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px"><div class="ic">⌚</div><div class="sp"><b>' + PT('t') + ' · ' + (L ? PT('on') : PT('off')) + '</b>' +
-      '<div class="small muted">' + (L ? PT('last') + ' : <span class="num">' + esc(when) + '</span> · ' + PT('auto') : (r.cfg ? '' : PT('noCfg'))) + '</div></div>' +
+      '<div class="small muted">' + (L ? PT('last') + ' : <bdi class="num" dir="ltr">' + esc(when) + '</bdi> · ' + PT('auto') : (r.cfg ? '' : PT('noCfg'))) + '</div></div>' +
       (L && can('polar') ? '<button class="btn pri sm" id="pl-sync">' + PT('sync') + '</button>' : '') +
       (isAdmin() && r.cfg ? '<button class="btn sm" id="pl-link">' + PT('link') + '</button>' : '') +
       (isAdmin() && L ? '<button class="btn sm dan" id="pl-un">' + PT('unlink') + '</button>' : '') + '</div>';
@@ -1369,8 +1415,8 @@ function polarBind(s) {
 }
 
 /* ---------- récupération ---------- */
-function readyCard(r, s) {
-  if (!r) return '<div class="card"><h3>' + T('readyT') + '</h3><p class="muted">' + T('noDays') + '</p></div>';
+function readyCard(r, s, hasDay) {
+  if (!r) return '<div class="card"><h3>' + T('readyT') + '</h3><p class="muted">' + (hasDay ? A('ما كاينش قياس الليل (نوم، HRV، نبض الراحة) لآخر نهار: الجاهزية ما تتحسبش.', 'Pas de mesure de nuit pour le dernier jour : forme non calculée.') : T('noDays')) + '</p></div>';
   var em = { green: '🟢', yellow: '🟡', red: '🔴' }[r.level];
   return '<div class="ready ' + r.level + '" style="margin-bottom:14px"><span class="big">' + em + '</span><div class="sp"><b style="font-size:18px">' + T(r.level) + '</b>' +
     (r.flags.length ? '<div class="small">' + r.flags.map(function (f) { return T('f_' + f); }).join(' · ') + '</div>' : '') +
@@ -1382,7 +1428,7 @@ function recoveryHtml(s) {
   h += '<div id="polar-bar"></div>';
   if (!can('rep')) return h + '<div class="card empty">🔒 ' + A('التقارير مسكّرة لهذا الحساب. تقدر تدخّل البيانات برك.', 'Rapports non autorisés pour ce compte : saisie uniquement.') + '</div>';
   h += '<div id="day-report" style="margin-bottom:14px"></div>';
-h += readyCard(r, s);
+h += readyCard(r, s, !!last);
   h += '<div class="grid g4" style="margin-bottom:14px">';
   if (last) {
     h += '<div class="card">' + kpi(T('hrvN'), n0(C.num(last.hrv)), 'ms') + (r && r.hrvBase ? '<div class="small muted">' + T('base28') + ' : <span class="num">' + n0(r.hrvBase) + '</span></div>' : '') + '</div>';
@@ -1704,11 +1750,13 @@ function plkRun(s, it, x) {
   var box = $('#plk'), date = x.date, P = S.plk;
   var cancel = '<button type="button" class="btn sm" id="plk-x">' + A('إلغاء', 'Annuler') + '</button>';
   if (P.step === 1) {
+    var mset = {}; [-3, 0, 3].forEach(function (k) { mset[addDays(date, k).slice(0, 7)] = 1; });
+    var waitR = ensureRaw(s.id, Object.keys(mset)) || Object.keys(mset).some(function (m) { return rawWaiting(s.id, m); });
     var loc = []; daysOf(s.id).forEach(function (d) { (d.ex || []).forEach(function (e) { if (e.hr && e.hr.length) loc.push({ date: d.date, e: e }); }); });
     var dd = function (a) { return Math.abs(new Date(a) - new Date(date)) / 864e5; };
     loc.sort(function (a, b) { return dd(a.date) - dd(b.date) || String(a.e.start).localeCompare(String(b.e.start)); }); loc = loc.filter(function (o) { return dd(o.date) <= 3; });
     box.innerHTML = '<div class="small muted" style="margin-bottom:6px">' + A('اختار الحصة اللي فيها الاختبار (حصص Verity Sense تاع Polar Flow):', 'Choisissez la séance contenant le test (séances Polar Flow) :') + '</div>' +
-      (loc.length ? loc.map(function (o, i) { return '<button type="button" class="btn sm' + (o.date === date ? ' pri' : '') + '" data-plo="' + i + '" style="margin:3px">⌚ ' + fmtDate(o.date) + ' ' + esc(o.e.start || '') + ' · ' + (o.e.min || '—') + ' min · ♥ ' + (o.e.hrAvg || '—') + '/' + (o.e.hrMax || '—') + '</button>'; }).join('') : '<div class="small">' + A('ما لقيتش حصة قريبة من نهار الاختبار في البيانات اللي تجابت.', 'Aucune séance proche de la date du test dans les données synchronisées.') + '</div>') +
+      (waitR ? '<div class="small">⏳ ' + A('نجيب حصص Polar تاع هاذ الأيام…', 'Chargement des séances Polar…') + '</div>' : '') + (loc.length ? loc.map(function (o, i) { return '<button type="button" class="btn sm' + (o.date === date ? ' pri' : '') + '" data-plo="' + i + '" style="margin:3px">⌚ ' + fmtDate(o.date) + ' ' + esc(o.e.start || '') + ' · ' + (o.e.min || '—') + ' min · ♥ ' + (o.e.hrAvg || '—') + '/' + (o.e.hrMax || '—') + '</button>'; }).join('') : '<div class="small">' + A('ما لقيتش حصة قريبة من نهار الاختبار في البيانات اللي تجابت.', 'Aucune séance proche de la date du test dans les données synchronisées.') + '</div>') +
       '<div class="row" style="margin-top:8px"><button type="button" class="btn sm" id="plk-api">🔄 ' + A('جيب كل الحصص من Polar (بالأنترنت)', 'Toutes les séances Polar (internet)') + '</button>' + cancel + '</div><div id="plk-api-l" class="small" style="margin-top:6px"></div>';
     $$('[data-plo]', box).forEach(function (b) { b.onclick = function () { var o = loc[+b.dataset.plo], rt = o.e.rate || 5; S.plk = { step: 2, id: o.e.id, date: o.date, start: o.e.start, zones: o.e.zones || null, raw: false, sm: o.e.hr.map(function (v, k) { return { t: k * rt, hr: v }; }).filter(function (p) { return p.hr > 0; }) }; render(); }; });
     $('#plk-api').onclick = function () {
@@ -2860,6 +2908,105 @@ function coachForm(c) {
     f.querySelector('.pri').disabled = true;
     API.call('saveCoach', { rec: rec }).then(function (r) { if (!r.ok) { f.querySelector('.pri').disabled = false; return toast(T(r.err) || r.err); } toast(T('saved')); load().then(render); }).catch(function () { f.querySelector('.pri').disabled = false; toast(T('neterr')); });
   };
+}
+
+/* ======================= 📄 تقرير الشهر (PDF في Drive) ======================= */
+var MOIS = { ar: ['جانفي', 'فيفري', 'مارس', 'أفريل', 'ماي', 'جوان', 'جويلية', 'أوت', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'], fr: ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'] };
+function monthName(m) { return MOIS[LANG === 'fr' ? 'fr' : 'ar'][+m.slice(5, 7) - 1] + ' ' + m.slice(0, 4); }
+function prevMonth() { var d = new Date(); d.setDate(1); d.setDate(0); return d.toISOString().slice(0, 7); }
+function monthsWithData(s) { var o = {}; DB.tests.forEach(function (t) { if (t.swimmerId === s.id && t.date) o[String(t.date).slice(0, 7)] = 1; }); return Object.keys(o).sort().reverse(); }
+function vText(vd) {
+  if (!vd) return '';
+  if (vd.k === 'diff') return T('vDiff');
+  var up = vd.ch >= 0, col = vd.k === 'noise' ? '#5c6f93' : up ? '#0b7a4f' : '#a3243b';
+  return '<span style="color:' + col + ';font-weight:bold">' + (up ? '▲ ' : '▼ ') + R(Math.abs(vd.ch), 1) + '% · ' + T({ real: 'vReal', likely: 'vLikely', noise: 'vNoise' }[vd.k]) + '</span>';
+}
+function toDataUrl(src) { return fetch(src).then(function (r) { return r.blob(); }).then(function (b) { return new Promise(function (ok) { var f = new FileReader(); f.onload = function () { ok(f.result); }; f.onerror = function () { ok(''); }; f.readAsDataURL(b); }); }).catch(function () { return ''; }); }
+function monthReportHtml(s, m) {
+  return toDataUrl('logo.png').then(function (logo) {
+    var P = profile(s), B = window.BTV, cat = B ? B.catOf(s) : null, rows = [], imgs = [], miss = [];
+    var cnd = function (x) { var c = x.rec && x.rec.data && (x.rec.data.cond || {}); return [c && c.pool || (x.rec && x.rec.data && x.rec.data.pool) || '', c && c.timing || ''].join('|'); };
+    catalog(s).forEach(function (it) {
+      var hh = histOf(s, it), inM = false;
+      hh.forEach(function (x, i) {
+        if (String(x.date).slice(0, 7) !== m) return; inM = true;
+        var prev = i > 0 ? hh[i - 1] : null, same = prev && cnd(prev) === cnd(x), st = hrStatsOf(x.rec, s), pb = i > 0 && pbIdx(hh.slice(0, i + 1), it.better) === i;
+        rows.push({ it: it, x: x, prev: prev, vd: prev && same ? vdOf(it, x, prev) : null, diffC: prev && !same, pb: pb, st: st });
+      });
+      if (inM && hh.length >= 2) imgs.push({ t: it.name, u: chartImg(evoCfg(hh, it), 420, 170) });
+    });
+    var days = daysOf(s.id).filter(function (d) { return d.date.slice(0, 7) === m; }), nM = 0, sl = [], hv = [], rh = [], nS = 0, mins = 0, load = 0, hrS = 0, hrM = 0;
+    var dayRows = days.map(function (d) {
+      var r = C.readiness(daysOf(s.id), d.date, ageOf(s, d.date)), tr = (d.ex || []).filter(isTraining);
+      if (r) nM++; if (C.num(d.sleepH) != null) sl.push(C.num(d.sleepH)); if (C.num(d.hrv) != null) hv.push(C.num(d.hrv)); if (C.num(d.rhr) != null) rh.push(C.num(d.rhr));
+      tr.forEach(function (e) { nS++; mins += e.min || 0; load += e.load || 0; if (e.hrAvg && e.min) { hrS += e.hrAvg * e.min; hrM += e.min; } });
+      var lv = r ? { green: ['#e3f7ee', '#0a5b3a', A('جاهز', 'Prêt')], yellow: ['#fff4dc', '#6b4a00', A('تعب خفيف', 'Fatigue légère')], red: ['#fde8e8', '#7a1c1c', A('تعب', 'Fatigue')] }[r.level] : null;
+      return '<tr><td>' + fmtDate(d.date) + '</td><td>' + n1(C.num(d.sleepH)) + '</td><td>' + n0(C.num(d.hrv)) + '</td><td>' + n0(C.num(d.rhr)) + '</td><td>' + (C.num(d.recharge) != null ? T('rc' + C.num(d.recharge)) : '—') + '</td>' +
+        '<td style="' + (lv ? 'background:' + lv[0] + ';color:' + lv[1] + ';font-weight:bold' : 'color:#8a97b0') + '">' + (lv ? lv[2] : A('بلا قياس', 'sans mesure')) + '</td><td>' + (tr.length || '—') + '</td><td>' + (tr.reduce(function (a, e) { return a + (e.min || 0); }, 0) || '—') + '</td><td>' + (Math.round(tr.reduce(function (a, e) { return a + (e.load || 0); }, 0)) || '—') + '</td></tr>';
+    });
+    var avg = function (a) { return a.length ? a.reduce(function (x, y) { return x + y; }, 0) / a.length : null; };
+    var nDays = new Date(+m.slice(0, 4), +m.slice(5, 7), 0).getDate();
+    if (days.length && nM < days.length) miss.push(A((days.length - nM) + ' نهار بلا قياس الليل (الجاهزية ما تحسبتش فيهم).', (days.length - nM) + ' jours sans mesure de nuit (forme non calculée).'));
+    if (!days.length) miss.push(A('ما كاينش بيانات يومية (Polar ولا إدخال) في هاذ الشهر.', 'Aucune donnée quotidienne ce mois-ci.'));
+    rows.forEach(function (o) { if (!o.st) miss.push(esc(o.it.name) + ' (' + fmtDate(o.x.date) + '): ' + A('بلا نبض.', 'sans FC.')); else if (!o.st.good) miss.push(esc(o.it.name) + ' (' + fmtDate(o.x.date) + '): ' + A('النبض يغطي ', 'FC couvre ') + Math.round(o.st.cov * 100) + '% ' + A('برك، الحسابات ما تديرتش.', 'seulement ; calculs non faits.')); });
+    var tag = function (k) { var t = { m: [A('مقاس', 'mesuré'), '#0b7a4f'], c: [A('محسوب', 'calculé'), '#1d6bff'], e: [A('مقدّر', 'estimé'), '#8a5a00'] }[k]; return ' <span style="color:' + t[1] + ';font-size:8pt">(' + t[0] + ')</span>'; };
+    var dir = LANG === 'fr' ? 'ltr' : 'rtl', al = LANG === 'fr' ? 'left' : 'right';
+    var h = '<!DOCTYPE html><html lang="' + (LANG === 'fr' ? 'fr' : 'ar') + '" dir="' + dir + '"><head><meta charset="utf-8"><style>' +
+      'body{font-family:Arial,Tahoma,sans-serif;font-size:10.5pt;color:#13306b;direction:' + dir + ';text-align:' + al + '}' +
+      'h1{font-size:18pt;margin:0}h2{font-size:13pt;color:#fff;background:#13306b;padding:5px 8px;margin:16px 0 6px}' +
+      'table{border-collapse:collapse;width:100%}td,th{border:1px solid #c9d8f2;padding:4px 6px;text-align:' + al + ';vertical-align:top;font-size:9.5pt}th{background:#e8f0ff;color:#13306b}' +
+      '.k td{border:1px solid #c9d8f2;text-align:center;font-size:9pt}.k b{display:block;font-size:15pt;color:#13306b}.muted{color:#5c6f93;font-size:8.5pt}' +
+      '</style></head><body>';
+    h += '<table style="border:0;margin-bottom:8px"><tr><td style="border:0;width:70px">' + (logo ? '<img src="' + logo + '" style="width:60px">' : '') + '</td><td style="border:0"><div style="font-size:15pt;font-weight:bold;color:#13306b">MR WATHBA PERFORMANCE <span style="color:#c9a24a;font-size:9pt">BY OKBA</span></div>' +
+      '<div class="muted">' + A('تقرير الشهر · السباح مقارن مع روحو', 'Rapport mensuel · le nageur comparé à lui-même') + '</div></td><td style="border:0;text-align:' + (LANG === 'fr' ? 'right' : 'left') + '"><h1>' + esc(s.name) + '</h1><div>' + monthName(m) + '</div><div class="muted">' +
+      [P.age ? R(P.age, 1) + ' ' + T('yrs') : '', cat && B ? B.catName(cat) : '', s.weight ? s.weight + ' kg' : '', s.height ? s.height + ' cm' : ''].filter(Boolean).join(' · ') + '</div></td></tr></table>';
+    h += '<table class="k"><tr><td><b>' + rows.length + '</b>' + A('اختبارات', 'tests') + '</td><td><b>' + nS + '</b>' + A('حصص تدريب (Polar)', 'séances (Polar)') + '</td><td><b>' + mins + '</b>' + A('دقيقة تدريب', 'min d’entraînement') + '</td><td><b>' + nM + '/' + nDays + '</b>' + A('ليالي مقاسة', 'nuits mesurées') + '</td>' +
+      '<td><b>' + n1(avg(sl)) + '</b>' + A('متوسط النوم (سا)', 'sommeil moyen (h)') + '</td><td><b>' + n0(avg(hv)) + '</b>' + A('متوسط HRV (ms)', 'VFC moyenne (ms)') + '</td><td><b>' + n0(avg(rh)) + '</b>' + A('نبض الراحة (الليل)', 'FC repos (nuit)') + '</td></tr></table>';
+    h += '<h2>' + A('الاختبارات في هاذ الشهر', 'Tests du mois') + '</h2>';
+    if (!rows.length) h += '<p class="muted">' + A('ما كاين حتى اختبار في هاذ الشهر.', 'Aucun test ce mois-ci.') + '</p>';
+    else h += '<table><tr><th>' + A('الاختبار', 'Test') + '</th><th>' + T('date') + '</th><th>' + A('النتيجة', 'Résultat') + '</th><th>' + A('السابقة', 'Précédent') + '</th><th>' + A('التغيّر', 'Évolution') + '</th><th>' + A('النبض', 'FC') + '</th></tr>' + rows.map(function (o) {
+      var st = o.st, hr = st ? A('متوسط ', 'moy. ') + st.avg + ' · max ' + st.peak + tag('m') + (st.good && st.platHr && o.it.bt && /^t(20|30)$/.test(o.it.bt.id) ? '<br>' + A('العتبة ≈ ', 'seuil ≈ ') + st.platHr + tag('e') : '') + (st.hrr != null ? '<br>' + A('استرجاع 60 ث −', 'récup 60 s −') + st.hrr + tag('m') : '') : '<span class="muted">—</span>';
+      return '<tr><td><b>' + esc(o.it.name) + '</b></td><td>' + fmtDate(o.x.date) + '</td><td><b>' + esc(o.x.disp) + '</b>' + (o.pb ? ' 🏆' : '') + (o.x.extra ? '<br><span class="muted">' + esc(o.x.extra) + '</span>' : '') + '</td>' +
+        '<td>' + (o.prev ? esc(o.prev.disp) + '<br><span class="muted">' + fmtDate(o.prev.date) + '</span>' : '<span class="muted">' + A('أول نتيجة', '1er résultat') + '</span>') + '</td><td>' + (o.vd ? vText(o.vd) : o.diffC ? '<span class="muted">' + A('ظروف مختلفة', 'conditions différentes') + '</span>' : '') + '</td><td>' + hr + '</td></tr>';
+    }).join('') + '</table>';
+    if (imgs.length) h += '<h2>' + A('التطور (كل النتائج)', 'Évolution (tous les résultats)') + '</h2><table style="border:0"><tr>' + imgs.map(function (x, i) { return (i && i % 2 === 0 ? '</tr><tr>' : '') + '<td style="border:0;width:50%"><b>' + esc(x.t) + '</b><br>' + (x.u ? '<img src="' + x.u + '" style="width:100%">' : '') + '</td>'; }).join('') + '</tr></table>';
+    h += '<h2>' + A('الأيام: الليل والتدريب', 'Jours : nuit et entraînement') + '</h2>';
+    h += days.length ? '<table><tr><th>' + T('date') + '</th><th>' + A('النوم (سا)', 'Sommeil (h)') + '</th><th>HRV</th><th>' + A('نبض الراحة', 'FC repos') + '</th><th>Recharge</th><th>' + A('الجاهزية', 'Forme') + '</th><th>' + A('حصص', 'Séances') + '</th><th>min</th><th>' + A('الحمل', 'Charge') + '</th></tr>' + dayRows.join('') + '</table>' + (hrM ? '<p class="muted">' + A('متوسط النبض في حصص التدريب: ', 'FC moyenne des séances : ') + Math.round(hrS / hrM) + ' bpm' + tag('m') + ' · ' + A('الحمل الكلي: ', 'charge totale : ') + Math.round(load) + tag('c') + '</p>' : '') : '<p class="muted">—</p>';
+    if (miss.length) h += '<h2>' + A('واش ما نقدروش نقولو (ناقص)', 'Ce qu’on ne peut pas dire (manquant)') + '</h2><ul>' + miss.map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul>';
+    h += '<p class="muted" style="margin-top:14px">' + A('(مقاس) = من الحساس ولا الكرونو · (محسوب) = حساب من أرقام مقاسة · (مقدّر) = تقدير علمي ماشي قياس · ▲▼ «حقيقي» = التغيّر أكبر من خطأ القياس', '(mesuré) capteur/chrono · (calculé) calcul sur mesures · (estimé) estimation, pas une mesure · ▲▼ « réel » = au-delà de l’erreur de mesure') + '<br>' + T('printed') + ' ' + fmtDate(today()) + ' · MR WATHBA PERFORMANCE · BY OKBA</p></body></html>';
+    return h;
+  });
+}
+function monthPdfMake(s, m) {
+  return monthReportHtml(s, m).then(function (html) { return API.call('pdfSave', { sid: s.id, month: m, html: html }); });
+}
+function monthPdfPanel(s) {
+  var ms = monthsWithData(s); if (!ms.length) return toast(T('noRpt'));
+  var box = $('#mpdf-box');
+  if (!box) { box = document.createElement('div'); box.id = 'mpdf-box'; box.className = 'card'; var hd = $('#app .tabs'); hd.parentNode.insertBefore(box, hd); }
+  box.innerHTML = '<div class="row"><b class="sp">📄 ' + A('تقرير الشهر (PDF يتحفظ في Google Drive ← MR WATHBA DATA ← PDF)', 'Rapport du mois (PDF dans Google Drive ← MR WATHBA DATA ← PDF)') + '</b><select id="mp-m" style="width:auto">' + ms.map(function (m) { return '<option value="' + m + '">' + monthName(m) + '</option>'; }).join('') + '</select><button class="btn pri sm" id="mp-go">' + A('صنع PDF', 'Créer le PDF') + '</button><button class="btn sm" id="mp-x">✕</button></div><div id="mp-r" class="small" style="margin-top:6px"></div>';
+  $('#mp-x').onclick = function () { box.remove(); };
+  $('#mp-go').onclick = function () {
+    var b = this, r = $('#mp-r'); b.disabled = true; r.textContent = '⏳ …';
+    monthPdfMake(s, $('#mp-m').value).then(function (x) { b.disabled = false; if (!x.ok) { r.textContent = '⚠️ ' + (T(x.err) || x.err); return; } r.innerHTML = '✅ ' + A('تحفظ في Drive.', 'Enregistré dans Drive.') + ' <a href="' + esc(x.url) + '" target="_blank" rel="noopener">' + A('حل الـ PDF', 'Ouvrir le PDF') + '</a>'; })
+      .catch(function () { b.disabled = false; r.textContent = T('neterr'); });
+  };
+}
+// 🗓 أول مرة تحل الإدارة التطبيق بعد ما يكمل الشهر: تقارير الشهر اللي فات تتصنع وحدها لكل سباح عندو بيانات
+var MPDF_AUTO = false;
+function monthPdfAuto() {
+  if (MPDF_AUTO || !isAdmin() || API.url() === 'demo' || !navigator.onLine || !window.Chart) return; MPDF_AUTO = true;
+  var m = prevMonth();
+  API.call('pdfStatus', { month: m }).then(function (r) {
+    if (!r || !r.ok) return;
+    var todo = visibleSwimmers().filter(function (s) { return r.done.indexOf(s.id) < 0 && DB.tests.some(function (t) { return t.swimmerId === s.id && String(t.date).slice(0, 7) === m; }); });
+    if (!todo.length) return;
+    var i = 0, next = function () {
+      if (i >= todo.length) { toast('📄 ✅ ' + A('تقارير ' + monthName(m) + ' تحفظو في Drive', 'Rapports de ' + monthName(m) + ' enregistrés dans Drive') + ' (' + todo.length + ')'); return; }
+      var s = todo[i++]; monthPdfMake(s, m).then(next, next);
+    };
+    toast('📄 ' + A('نصنعو تقارير ' + monthName(m) + '…', 'Création des rapports de ' + monthName(m) + '…')); next();
+  }).catch(function () {});
 }
 
 /* ======================= impression : التقرير الموحّد ======================= */
