@@ -120,6 +120,14 @@ var TESTS = [
     },
     g: ['حزام في الوسط مربوط بخيط يمرّ على <b>بكرة</b> فوق المكعب، وفي اللخر أوزان. السباح يسبح <b>10 م بأقصى سرعة</b> (بعد 5 م انطلاق في الماء) بـ <b>3 أحمال</b> (مثلاً 1، 5، 9 كغ للذكور · 1، 3، 5 كغ للإناث)، راحة 3 د. الزمن بالكرونو ولا بالفيديو. <b>V0</b> = السرعة القصوى النظرية (السرعة)، <b>L0</b> = الحمل الأقصى النظري (القوة في الماء). يستعمل للمتابعة مع الوقت.', 'Ceinture reliée à une <b>poulie</b> et des charges. <b>10 m à fond</b> (après 5 m lancés) avec <b>3 charges</b> (ex. 1, 5, 9 kg garçons · 1, 3, 5 kg filles), récup 3 min. <b>V0</b> = vitesse max théorique, <b>L0</b> = charge max théorique. Pour le suivi dans le temps.'] },
   // ---- endurance de force
+  { id: 'cooper', sys: 'AER', w: 0, cats: from('ben'), name: ['Cooper 12 د (جري)', 'Cooper 12 min (course)'], unit: 'm', better: 'high',
+    inputs: [nm('dist', tv(['المسافة', 'Distance']), 'm', H.dist)],
+    calc: function (d) { var x = C.num(d.dist); if (!x) return null; var vo = (x - 504.9) / 44.73; return { v: x, disp: x + ' m', extra: R(x / 720 * 3.6, 1) + ' km/h' + (vo > 10 ? ' · VO2 ≈ ' + R(vo, 1) + ' ' + tv(['(مقدّر · Cooper 1968، أقل دقة عند الصغار)', '(estimée · Cooper 1968, moins précise chez les jeunes)']) : '') }; },
+    g: ['يجري <b>12 دقيقة</b> بأقصى مسافة يقدر عليها، على مضمار ولا دورة مقاسة (مثلاً 200 م). المشي مسموح كي يعيا. النتيجة: المسافة الكلية. في «⏱ اختبار لايف» تضغط «لمسة» في كل دورة والمسافة تتحسب وحدها.', 'Courir <b>12 min</b> la plus grande distance possible sur piste ou boucle mesurée. Résultat : distance totale. En direct, « Touche » à chaque tour.'] },
+  { id: 'r30', sys: 'ALA', w: 0, cats: from('pou'), name: ['30 م سرعة (جري)', 'Sprint 30 m (course)'], unit: 's', better: 'low',
+    inputs: [tm('r1', tv(['المحاولة 1', 'Essai 1']), ['من الإشارة حتى يقطع خط 30 م', 'Du signal au franchissement des 30 m']), tm('r2', tv(['المحاولة 2', 'Essai 2']), ['راحة 3 دقايق', 'Récup 3 min'])],
+    calc: function (d) { var a = [C.parseTime(d.r1), C.parseTime(d.r2)].filter(function (x) { return x; }); if (!a.length) return null; var b = Math.min.apply(null, a); return { v: b, disp: F(b, 2), extra: R(30 / b, 2) + ' m/s · ' + R(30 / b * 3.6, 1) + ' km/h' }; },
+    g: ['انطلاق واقف وراء الخط، يجري <b>30 م بأقصى سرعة</b>. 2 محاولات بيناتهم 3 دقايق راحة، ناخذو الأحسن. الكرونو باليد يزيد ±0.1–0.2 ث، ديما نفس المدرب ونفس الطريقة.', 'Départ debout, <b>30 m vitesse max</b>. 2 essais, 3 min de récup, garder le meilleur. Chrono manuel ±0,1–0,2 s : même chronométreur.'] },
   { id: 'push', sys: 'END', w: 0, cats: CATS.map(function (c) { return c[0]; }), name: ['Pompes في 30 ث', 'Pompes en 30 s'], unit: 'rep', better: 'high',
     inputs: [nm('n', tv(['العدد', 'Nombre']), 'rep', H.reps)], calc: function (d) { var x = C.num(d.n); return x != null ? { v: x, disp: x } : null; },
     g: ['الجسم مستقيم، الصدر يهبط حتى قبضة يد من الأرض. <b>غير الصحيحة تتحسب</b>. الصغار والبنات ينجمو يديروها على الركبتين (دايماً نفس الطريقة).', 'Corps gainé, poitrine à un poing du sol. Seules les répétitions correctes comptent.'] },
@@ -744,7 +752,7 @@ function vEntry(app) {
       if (!has) return;
       if (tr.dataset.rid && K.can && !K.can('editRes')) { K.toast(T('forbidden')); return; }
       d.cond = cond; if (ST.retest) d.retest = true;
-      if (tr.dataset.rid) { var old = recs().find(function (r) { return r.id === tr.dataset.rid; }); if (old && old.data) ['samples', 'live', 'hrDur', 'hrSrc', 'polarEx', 'splits', 'hrZones', 'hrA', 'hrAuto', 'hrRaw'].forEach(function (k) { if (old.data[k] != null) d[k] = old.data[k]; }); }
+      if (tr.dataset.rid) { var old = recs().find(function (r) { return r.id === tr.dataset.rid; }); if (old && old.data) ['samples', 'live', 'hrDur', 'hrSrc', 'polarEx', 'splits', 'splitM', 'hrZones', 'hrA', 'hrAuto', 'hrRaw'].forEach(function (k) { if (old.data[k] != null) d[k] = old.data[k]; }); }
       K.mutate('saveTest', { rec: { id: tr.dataset.rid || K.uid(), swimmerId: tr.dataset.sid, type: 'bt', date: date, data: d } }); n++;
     });
     K.toast(n ? n + ' ' + T('savedN') : T('nothing'));
