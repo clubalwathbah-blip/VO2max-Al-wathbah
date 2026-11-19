@@ -377,6 +377,8 @@
     var d = days.slice().sort(function (a, b) { return a.date < b.date ? -1 : 1; });
     var cur = d.filter(function (x) { return x.date === targetDate; })[0];
     if (!cur) return null;
+    // بلا قياس الليل (نوم، HRV، نبض الراحة، Recharge) ما نحسبوش الجاهزية
+    if (!['hrv', 'rhr', 'sleepH', 'sleepScore', 'recharge'].some(function (k) { return num(cur[k]) != null; })) return null;
     var t = new Date(targetDate), base = d.filter(function (x) { var k = (t - new Date(x.date)) / 864e5; return k >= 1 && k <= 28; });
     var hrvB = stats(base.map(function (x) { return num(x.hrv) ? Math.log(num(x.hrv)) : null; })), rhrB = stats(base.map(function (x) { return num(x.rhr); }));
     var flags = [], score = 0, res = { flags: flags, baseN: base.length };
