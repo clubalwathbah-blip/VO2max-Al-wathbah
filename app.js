@@ -1,5 +1,5 @@
 /* VO2max Al-Wathba — application */
-var APP_V = '5.7';
+var APP_V = '5.8';
 (function () {
 'use strict';
 var C = window.VO2C;
