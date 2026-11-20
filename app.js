@@ -1,5 +1,5 @@
 /* VO2max Al-Wathba — application */
-var APP_V = '5.8';
+var APP_V = '5.9';
 (function () {
 'use strict';
 var C = window.VO2C;
@@ -373,7 +373,7 @@ var Local = {
     else if (p.a === 'coachUnbind') { if (w.role !== 'admin') return F_; var cu = d.c.find(function (x) { return x.id === p.id; }); if (cu) { delete cu.dev; delete cu.inv; } }
     else if (p.a === 'devs') { if (w.role !== 'admin') return F_; r.me = w.di; r.list = d.ad.map(function (x) { return { id: x.id, code: String(x.id).slice(0, 4).toUpperCase(), label: x.label, ok: !!x.ok, blocked: !!x.blocked, at: x.at, last: x.last }; }); }
     else if (p.a === 'devSet') { if (w.role !== 'admin') return F_; var dv = d.ad.find(function (x) { return x.id === p.id; }); if (dv) { if (p.op === 'ok') { dv.ok = true; dv.blocked = false; } else { if (!d.ad.some(function (x) { return x.ok && !x.blocked && x.id !== p.id; })) return { ok: false, err: 'lastDev' }; if (p.op === 'block') { dv.ok = false; dv.blocked = true; } else d.ad.splice(d.ad.indexOf(dv), 1); } } }
-    else if (p.a === 'saveCoach') { if (w.role !== 'admin') return F_; var pc = d.c.find(function (x) { return x.id === p.rec.id; }); delete p.rec.dev; delete p.rec.inv; if (pc && pc.dev) p.rec.dev = pc.dev; if (pc && pc.inv) p.rec.inv = pc.inv; if (!/^(?=.*[0-9])(?=.*[A-Za-z]).{6,}$/.test(String(p.rec.code || ''))) return { ok: false, err: 'weakCode' }; if (d.c.some(function (c) { return c.code === p.rec.code && c.id !== p.rec.id; }) || p.rec.code === d.pw) return { ok: false, err: 'dupcode' }; r.rec = up(d.c, p.rec); }
+    else if (p.a === 'saveCoach') { if (w.role !== 'admin') return F_; var pc = d.c.find(function (x) { return x.id === p.rec.id; }); if (!p.rec.code && pc) p.rec.code = pc.code; delete p.rec.dev; delete p.rec.inv; if (pc && pc.dev) p.rec.dev = pc.dev; if (pc && pc.inv) p.rec.inv = pc.inv; if (!/^(?=.*[0-9])(?=.*[A-Za-z]).{6,}$/.test(String(p.rec.code || ''))) return { ok: false, err: 'weakCode' }; if (d.c.some(function (c) { return c.code === p.rec.code && c.id !== p.rec.id; }) || p.rec.code === d.pw) return { ok: false, err: 'dupcode' }; r.rec = up(d.c, p.rec); }
     else if (p.a === 'delCoach') { if (w.role !== 'admin') return F_; d.c = d.c.filter(function (c) { return c.id !== p.id; }); }
     else if (p.a === 'changePw') { if (p.old !== d.pw) return { ok: false, err: 'bad' }; if (String(p.nw).length < 6) return { ok: false, err: 'short' }; d.pw = p.nw; }
     Local.put(d);
@@ -2808,13 +2808,14 @@ function vSettings(app) {
     if (!cs.length) h += '<p class="muted">—</p>';
     else h += '<div class="tbl-wrap"><table><tr><th>' + T('name') + '</th><th>' + T('phone') + '</th><th>' + T('code') + '</th><th>' + T('swimmers') + '</th><th></th><th>📱 ' + A('الجهاز', 'Appareil') + '</th><th></th></tr>' + cs.map(function (c) {
       var n = DB.swimmers.filter(function (s) { return coachSees(c, s); }).length, pc = permOf(c), nOn = PERM_KEYS.filter(function (k) { return pc[k]; }).length;
-      return '<tr><td style="text-align:start"><b>' + esc(c.name) + '</b> <span class="chip">🔑 ' + nOn + '/' + PERM_KEYS.length + '</span></td><td class="num">' + esc(c.phone || '') + '</td><td><span class="chip mono">' + esc(c.code) + '</span></td><td class="num">' + n + '</td><td><span class="chip ' + (c.active === false ? 'bad' : 'ok') + '">' + T(c.active === false ? 'inactive' : 'active') + '</span></td>' +
+      return '<tr><td style="text-align:start"><b>' + esc(c.name) + '</b> <span class="chip">🔑 ' + nOn + '/' + PERM_KEYS.length + '</span></td><td class="num">' + esc(c.phone || '') + '</td><td><span class="chip" title="' + A('الكود محفوظ مشفّر، حتى الإدارة ما تقدرش تقراه', 'Code enregistré chiffré') + '">🔒 ' + A('مشفّر', 'chiffré') + '</span></td><td class="num">' + n + '</td><td><span class="chip ' + (c.active === false ? 'bad' : 'ok') + '">' + T(c.active === false ? 'inactive' : 'active') + '</span></td>' +
         '<td style="text-align:start;white-space:nowrap">' + (c.dev ? '<span class="chip ok">✅ ' + esc(c.dev.label || '') + ' · ' + esc(c.dev.code || '') + '</span>' + (c.dev.last ? '<div class="small muted">' + A('آخر دخول ', 'vu le ') + fmtDate(String(c.dev.last).slice(0, 10)) + '</div>' : '') : c.inv ? '<span class="chip warn">🔗 ' + A('الرابط ما تفتحش', 'lien non ouvert') + '</span>' : '<span class="chip">' + A('بلا جهاز', 'aucun') + '</span>') +
         '<div class="row" style="gap:4px;margin-top:4px"><button class="btn sm" data-lnk="' + c.id + '">🔗 ' + (c.dev ? A('رابط جديد', 'Nouveau lien') : A('الرابط', 'Lien')) + '</button>' + (c.dev || c.inv ? '<button class="btn sm dan" data-unb="' + c.id + '" title="' + A('فك الجهاز', 'Retirer l’appareil') + '">✕</button>' : '') + '</div><div id="lnk-' + c.id + '"></div></td>' +
         '<td style="white-space:nowrap"><button class="btn sm" data-view="' + c.id + '" title="' + T('viewAs') + '">👁</button> <button class="btn sm" data-ec="' + c.id + '">✎</button></td></tr>';
     }).join('') + '</table></div>';
     h += '<div class="info" style="margin-top:10px">📱 ' + A('كل مدرب يدخل من <b>جهاز واحد</b>. اضغط «🔗 الرابط» وابعثو للمدرب: يفتحو في الهاتف تاعو ويكتب الكود تاعو <b>مرة وحدة</b>، ومن بعد التطبيق يتحل وحدو. الرابط يخدم مرة وحدة: إذا تفتح في هاتف آخر ما يخدمش. «رابط جديد» يفك الجهاز القديم.', 'Chaque entraîneur utilise <b>un seul appareil</b>. « 🔗 Lien » : il l’ouvre sur son téléphone et saisit son code <b>une fois</b>. Le lien est à usage unique. « Nouveau lien » retire l’ancien appareil.') + '</div>';
     h += '</div><div class="card"><h3>📱 ' + A('أجهزة الإدارة', 'Appareils de l’administration') + '</h3><div id="devlist" class="small muted">…</div></div>';
+    h += '<div class="card"><h3>📧 ' + A('تنبيه بالإيميل', 'Alerte e-mail') + '</h3><div id="secbox" class="small muted">…</div></div>';
     h += '<div class="card"><h3>🔐 ' + T('logT') + '</h3><div id="loglist" class="small muted">…</div></div><form class="card" id="pwf"><h3>🔑 ' + T('changePw') + '</h3><div class="fr"><div class="f"><label>' + T('oldPw') + '</label><input type="password" name="o"></div><div class="f"><label>' + T('newPw') + '</label><input type="password" name="n"></div></div><button class="btn pri">' + T('save') + '</button></form>';
   }
   if (window.BTV && window.BTV.settingsExtra && isAdmin()) h += window.BTV.settingsExtra();
@@ -2867,6 +2868,11 @@ function vSettings(app) {
     }).catch(function () {});
   };
   devPaint();
+  if ($('#secbox') && API.url() !== 'demo') API.call('sec').then(function (r) {
+    var el = $('#secbox'); if (!el || !r.ok) return;
+    el.innerHTML = '<label class="row" style="gap:10px;margin:0;font-weight:600;color:var(--ink);cursor:pointer"><input type="checkbox" id="sec-al"' + (r.alert ? ' checked' : '') + ' style="width:22px;height:22px;min-height:0"> ' + A('ابعثلي إيميل كل ما يدخل واحد بكلمة سر الإدارة', 'M’envoyer un e-mail à chaque connexion administration') + '</label><div class="small muted" style="margin-top:6px">📨 ' + esc(r.mail || '—') + ' · ' + A('أكواد المدربين محفوظين مشفّرين: حتى في الـ Sheet ما يتقراوش.', 'Codes entraîneurs chiffrés, illisibles même dans le Sheet.') + '</div>';
+    $('#sec-al').onchange = function () { API.call('setAlert', { on: this.checked }).then(function (x) { toast(x.ok ? T('saved') : x.err); }); };
+  }).catch(function () {});
   $$('[data-view]').forEach(function (b) { b.onclick = function () { VIEWAS = b.dataset.view; ls('vo2_viewas', VIEWAS); route('home'); }; });
 }
 var PERM_L = {
@@ -2883,7 +2889,7 @@ function coachForm(c) {
   var catN = function (s) { return window.BTV && BTV.catOf(s) ? BTV.catName(BTV.catOf(s)) : ''; };
   box.innerHTML = '<form class="kbox" id="cf" style="margin-bottom:12px"><div class="fr"><div class="f"><label>' + T('name') + '</label><input name="name" required value="' + esc(c.name) + '"></div>' +
     '<div class="f"><label>' + T('phone') + '</label><input name="phone" inputmode="tel" class="ltr" value="' + esc(c.phone) + '"></div>' +
-    '<div class="f"><label>' + T('code') + '<span class="hint">' + T('codeHint') + '</span></label><input name="code" required minlength="6" class="mono ltr" value="' + esc(c.code) + '"></div>' +
+    '<div class="f"><label>' + T('code') + '<span class="hint">' + (isNew ? T('codeHint') : A('فارغ = يبقى نفس الكود. الكود القديم ما يبانش لأنو محفوظ مشفّر.', 'Vide = code inchangé (il est chiffré, illisible).')) + '</span></label><input name="code"' + (isNew ? ' required' : '') + ' minlength="6" autocomplete="off" class="mono ltr" placeholder="' + (isNew ? '' : '••••••') + '"></div>' +
     '<div class="f"><label>' + T('active') + '</label><select name="active"><option value="1">' + T('active') + '</option><option value="0"' + (c.active === false ? ' selected' : '') + '>' + T('inactive') + '</option></select></div></div>' +
     '<h3 style="margin:14px 0 8px">🔑 ' + A('واش يقدر يدير', 'Ce qu’il peut faire') + '</h3><div class="grid g2" style="gap:6px">' +
     PERM_KEYS.map(function (k) { return '<label class="row" style="gap:8px;margin:0;padding:8px 10px;border:1px solid var(--line);border-radius:12px;font-weight:600;color:var(--ink);cursor:pointer"><input type="checkbox" data-pm="' + k + '"' + (pc[k] ? ' checked' : '') + ' style="width:22px;height:22px;min-height:0;flex:none"> ' + Tv(PERM_L[k]) + '</label>'; }).join('') + '</div>' +
@@ -2904,7 +2910,10 @@ function coachForm(c) {
     e.preventDefault(); var f = e.target, perm = { see: $$('[data-sv]').filter(function (i) { return i.checked; }).map(function (i) { return i.dataset.sv; }) };
     $$('[data-pm]').forEach(function (i) { perm[i.dataset.pm] = i.checked; });
     var rec = Object.assign({}, c, { name: f.name.value.trim(), phone: f.phone.value.trim(), code: f.code.value.trim(), active: f.active.value === '1', perm: perm, head: perm.bt || perm.proto });
-    if (!/^(?=.*[0-9])(?=.*[A-Za-z]).{6,}$/.test(rec.code)) return toast(T('weakCode'));
+    if (rec.code && !/^(?=.*[0-9])(?=.*[A-Za-z]).{6,}$/.test(rec.code)) return toast(T('weakCode'));
+    if (!rec.code && isNew) return toast(T('weakCode'));
+    if (!rec.code) delete rec.code;
+    if (rec.code && !confirm(A('اكتب الكود ولا صورو دوكا: من بعد ما يبانش (يتحفظ مشفّر).\n\n', 'Notez ce code maintenant : il sera chiffré et illisible ensuite.\n\n') + rec.code)) return;
     f.querySelector('.pri').disabled = true;
     API.call('saveCoach', { rec: rec }).then(function (r) { if (!r.ok) { f.querySelector('.pri').disabled = false; return toast(T(r.err) || r.err); } toast(T('saved')); load().then(render); }).catch(function () { f.querySelector('.pri').disabled = false; toast(T('neterr')); });
   };
@@ -2953,7 +2962,7 @@ function monthReportHtml(s, m) {
     var dir = LANG === 'fr' ? 'ltr' : 'rtl', al = LANG === 'fr' ? 'left' : 'right';
     var h = '<!DOCTYPE html><html lang="' + (LANG === 'fr' ? 'fr' : 'ar') + '" dir="' + dir + '"><head><meta charset="utf-8"><style>' +
       'body{font-family:Arial,Tahoma,sans-serif;font-size:10.5pt;color:#13306b;direction:' + dir + ';text-align:' + al + '}' +
-      'h1{font-size:18pt;margin:0}h2{font-size:13pt;color:#fff;background:#13306b;padding:5px 8px;margin:16px 0 6px}' +
+      'h1{font-size:18pt;margin:0}h2{font-size:13pt;color:#13306b;border-bottom:2px solid #c9a24a;padding:3px 2px;margin:16px 0 6px}' +
       'table{border-collapse:collapse;width:100%}td,th{border:1px solid #c9d8f2;padding:4px 6px;text-align:' + al + ';vertical-align:top;font-size:9.5pt}th{background:#e8f0ff;color:#13306b}' +
       '.k td{border:1px solid #c9d8f2;text-align:center;font-size:9pt}.k b{display:block;font-size:15pt;color:#13306b}.muted{color:#5c6f93;font-size:8.5pt}' +
       '</style></head><body>';
