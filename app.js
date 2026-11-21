@@ -443,20 +443,71 @@ function rawGet(sid, m) {
   try { var x = localStorage.getItem('mr_raw_' + k); if (x) return (RAW[k] = JSON.parse(x)); } catch (e) {}
   return null;
 }
+function rawSave(k) {
+  var put = function () { localStorage.setItem('mr_raw_' + k, JSON.stringify(RAW[k])); };
+  try { put(); } catch (e) { try { Object.keys(localStorage).filter(function (x) { return x.indexOf('mr_raw_') === 0 && x !== 'mr_raw_' + k; }).forEach(function (x) { localStorage.removeItem(x); }); put(); } catch (e2) {} }
+}
+// النسخة اللي في الهاتف قديمة؟ الـ Sheet يقول كاين منحنى (hasChr / hasHr) والنسخة ما فيهاش
+function rawLacks(sid, m) {
+  var rw = rawGet(sid, m); if (!rw) return true;
+  var days = rw.days || {};
+  return DB.tests.some(function (t) {
+    if (t.swimmerId !== sid || t.type !== 'day' || String(t.date).slice(0, 7) !== m) return false;
+    var d = t.data || {}, rd = days[t.date] || {};
+    if (d.hasChr && !d.chr && !rd.chr) return true;
+    return (d.ex || []).some(function (e) { return e.hasHr && !e.hr && !(rd.ex && rd.ex[e.id] && rd.ex[e.id].hr); });
+  });
+}
+// نجيبو ملف الشهر من Drive: إذا ما كانش في الهاتف، ولا كان قديم (مرة وحدة في الجلسة)
 function ensureRaw(sid, months) {
-  var miss = months.filter(function (m) { var k = rawKey(sid, m); return /^\d{4}-\d{2}$/.test(m) && !rawGet(sid, m) && !RAWQ[k]; });
+  var miss = months.filter(function (m) { var k = rawKey(sid, m); return /^\d{4}-\d{2}$/.test(m) && !RAWQ[k] && rawLacks(sid, m); });
   if (!miss.length || API.url() === 'demo') return false;
   miss.forEach(function (m) {
     var k = rawKey(sid, m); RAWQ[k] = 'wait';
     API.call('raw', { sid: sid, month: m }).then(function (r) {
-      if (!r || !r.ok) { RAWQ[k] = 'fail'; return; }
+      if (!r || !r.ok) { RAWQ[k] = 'fail'; render(); return; }
       RAW[k] = r.raw || { days: {} }; RAWQ[k] = 'ok';
-      var put = function () { localStorage.setItem('mr_raw_' + k, JSON.stringify(RAW[k])); };
-      try { put(); } catch (e) { try { Object.keys(localStorage).filter(function (x) { return x.indexOf('mr_raw_') === 0 && x !== 'mr_raw_' + k; }).forEach(function (x) { localStorage.removeItem(x); }); put(); } catch (e2) {} }
+      rawSave(k);
       render();
-    }).catch(function () { RAWQ[k] = 'fail'; });
+    }).catch(function () { RAWQ[k] = 'fail'; render(); });
   });
   return true;
+}
+// بعد «جيب دوك»: ننساو واش تجاب في هاذ الجلسة، باش النسخة تتشيك من جديد
+function rawResetQ(sid) {
+  Object.keys(RAWQ).forEach(function (k) { if (k.indexOf(sid + '|') === 0 && RAWQ[k] !== 'wait') delete RAWQ[k]; });
+  Object.keys(PXH).forEach(function (k) { if (k.indexOf(sid + '|') === 0 && PXH[k] !== 'wait') delete PXH[k]; });
+}
+// احتياط: المنحنى ما كانش في Drive → نجيبوه مباشرة من Polar (الحصص تبقى عندهم 30 يوم)
+var PXH = {};
+function exHrFallback(sid, date, ex) {
+  if (API.url() === 'demo') return;
+  var m = String(date).slice(0, 7), k = rawKey(sid, m), q = RAWQ[k];
+  if (q === 'wait') return;   // نستناو Drive قبل
+  var age = (new Date(today()) - new Date(date)) / 864e5;
+  (ex || []).forEach(function (e) {
+    if (e.hr && e.hr.length) return;
+    var pk = sid + '|' + e.id; if (PXH[pk]) return;
+    if (age > 30) { PXH[pk] = 'old'; return; }
+    PXH[pk] = 'wait';
+    API.call('polarExHr', { sid: sid, id: e.id }).then(function (h) {
+      if (!h || !h.ok) { PXH[pk] = h && h.err === 'polarNoHr' ? 'none' : 'fail'; render(); return; }
+      var p = h.hr || [], bins = [], cnt = [];
+      for (var i = 0; i + 1 < p.length; i += 2) { var b = Math.floor(p[i] / 5); bins[b] = (bins[b] || 0) + p[i + 1]; cnt[b] = (cnt[b] || 0) + 1; }
+      var arr = []; for (var j = 0; j < bins.length; j++) arr.push(cnt[j] ? Math.round(bins[j] / cnt[j]) : 0);
+      if (!arr.some(function (v) { return v > 0; })) { PXH[pk] = 'none'; render(); return; }
+      var rw = RAW[k] = RAW[k] || rawGet(sid, m) || { days: {} }; rw.days = rw.days || {};
+      var dd = rw.days[date] = rw.days[date] || {}; (dd.ex = dd.ex || {})[e.id] = { hr: arr, rate: 5 };
+      rawSave(k); PXH[pk] = 'ok'; render();
+    }).catch(function () { PXH[pk] = 'fail'; render(); });
+  });
+}
+function exHrMsg(sid, e) {
+  var st = PXH[sid + '|' + e.id];
+  if (st === 'none') return '⚪ ' + A('Polar ما بعثش النبض لهاذي الحصة (الحساس ما سجلش النبض).', 'Polar n’a pas envoyé de FC pour cette séance.');
+  if (st === 'old') return '⚪ ' + A('المنحنى ما بقاش متوفر عند Polar (فات 30 يوم).', 'Courbe plus disponible chez Polar (plus de 30 jours).');
+  if (st === 'fail') return '📶 ' + A('ما قدرناش نجيبو المنحنى (أنترنت ولا صلاحية Polar). الأرقام فوق صحيحة.', 'Courbe indisponible (réseau ou droits Polar). Les chiffres ci-dessus sont exacts.');
+  return '⏳ ' + A('نجيب منحنى النبض…', 'Chargement de la courbe de FC…');
 }
 function rawWaiting(sid, m) { return RAWQ[rawKey(sid, m)] === 'wait'; }
 function rawFailed(sid, m) { return RAWQ[rawKey(sid, m)] === 'fail'; }
@@ -981,6 +1032,7 @@ function drawReport(s) {
   var dd = days.find(function (x) { return x.date === S.rdate; }), mo = String(S.rdate).slice(0, 7);
   var needD = dd && ((dd.hasChr && !dd.chr) || (dd.ex || []).some(function (e) { return e.hasHr && !e.hr; }));
   if (needD) ensureRaw(s.id, [mo]);
+  if (dd) exHrFallback(s.id, dd.date, (dd.ex || []).filter(isTraining));
   var rep = dayReport(s, S.rdate);
   box.innerHTML = '<div class="card"><div class="row" style="margin-bottom:10px"><h2 class="sp" style="margin:0">📋 ' + A('التقرير اليومي', 'Rapport du jour') + '</h2>' +
     '<select id="rp-d" class="rp-np" style="width:auto">' + dates.map(function (x) { return '<option value="' + x + '"' + (x === S.rdate ? ' selected' : '') + '>' + fmtDate(x) + '</option>'; }).join('') + '</select>' +
@@ -1127,7 +1179,7 @@ function reportVisual(rep) {
         h += '<div class="small muted" style="margin-top:10px">' + A('منحنى النبض (bpm)', 'Fréquence cardiaque (bpm)') + '</div><div class="rp-ch"><canvas id="rp-hr-' + i + '"></canvas></div>';
         if (en) h += '<div class="small muted" style="margin-top:8px">' + A('مصادر الطاقة', 'Sources d’énergie') + ' (' + (en.perMin ? 'kcal/min' : A('نسبي', 'relatif')) + ') — <b style="color:#F26B21">■ ' + A('سكريات', 'Glucides') + ' ' + en.pc.c + '%</b> · <b style="color:#E0B020">■ ' + A('دهون', 'Lipides') + ' ' + en.pc.f + '%</b> · ' + A('بروتين', 'Protéines') + ' ' + en.pc.p + '%' + (en.polar ? '' : ' <span class="chip warn" style="font-size:11px">' + A('تقديري', 'estimation') + '</span>') + '</div><div class="rp-ch s"><canvas id="rp-en-' + i + '"></canvas></div>';
         rep.charts.push({ i: i, e: e, Z: Z, en: en });
-      } else h += '<div class="small muted" style="margin-top:8px">⏳ ' + A('المنحنى يجي مع الجلب الجاي (🔄 جيب دوك).', 'Courbe disponible à la prochaine synchro.') + '</div>';
+      } else h += '<div class="small muted" style="margin-top:8px">' + exHrMsg(rep.s.id, e) + '</div>';
       h += '<div class="rp-an"><div class="t">🔎 ' + A('تحليل الحصة', 'Analyse de la séance') + '</div><ul>' + an.lines.map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul></div></div>';
     });
     // ── ملخص اليوم (واحد للحصص كاملين)
@@ -1385,7 +1437,7 @@ function polarBind(s) {
     // 🔄 جلب وحدو كي تفتح الصفحة (مرة وحدة في الجلسة، وإذا آخر جلب فات عليه 10 دقايق)
     if (L && can('polar') && !PSYNC[s.id] && (!L.last || Date.now() - new Date(L.last).getTime() > 10 * 60000)) {
       PSYNC[s.id] = 1; toast(PT('wait'));
-      API.call('polarSync', { sid: s.id }).then(function (x) { if (x && x.ok) { toast('✅ ' + x.days + ' ' + PT('got')); if (x.days) load().then(render); else polarBind(s); } }).catch(function () {});
+      API.call('polarSync', { sid: s.id }).then(function (x) { if (x && x.ok) { toast('✅ ' + x.days + ' ' + PT('got')); rawResetQ(s.id); if (x.days) load().then(render); else polarBind(s); } }).catch(function () {});
     }
     var p2 = function (x) { return ('0' + x).slice(-2); }, ld = L && L.last ? new Date(L.last) : null;
     var when = ld ? p2(ld.getDate()) + '/' + p2(ld.getMonth() + 1) + ' · ' + p2(ld.getHours()) + ':' + p2(ld.getMinutes()) : PT('none');
@@ -1399,7 +1451,7 @@ function polarBind(s) {
       b.disabled = true; toast(PT('wait'));
       API.call('polarSync', { sid: s.id }).then(function (x) {
         if (!x.ok) { b.disabled = false; return toast(x.err === 'polarAuth' ? PT('auth') : (x.err || 'Polar ✗')); }
-        toast('✅ ' + x.days + ' ' + PT('got')); load().then(render);
+        toast('✅ ' + x.days + ' ' + PT('got')); rawResetQ(s.id); load().then(render);
       }).catch(function () { b.disabled = false; toast(T('neterr')); });
     };
     if ((b = $('#pl-link'))) b.onclick = function () {
