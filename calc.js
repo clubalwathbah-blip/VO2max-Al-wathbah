@@ -381,19 +381,25 @@
     if (!['hrv', 'rhr', 'sleepH', 'sleepScore', 'recharge'].some(function (k) { return num(cur[k]) != null; })) return null;
     var t = new Date(targetDate), base = d.filter(function (x) { var k = (t - new Date(x.date)) / 864e5; return k >= 1 && k <= 28; });
     var hrvB = stats(base.map(function (x) { return num(x.hrv) ? Math.log(num(x.hrv)) : null; })), rhrB = stats(base.map(function (x) { return num(x.rhr); }));
-    var flags = [], score = 0, res = { flags: flags, baseN: base.length };
+    var flags = [], score = 0, pts = {}, res = { flags: flags, baseN: base.length, pts: pts };
+    var add = function (f, p) { flags.push(f); pts[f] = p; score += p; };
     if (num(cur.hrv) && hrvB && hrvB.n >= 7) {
       var z = (Math.log(num(cur.hrv)) - hrvB.m) / Math.max(hrvB.sd, 0.07); res.hrvZ = z; res.hrvBase = Math.exp(hrvB.m);
-      if (z < -1.5) { flags.push('hrv2'); score += 2; } else if (z < -0.75) { flags.push('hrv1'); score += 1; }
+      if (z < -1.5) add('hrv2', 2); else if (z < -0.75) add('hrv1', 1);
     }
     if (num(cur.rhr) && rhrB && rhrB.n >= 7) {
       var z2 = (num(cur.rhr) - rhrB.m) / Math.max(rhrB.sd, 2); res.rhrZ = z2; res.rhrBase = rhrB.m;
-      if (z2 > 1.5) { flags.push('rhr2'); score += 2; } else if (z2 > 0.75) { flags.push('rhr1'); score += 1; }
+      if (z2 > 1.5) add('rhr2', 2); else if (z2 > 0.75) add('rhr1', 1);
     }
     var needH = age != null && age < 13 ? 9 : 8;
-    if (num(cur.sleepH) && num(cur.sleepH) < needH - 1) { flags.push('sleep2'); score += 2; } else if (num(cur.sleepH) && num(cur.sleepH) < needH) { flags.push('sleep1'); score += 1; }
-    if (num(cur.sleepScore) && num(cur.sleepScore) < 60) { flags.push('score'); score += 1; }
-    if (num(cur.recharge) && num(cur.recharge) <= 2) { flags.push('recharge'); score += num(cur.recharge) === 1 ? 2 : 1; }
+    // النوم: النقص ينحسب على قد الدقايق (ساعة ناقصة = 1 نقطة، الأقصى 2). بالدقايق الحقيقية إذا كاينين
+    var sh = num(cur.sleepRealMin) != null ? num(cur.sleepRealMin) / 60 : num(cur.sleepH);
+    if (sh) {
+      var def = needH - sh;
+      if (def > 0) { res.sleepDefMin = Math.round(def * 60); add(def > 1 ? 'sleep2' : 'sleep1', Math.min(2, Math.round(def * 100) / 100)); }
+    }
+    if (num(cur.sleepScore) && num(cur.sleepScore) < 60) add('score', 1);
+    if (num(cur.recharge) && num(cur.recharge) <= 2) add('recharge', num(cur.recharge) === 1 ? 2 : 1);
     res.score = score; res.level = score >= 3 ? 'red' : score >= 1 ? 'yellow' : 'green';
     res.sleepNeed = needH;
     return res;
