@@ -519,9 +519,20 @@ function exHrMsg(sid, e) {
 }
 function rawWaiting(sid, m) { return RAWQ[rawKey(sid, m)] === 'wait'; }
 function rawFailed(sid, m) { return RAWQ[rawKey(sid, m)] === 'fail'; }
+// نبض النهار [وقت, نبض, ...]: Polar يبعثو ماشي مرتب → نرتبو بالوقت ونحذفو المكررين (مرة وحدة لكل نسخة)
+function chrSorted(c) {
+  if (!c || c._s || c.length < 4) return c;
+  if (c._o) return c._o;   // النسخة المرتبة محفوظة (ما نعاودوش الترتيب في كل قراءة)
+  var ok = true; for (var i = 2; i < c.length; i += 2) if (c[i] <= c[i - 2]) { ok = false; break; }
+  if (ok) { c._s = 1; return c; }
+  var p = []; for (var j = 0; j + 1 < c.length; j += 2) p.push([+c[j], +c[j + 1]]);
+  p.sort(function (a, b) { return a[0] - b[0]; });
+  var out = [], last = null; p.forEach(function (x) { if (x[0] === last) return; last = x[0]; out.push(x[0], x[1]); });
+  out._s = 1; c._o = out; return out;
+}
 function daysOf(id) { return DB.tests.filter(function (t) { return t.swimmerId === id && t.type === 'day'; }).map(function (t) { var d = t.data || {}, rw = rawGet(id, String(t.date).slice(0, 7)), rd = rw && rw.days && rw.days[t.date] || {};
   var ex = (d.ex || []).map(function (e) { var x = rd.ex && rd.ex[e.id]; return !e.hr && x && x.hr ? Object.assign({}, e, { hr: x.hr, rate: x.rate || e.rate || 5 }) : e; });
-  return { id: t.id, date: t.date, hrv: d.hrv, rhr: d.rhr, sleepH: d.sleepH, sleepScore: d.sleepScore, sleepTotMin: d.sleepTotMin, sleepRealMin: d.sleepRealMin, sleepStart: d.sleepStart, sleepEnd: d.sleepEnd, cont: d.cont, contCls: d.contCls, recharge: d.recharge, br: d.br, ans: d.ans, min: d.min, rpe: d.rpe, load: C.num(d.min) && C.num(d.rpe) != null ? C.num(d.min) * C.num(d.rpe) : null, polar: d.polar, cl: d.cl, str: d.str, tol: d.tol, clr: d.clr, cls: d.cls, ex: ex, chr: d.chr || rd.chr || null, hasChr: !!(d.chr || d.hasChr) }; }).sort(function (a, b) { return a.date < b.date ? -1 : 1; }); }
+  return { id: t.id, date: t.date, hrv: d.hrv, rhr: d.rhr, sleepH: d.sleepH, sleepScore: d.sleepScore, sleepTotMin: d.sleepTotMin, sleepRealMin: d.sleepRealMin, sleepStart: d.sleepStart, sleepEnd: d.sleepEnd, cont: d.cont, contCls: d.contCls, recharge: d.recharge, br: d.br, ans: d.ans, min: d.min, rpe: d.rpe, load: C.num(d.min) && C.num(d.rpe) != null ? C.num(d.min) * C.num(d.rpe) : null, polar: d.polar, cl: d.cl, str: d.str, tol: d.tol, clr: d.clr, cls: d.cls, ex: ex, chr: chrSorted(d.chr || rd.chr || null), hasChr: !!(d.chr || d.hasChr) }; }).sort(function (a, b) { return a.date < b.date ? -1 : 1; }); }
 function readyOf(s, date) { return C.readiness(daysOf(s.id), date || today(), ageOf(s, date)); }
 function isHead() { return DB.me && DB.me.role === 'coach' && DB.me.head; }
 /* --- permissions (v4) : l'administration choisit, pour chaque entraîneur, les nageurs visibles et les droits --- */
