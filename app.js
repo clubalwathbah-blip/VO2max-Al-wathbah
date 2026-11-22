@@ -433,6 +433,12 @@ function paceStr(p) { return p ? F(p, 1) : '—'; }
 function vPace(v) { return v ? F(100 / v, 1) : '—'; }
 function n1(x) { return x == null ? '—' : R(x, 1); }
 function n0(x) { return x == null ? '—' : Math.round(x); }
+// الرقم كيما جا من Polar (بلا تدوير)
+function nP(x) { return x == null || x === '' ? '—' : String(x); }
+// دقائق → 9 h 04 min (كيما Polar Flow)
+function hmin(m) { if (m == null) return '—'; m = Math.round(m); return Math.floor(m / 60) + ' h ' + ('0' + m % 60).slice(-2) + ' min'; }
+// Polar: continuity_class 1..5
+function contTxt(c) { return ({ 1: A('مقطّع بزاف', 'Très fragmenté'), 2: A('مقطّع', 'Fragmenté'), 3: A('مستمر شوية', 'Assez continu'), 4: A('مستمر', 'Continu'), 5: A('مستمر بزاف', 'Très continu') })[c] || ''; }
 function initials(n) { return String(n || '?').trim().split(/\s+/).slice(0, 2).map(function (w) { return w[0]; }).join('').toUpperCase(); }
 var ICON = { step: '📈', '400': '🏊', css: '⏱', leger: '🏃', rest: '😴', day: '🌙', time: '🏅' };
 // 🗂 تفاصيل النبض (Drive): ملف لكل سباح لكل شهر، تتجاب كي نحتاجوها برك وتبقى في الهاتف
@@ -455,6 +461,8 @@ function rawLacks(sid, m) {
     if (t.swimmerId !== sid || t.type !== 'day' || String(t.date).slice(0, 7) !== m) return false;
     var d = t.data || {}, rd = days[t.date] || {};
     if (d.hasChr && !d.chr && !rd.chr) return true;
+    // النسخة اللي في الهاتف ناقصة (تجابت قبل ما الـ Loop يكمّل يبعث): نعاودو نجيبوها
+    if (d.hasChr && !d.chr && rd.chr && C.num(d.chrN) != null && Math.floor(rd.chr.length / 2) < C.num(d.chrN)) return true;
     return (d.ex || []).some(function (e) { return e.hasHr && !e.hr && !(rd.ex && rd.ex[e.id] && rd.ex[e.id].hr); });
   });
 }
@@ -513,7 +521,7 @@ function rawWaiting(sid, m) { return RAWQ[rawKey(sid, m)] === 'wait'; }
 function rawFailed(sid, m) { return RAWQ[rawKey(sid, m)] === 'fail'; }
 function daysOf(id) { return DB.tests.filter(function (t) { return t.swimmerId === id && t.type === 'day'; }).map(function (t) { var d = t.data || {}, rw = rawGet(id, String(t.date).slice(0, 7)), rd = rw && rw.days && rw.days[t.date] || {};
   var ex = (d.ex || []).map(function (e) { var x = rd.ex && rd.ex[e.id]; return !e.hr && x && x.hr ? Object.assign({}, e, { hr: x.hr, rate: x.rate || e.rate || 5 }) : e; });
-  return { id: t.id, date: t.date, hrv: d.hrv, rhr: d.rhr, sleepH: d.sleepH, sleepScore: d.sleepScore, recharge: d.recharge, br: d.br, ans: d.ans, min: d.min, rpe: d.rpe, load: C.num(d.min) && C.num(d.rpe) != null ? C.num(d.min) * C.num(d.rpe) : null, polar: d.polar, cl: d.cl, str: d.str, tol: d.tol, clr: d.clr, cls: d.cls, ex: ex, chr: d.chr || rd.chr || null, hasChr: !!(d.chr || d.hasChr) }; }).sort(function (a, b) { return a.date < b.date ? -1 : 1; }); }
+  return { id: t.id, date: t.date, hrv: d.hrv, rhr: d.rhr, sleepH: d.sleepH, sleepScore: d.sleepScore, sleepTotMin: d.sleepTotMin, sleepRealMin: d.sleepRealMin, sleepStart: d.sleepStart, sleepEnd: d.sleepEnd, cont: d.cont, contCls: d.contCls, recharge: d.recharge, br: d.br, ans: d.ans, min: d.min, rpe: d.rpe, load: C.num(d.min) && C.num(d.rpe) != null ? C.num(d.min) * C.num(d.rpe) : null, polar: d.polar, cl: d.cl, str: d.str, tol: d.tol, clr: d.clr, cls: d.cls, ex: ex, chr: d.chr || rd.chr || null, hasChr: !!(d.chr || d.hasChr) }; }).sort(function (a, b) { return a.date < b.date ? -1 : 1; }); }
 function readyOf(s, date) { return C.readiness(daysOf(s.id), date || today(), ageOf(s, date)); }
 function isHead() { return DB.me && DB.me.role === 'coach' && DB.me.head; }
 /* --- permissions (v4) : l'administration choisit, pour chaque entraîneur, les nageurs visibles et les droits --- */
@@ -935,13 +943,18 @@ function reportDetails(rep) {
   out.push('<div class="rp-sec">📝 ' + A('تفاصيل الليل والشرح', 'Détails de la nuit et explications') + '</div>');
   // 3) الليل
   var sh = C.num(d.sleepH), sc = C.num(d.sleepScore), night = [];
+  if (d.sleepStart && d.sleepEnd) night.push(A('<b>الرقاد والنوضة:</b> ', '<b>Coucher / lever :</b> ') + '<span class="num ltr">' + esc(d.sleepStart) + ' → ' + esc(d.sleepEnd) + '</span>' +
+    (C.num(d.sleepTotMin) != null ? A(' · <b>الوقت الكامل:</b> ', ' · <b>Temps de sommeil :</b> ') + '<span class="num ltr">' + hmin(C.num(d.sleepTotMin)) + '</span>' : '') +
+    (C.num(d.sleepRealMin) != null ? A(' · <b>النوم الحقيقي:</b> ', ' · <b>Sommeil réel :</b> ') + '<span class="num ltr">' + hmin(C.num(d.sleepRealMin)) + '</span>' : '') +
+    (C.num(d.sleepTotMin) && C.num(d.sleepRealMin) != null ? ' (<span class="num">' + Math.round(C.num(d.sleepRealMin) / C.num(d.sleepTotMin) * 100) + '%</span>)' : '') + ' <span class="muted small">(Polar)</span>');
   if (sh != null) {
     var diff = sh - rep.need;
-    night.push(A('<b>مدة النوم:</b> <span class="num">' + n1(sh) + '</span> سوايع. اللازم في عمرو (' + (rep.age ? R(rep.age, 0) : '?') + ' سنة): <b>' + rep.need + '–' + (rep.need + 2) + ' سوايع</b>. ', '<b>Sommeil :</b> <span class="num">' + n1(sh) + '</span> h. Besoin à son âge : <b>' + rep.need + '–' + (rep.need + 2) + ' h</b>. ') +
+    night.push(A('<b>مدة النوم (الحقيقي):</b> <span class="num">' + n1(sh) + '</span> سوايع. اللازم في عمرو (' + (rep.age ? R(rep.age, 0) : '?') + ' سنة): <b>' + rep.need + '–' + (rep.need + 2) + ' سوايع</b>. ', '<b>Sommeil (réel) :</b> <span class="num">' + n1(sh) + '</span> h. Besoin à son âge : <b>' + rep.need + '–' + (rep.need + 2) + ' h</b>. ') +
       (diff >= 0 ? A('✅ كافي.', '✅ suffisant.') : diff >= -1 ? A('🟡 ناقص شوية (' + n1(-diff) + ' سا).', '🟡 un peu court (' + n1(-diff) + ' h).') : A('🔴 ناقص بزاف (' + n1(-diff) + ' سا).', '🔴 trop court (' + n1(-diff) + ' h).')));
   }
-  if (sc != null) night.push(A('<b>جودة النوم (Sleep score):</b> <span class="num">' + n0(sc) + '</span>/100 — ', '<b>Sleep score :</b> <span class="num">' + n0(sc) + '</span>/100 — ') +
-    (sc >= 80 ? A('ممتاز', 'excellent') : sc >= 70 ? A('مليح', 'bon') : sc >= 60 ? A('متوسط', 'moyen') : A('ضعيف: نوم مقطّع ولا قصير', 'faible : sommeil court ou fragmenté')) + ' <span class="muted small">(' + A('تقريبي', 'indicatif') + ')</span>');
+  if (sc != null) night.push(A('<b>جودة النوم (Sleep score):</b> <span class="num">' + nP(d.sleepScore) + '</span>/100 <span class="muted small">(Polar)</span> — ', '<b>Sleep score :</b> <span class="num">' + nP(d.sleepScore) + '</span>/100 <span class="muted small">(Polar)</span> — ') +
+    (sc >= 80 ? A('ممتاز', 'excellent') : sc >= 70 ? A('مليح', 'bon') : sc >= 60 ? A('متوسط', 'moyen') : A('ضعيف: نوم مقطّع ولا قصير', 'faible : sommeil court ou fragmenté')) + ' <span class="muted small">(' + A('تقييم التطبيق', 'appréciation de l’app') + ')</span>');
+  if (C.num(d.cont) != null) night.push(A('<b>استمرارية النوم:</b> <span class="num">' + nP(d.cont) + '</span>/5', '<b>Continuité du sommeil :</b> <span class="num">' + nP(d.cont) + '</span>/5') + (contTxt(C.num(d.contCls)) ? ' — ' + contTxt(C.num(d.contCls)) : '') + ' <span class="muted small">(Polar)</span>');
   var rc = C.num(d.recharge);
   if (rc != null) night.push(A('<b>Nightly Recharge:</b> ', '<b>Nightly Recharge :</b> ') + T('rc' + rc) + ' — ' + A('هذا حساب Polar لاسترجاع الجسم في الليل (النوم + الجهاز العصبي).', 'récupération nocturne calculée par Polar (sommeil + système nerveux).'));
   if (r && r.hrvBase && C.num(d.hrv) != null) {
@@ -1160,7 +1173,7 @@ function reportVisual(rep) {
   var prev = function (k) { for (var i = days.length - 2; i >= 0; i--) if (C.num(days[i][k]) != null) return C.num(days[i][k]); return null; };
   var pH = prev('hrv'), pR = prev('rhr'), hv = C.num(d.hrv), rh = C.num(d.rhr);
   h += '<div class="rp-k">';
-  h += '<div class="rp-c"><div class="l">🌙 ' + A('النوم', 'Sommeil') + '</div><div class="v">' + n1(sh) + ' <small>h</small></div><div class="rp-bar"><i style="width:' + Math.min(100, (sh || 0) / (need + 2) * 100) + '%;background:' + (sh == null ? '#ccc' : sh >= need ? '#1D9E75' : sh >= need - 1 ? '#EF9F27' : '#E24B4A') + '"></i></div><div class="n muted">' + A('اللازم', 'Besoin') + ' <span class="num ltr">' + need + '–' + (need + 2) + 'h</span>' + (C.num(d.sleepScore) != null ? ' · Score <b class="num">' + n0(C.num(d.sleepScore)) + '</b>' : '') + '</div></div>';
+  h += '<div class="rp-c"><div class="l">🌙 ' + A('النوم', 'Sommeil') + '</div><div class="v">' + n1(sh) + ' <small>h</small></div><div class="rp-bar"><i style="width:' + Math.min(100, (sh || 0) / (need + 2) * 100) + '%;background:' + (sh == null ? '#ccc' : sh >= need ? '#1D9E75' : sh >= need - 1 ? '#EF9F27' : '#E24B4A') + '"></i></div><div class="n muted">' + A('النوم الحقيقي', 'Sommeil réel') + (C.num(d.sleepTotMin) != null ? ' · ' + A('الوقت الكامل', 'Temps total') + ' <b class="num ltr">' + hmin(C.num(d.sleepTotMin)) + '</b>' : '') + (C.num(d.sleepTotMin) && C.num(d.sleepRealMin) != null ? ' (<span class="num">' + Math.round(C.num(d.sleepRealMin) / C.num(d.sleepTotMin) * 100) + '%</span>)' : '') + '</div><div class="n muted">' + A('اللازم', 'Besoin') + ' <span class="num ltr">' + need + '–' + (need + 2) + 'h</span>' + (C.num(d.sleepScore) != null ? ' · Score <b class="num">' + nP(d.sleepScore) + '</b>' : '') + (C.num(d.cont) != null ? ' · ' + A('الاستمرارية', 'Continuité') + ' <b class="num">' + nP(d.cont) + '</b>' + (contTxt(C.num(d.contCls)) ? ' ' + contTxt(C.num(d.contCls)) : '') : '') + '</div></div>';
   h += '<div class="rp-c"><div class="l">💓 HRV</div><div class="v">' + n0(hv) + ' <small>ms</small></div>' + spark(hrvS, '#378ADD', r && r.hrvBase) + '<div class="n" style="color:' + (hv != null && pH != null ? (hv >= pH ? '#0e9f6e' : '#c27c00') : 'var(--mute)') + '">' + (hv != null && pH != null ? (hv >= pH ? '▲ ' : '▼ ') + A('على البارح', 'vs veille') + ' (' + pH + ')' : r && r.hrvBase ? A('المعدل', 'Réf.') + ' ' + n0(r.hrvBase) : '—') + '</div></div>';
   h += '<div class="rp-c"><div class="l">❤️ ' + A('نبض الراحة', 'FC repos') + '</div><div class="v">' + n0(rh) + ' <small>bpm</small></div>' + spark(rhrS, '#E24B4A', r && r.rhrBase) + '<div class="n" style="color:' + (rh != null && pR != null ? (rh <= pR ? '#0e9f6e' : '#c27c00') : 'var(--mute)') + '">' + (rh != null && pR != null ? (rh <= pR ? '▼ ' : '▲ ') + A('على البارح', 'vs veille') + ' (' + pR + ')' : '—') + '</div></div>';
   h += '<div class="rp-c"><div class="l">🔋 Nightly Recharge</div><div class="v" style="font-size:20px">' + (rc != null ? T('rc' + rc) : '—') + '</div><div class="rp-seg">' + [1, 2, 3, 4, 5].map(function (i) { return '<i style="' + (rc != null && i <= rc ? 'background:' + (rc >= 4 ? '#1D9E75' : rc === 3 ? '#EF9F27' : '#E24B4A') : '') + '"></i>'; }).join('') + '</div><div class="n muted">' + (rc != null ? rc + ' / 5' : '') + '</div></div>';
@@ -1424,8 +1437,8 @@ function polarSrc(kind, b) {
 }
 
 /* ---------- 🔗 Polar (ربط مباشر) ---------- */
-var PL = { ar: { t: 'Polar Flow', link: '🔗 ربط Polar', sync: '🔄 جيب دوك', unlink: 'إلغاء الربط', on: '✅ مربوط', off: 'مازال ما تربطش', last: 'آخر جلب', none: 'ما تجلب والو', wait: 'نجيب من Polar…', got: 'تحدّثو الأيام', noCfg: 'لازم تحط POLAR_CLIENT_ID و POLAR_CLIENT_SECRET في Apps Script', back: 'كي يكمّل الربط في الصفحة لي تحلّت، ارجع هنا واضغط «جيب دوك»', auth: 'الربط مع Polar ما بقاش صالح: عاود «ربط Polar»', auto: 'يتجاب وحدو كي تفتح الصفحة (ووقت ما تحب: 🔄 جيب دوك)', unconf: 'نلغيو الربط مع Polar ؟' },
-           fr: { t: 'Polar Flow', link: '🔗 Connecter Polar', sync: '🔄 Synchroniser', unlink: 'Déconnecter', on: '✅ Connecté', off: 'Non connecté', last: 'Dernière synchro', none: 'jamais', wait: 'Synchronisation Polar…', got: 'jours mis à jour', noCfg: 'Ajoutez POLAR_CLIENT_ID et POLAR_CLIENT_SECRET dans Apps Script', back: 'Une fois la connexion terminée dans l’onglet ouvert, revenez et cliquez « Synchroniser »', auth: 'Connexion Polar expirée : reconnectez', auto: 'Synchro automatique à l’ouverture (ou à tout moment : 🔄)', unconf: 'Déconnecter Polar ?' } };
+var PL = { ar: { t: 'Polar Flow', link: '🔗 ربط Polar', sync: '🔄 جيب دوك', unlink: 'إلغاء الربط', on: '✅ مربوط', off: 'مازال ما تربطش', last: 'آخر جلب', none: 'ما تجلب والو', wait: 'نجيب من Polar…', got: 'تحدّثو الأيام', noCfg: 'لازم تحط POLAR_CLIENT_ID و POLAR_CLIENT_SECRET في Apps Script', back: 'كي يكمّل الربط في الصفحة لي تحلّت، ارجع هنا واضغط «جيب دوك»', auth: 'الربط مع Polar ما بقاش صالح: عاود «ربط Polar»', auto: 'يتجاب وحدو كي تفتح الصفحة (ووقت ما تحب: 🔄 جيب دوك)', unconf: 'نلغيو الربط مع Polar ؟', lastNight: 'آخر ليلة وصلت من Polar', noNight: 'حتى ليلة', nights: 'ليالي', errT: 'آخر جلب طاح في خطأ' },
+           fr: { t: 'Polar Flow', link: '🔗 Connecter Polar', sync: '🔄 Synchroniser', unlink: 'Déconnecter', on: '✅ Connecté', off: 'Non connecté', last: 'Dernière synchro', none: 'jamais', wait: 'Synchronisation Polar…', got: 'jours mis à jour', noCfg: 'Ajoutez POLAR_CLIENT_ID et POLAR_CLIENT_SECRET dans Apps Script', back: 'Une fois la connexion terminée dans l’onglet ouvert, revenez et cliquez « Synchroniser »', auth: 'Connexion Polar expirée : reconnectez', auto: 'Synchro automatique à l’ouverture (ou à tout moment : 🔄)', unconf: 'Déconnecter Polar ?', lastNight: 'Dernière nuit reçue de Polar', noNight: 'aucune', nights: 'nuits', errT: 'Dernière synchro en erreur' } };
 var PSYNC = {};
 function PT(k) { return (PL[LANG === 'fr' ? 'fr' : 'ar'])[k]; }
 function polarBind(s) {
@@ -1437,12 +1450,18 @@ function polarBind(s) {
     // 🔄 جلب وحدو كي تفتح الصفحة (مرة وحدة في الجلسة، وإذا آخر جلب فات عليه 10 دقايق)
     if (L && can('polar') && !PSYNC[s.id] && (!L.last || Date.now() - new Date(L.last).getTime() > 10 * 60000)) {
       PSYNC[s.id] = 1; toast(PT('wait'));
-      API.call('polarSync', { sid: s.id }).then(function (x) { if (x && x.ok) { toast('✅ ' + x.days + ' ' + PT('got')); rawResetQ(s.id); if (x.days) load().then(render); else polarBind(s); } }).catch(function () {});
+      API.call('polarSync', { sid: s.id }).then(function (x) {
+        if (!x || !x.ok) { toast('⚠️ Polar : ' + (x && x.err === 'polarAuth' ? PT('auth') : (x && x.err || 'Polar ✗'))); polarBind(s); return; }
+        toast('✅ ' + x.days + ' ' + PT('got') + (x.lastNight ? ' · ' + PT('lastNight') + ' ' + fmtDate(x.lastNight) : ''));
+        rawResetQ(s.id); if (x.days) load().then(render); else polarBind(s);
+      }).catch(function () { toast('⚠️ ' + T('neterr')); });
     }
     var p2 = function (x) { return ('0' + x).slice(-2); }, ld = L && L.last ? new Date(L.last) : null;
     var when = ld ? p2(ld.getDate()) + '/' + p2(ld.getMonth() + 1) + ' · ' + p2(ld.getHours()) + ':' + p2(ld.getMinutes()) : PT('none');
     box.innerHTML = '<div class="card" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px"><div class="ic">⌚</div><div class="sp"><b>' + PT('t') + ' · ' + (L ? PT('on') : PT('off')) + '</b>' +
-      '<div class="small muted">' + (L ? PT('last') + ' : <bdi class="num" dir="ltr">' + esc(when) + '</bdi> · ' + PT('auto') : (r.cfg ? '' : PT('noCfg'))) + '</div></div>' +
+      '<div class="small muted">' + (L ? PT('last') + ' : <bdi class="num" dir="ltr">' + esc(when) + '</bdi> · ' + PT('auto') : (r.cfg ? '' : PT('noCfg'))) + '</div>' +
+      (L ? '<div class="small">🌙 ' + PT('lastNight') + ' : <b class="num">' + (L.lastNight ? esc(fmtDate(L.lastNight)) : PT('noNight')) + '</b>' + (L.nN != null ? ' <span class="muted">(' + L.nN + ' ' + PT('nights') + ')</span>' : '') + '</div>' : '') +
+      (L && L.err ? '<div class="small" style="color:#c0392b">⚠️ ' + PT('errT') + ' (' + esc(fmtDate(String(L.errAt || '').slice(0, 10))) + ') : ' + esc(L.err === 'polarAuth' ? PT('auth') : L.err) + '</div>' : '') + '</div>' +
       (L && can('polar') ? '<button class="btn pri sm" id="pl-sync">' + PT('sync') + '</button>' : '') +
       (isAdmin() && r.cfg ? '<button class="btn sm" id="pl-link">' + PT('link') + '</button>' : '') +
       (isAdmin() && L ? '<button class="btn sm dan" id="pl-un">' + PT('unlink') + '</button>' : '') + '</div>';
@@ -1451,7 +1470,7 @@ function polarBind(s) {
       b.disabled = true; toast(PT('wait'));
       API.call('polarSync', { sid: s.id }).then(function (x) {
         if (!x.ok) { b.disabled = false; return toast(x.err === 'polarAuth' ? PT('auth') : (x.err || 'Polar ✗')); }
-        toast('✅ ' + x.days + ' ' + PT('got')); rawResetQ(s.id); load().then(render);
+        toast('✅ ' + x.days + ' ' + PT('got') + (x.lastNight ? ' · ' + PT('lastNight') + ' ' + fmtDate(x.lastNight) : '')); rawResetQ(s.id); load().then(render);
       }).catch(function () { b.disabled = false; toast(T('neterr')); });
     };
     if ((b = $('#pl-link'))) b.onclick = function () {
