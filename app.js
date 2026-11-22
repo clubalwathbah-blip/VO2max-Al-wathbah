@@ -461,8 +461,8 @@ function rawLacks(sid, m) {
     if (t.swimmerId !== sid || t.type !== 'day' || String(t.date).slice(0, 7) !== m) return false;
     var d = t.data || {}, rd = days[t.date] || {};
     if (d.hasChr && !d.chr && !rd.chr) return true;
-    // النسخة اللي في الهاتف ناقصة (تجابت قبل ما الـ Loop يكمّل يبعث): نعاودو نجيبوها
-    if (d.hasChr && !d.chr && rd.chr && C.num(d.chrN) != null && Math.floor(rd.chr.length / 2) < C.num(d.chrN)) return true;
+    // النسخة اللي في الهاتف ماشي هي اللي في السيرفر (ناقصة ولا قديمة): نعاودو نجيبوها
+    if (d.hasChr && !d.chr && rd.chr && C.num(d.chrN) != null && Math.floor(rd.chr.length / 2) !== C.num(d.chrN)) return true;
     return (d.ex || []).some(function (e) { return e.hasHr && !e.hr && !(rd.ex && rd.ex[e.id] && rd.ex[e.id].hr); });
   });
 }
