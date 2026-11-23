@@ -530,6 +530,21 @@ function chrSorted(c) {
   var out = [], last = null; p.forEach(function (x) { if (x[0] === last) return; last = x[0]; out.push(x[0], x[1]); });
   out._s = 1; c._o = out; return out;
 }
+// نبض النهار دقيقة بدقيقة: Polar يبعث كل 5 د في الراحة وكل بضع ثواني كي يتحرك →
+// نجمعو كل دقيقة في نقطة وحدة (المتوسط) باش كل دقيقة تحسب مرة وحدة · min/max من كل القراءات
+function chrStats(c) {
+  if (!c || c.length < 4) return null;
+  var bins = {}, n = 0, mn = Infinity, mx = -Infinity, tMn = 0, tMx = 0;
+  for (var i = 0; i + 1 < c.length; i += 2) { var t = +c[i], b = +c[i + 1]; if (!(b > 0)) continue; n++; var k = Math.floor(t); var o = bins[k] = bins[k] || { s: 0, n: 0 }; o.s += b; o.n++; if (b < mn) { mn = b; tMn = t; } if (b > mx) { mx = b; tMx = t; } }
+  var ks = Object.keys(bins).map(Number).sort(function (a, b) { return a - b; });
+  var pts = ks.map(function (k) { return { m: k, b: bins[k].s / bins[k].n, n: bins[k].n }; });
+  if (!pts.length) return null;
+  var avg = pts.reduce(function (a, p) { return a + p.b; }, 0) / pts.length;
+  var dense = pts.filter(function (p) { return p.n > 1; }).length;
+  var day = pts.filter(function (p) { return p.m >= 8 * 60 && p.m <= 21 * 60; }), dmn = null;
+  for (var j = 0; j + 1 < c.length; j += 2) { var tt = +c[j], bb = +c[j + 1]; if (bb > 0 && tt >= 8 * 60 && tt <= 21 * 60 && (dmn == null || bb < dmn)) dmn = bb; }
+  return { pts: pts, n: n, min: mn, tMin: tMn, max: mx, tMax: tMx, avg: avg, dense: dense, dmin: dmn, first: pts[0].m, last: pts[pts.length - 1].m };
+}
 function daysOf(id) { return DB.tests.filter(function (t) { return t.swimmerId === id && t.type === 'day'; }).map(function (t) { var d = t.data || {}, rw = rawGet(id, String(t.date).slice(0, 7)), rd = rw && rw.days && rw.days[t.date] || {};
   var ex = (d.ex || []).map(function (e) { var x = rd.ex && rd.ex[e.id]; return !e.hr && x && x.hr ? Object.assign({}, e, { hr: x.hr, rate: x.rate || e.rate || 5 }) : e; });
   return { id: t.id, date: t.date, hrv: d.hrv, rhr: d.rhr, sleepH: d.sleepH, sleepScore: d.sleepScore, sleepTotMin: d.sleepTotMin, sleepRealMin: d.sleepRealMin, sleepStart: d.sleepStart, sleepEnd: d.sleepEnd, cont: d.cont, contCls: d.contCls, recharge: d.recharge, br: d.br, ans: d.ans, min: d.min, rpe: d.rpe, load: C.num(d.min) && C.num(d.rpe) != null ? C.num(d.min) * C.num(d.rpe) : null, polar: d.polar, cl: d.cl, str: d.str, tol: d.tol, clr: d.clr, cls: d.cls, ex: ex, chr: chrSorted(d.chr || rd.chr || null), hasChr: !!(d.chr || d.hasChr) }; }).sort(function (a, b) { return a.date < b.date ? -1 : 1; }); }
@@ -1329,16 +1344,16 @@ function cnTr2(rep, all) {
 }
 function cnChr(rep) {
   var c = rep.d.chr; if (!c || c.length < 8) return null;
-  var pts = []; for (var i = 0; i < c.length; i += 2) pts.push({ m: c[i], b: c[i + 1] });
-  var hm = function (m) { return hhmm(m / 60); }, mx = pts.reduce(function (a, p) { return p.b > a.b ? p : a; }), mn = pts.reduce(function (a, p) { return p.b < a.b ? p : a; });
-  var first = pts[0].m, last = pts[pts.length - 1].m, say = [];
-  say.push(A('من ' + hm(first) + ' حتى ' + hm(last) + ' (' + nb(pts.length) + ' قراءة).', 'De ' + hm(first) + ' à ' + hm(last) + ' (' + pts.length + ' mesures).'));
-  say.push(A('أقل نبض ' + nb(mn.b) + ' على ' + hm(mn.m) + ' · أعلى نبض ' + nb(mx.b) + ' على ' + hm(mx.m) + '.', 'Min ' + nb(mn.b) + ' à ' + hm(mn.m) + ' · max ' + nb(mx.b) + ' à ' + hm(mx.m) + '.'));
+  var st = chrStats(c); if (!st) return null;
+  var hm = function (m) { return hhmm(m / 60); }, first = st.first, last = st.last, say = [];
+  say.push(A('من ' + hm(first) + ' حتى ' + hm(last) + ' (' + nb(st.n) + ' قراءة).', 'De ' + hm(first) + ' à ' + hm(last) + ' (' + st.n + ' mesures).'));
+  say.push(A('أقل نبض ' + nb(st.min) + ' على ' + hm(st.tMin) + ' · أعلى نبض ' + nb(st.max) + ' على ' + hm(st.tMax) + ' · المتوسط على الوقت ' + nb(st.avg) + '.', 'Min ' + nb(st.min) + ' à ' + hm(st.tMin) + ' · max ' + nb(st.max) + ' à ' + hm(st.tMax) + ' · moyenne ' + nb(st.avg) + '.'));
+  if (st.dense) say.push(A('الـ Loop قاس النبض كل بضع ثواني في ' + nb(st.dense) + ' دقيقة (كي كان يتحرك)، وكل 5 دقايق في الباقي.', 'Mesure toutes les quelques secondes pendant ' + st.dense + ' min (en mouvement), sinon toutes les 5 min.'));
   if (C.num(rep.d.rhr) != null) say.push(A('نبض الراحة تاع الليل (Polar) ' + nb(C.num(rep.d.rhr)) + ' bpm.', 'FC de repos nocturne (Polar) ' + nb(C.num(rep.d.rhr)) + ' bpm.'));
   var nowM = new Date().getHours() * 60 + new Date().getMinutes();
   if (rep.date < today() && last < 20 * 60) say.push('⚠️ ' + A('المنحنى ما يغطيش النهار كامل (آخر قراءة ' + hm(last) + '): الـ Loop ما بعثش الباقي لـ Polar.', 'Courbe incomplète (dernière mesure ' + hm(last) + ').'));
   else if (rep.date === today() && nowM - last > 90) say.push('⏳ ' + A('آخر قراءة ' + hm(last) + ': الباقي يجي كي الـ Loop يدير Sync مع الهاتف، ومن بعد «جيب دوك».', 'Dernière mesure ' + hm(last) + ' : la suite arrive après la synchro du Loop.'));
-  return { say: say, how: A('قراءة نبض كل 5 دقايق من الـ Loop، على طول الليل والنهار (أوقات الحصص ما تبانش هنا). في الرقاد النبض يهبط ويبقى ثابت؛ في النهار يطلع مع الحركة. إذا نبض الليل يبقى عالي على العادة = الجسم مازال يسترجع (تعب، سخانة، ضغط).',
+  return { say: say, how: A('نبض القلب من الـ Loop على طول الليل والنهار: كل 5 دقايق في الراحة، وكل بضع ثواني كي يتحرك. المحور هو الوقت الحقيقي (كل ساعة بنفس العرض)، وكل نقطة = متوسط دقيقة. الخط يتقطع وين ما كاينش قياس (الحصص ما تبانش هنا، تبان في منحنى الحصة). في الرقاد النبض يهبط ويبقى ثابت؛ في النهار يطلع مع الحركة. إذا نبض الليل يبقى عالي على العادة = الجسم مازال يسترجع (تعب، سخانة، ضغط).',
     'Mesure toutes les 5 min par le Loop, jour et nuit (hors séances). La nuit la FC baisse et reste stable ; le jour elle monte avec l’activité. Une FC nocturne plus haute que d’habitude = récupération incomplète.') };
 }
 function cnSess(rep, e, Z) {
@@ -1361,11 +1376,9 @@ function loadNote(rep) {
 }
 function dayHrHtml(rep) {
   var c = rep.d.chr; if (!c || c.length < 8) return '';
-  var v = []; for (var i = 1; i < c.length; i += 2) v.push(c[i]);
-  var mn = Math.min.apply(null, v), mx = Math.max.apply(null, v), av = Math.round(v.reduce(function (a, b) { return a + b; }, 0) / v.length);
-  var day = []; for (var j = 0; j < c.length; j += 2) if (c[j] >= 8 * 60 && c[j] <= 21 * 60) day.push(c[j + 1]);
-  var dmn = day.length ? Math.min.apply(null, day) : null;
-  return '<div class="rp-c" style="margin-bottom:12px"><div class="l">' + T('dayHrT') + '</div><div class="rp-chips"><span>▼ min <b>' + mn + '</b></span><span>' + A('المتوسط', 'moy.') + ' <b>' + av + '</b></span><span>▲ max <b>' + mx + '</b></span>' + (dmn ? '<span>' + A('أقل نبض في النهار', 'min en journée') + ' <b>' + dmn + '</b></span>' : '') + '<span class="muted">' + A('قراءة كل 5 د · بلا الحصص', 'mesure / 5 min · hors séances') + '</span></div><div class="rp-ch s"><canvas id="rp-chr"></canvas></div>' + cnBox(cnChr(rep)) + '</div>';
+  var st = chrStats(c); if (!st) return '';
+  var mn = st.min, mx = st.max, av = Math.round(st.avg), dmn = st.dmin;
+  return '<div class="rp-c" style="margin-bottom:12px"><div class="l">' + T('dayHrT') + '</div><div class="rp-chips"><span>▼ min <b>' + mn + '</b></span><span>' + A('المتوسط', 'moy.') + ' <b>' + av + '</b></span><span>▲ max <b>' + mx + '</b></span>' + (dmn ? '<span>' + A('أقل نبض في النهار', 'min en journée') + ' <b>' + dmn + '</b></span>' : '') + '<span class="muted">' + A('المتوسط على الوقت (كل دقيقة مرة) · بلا الحصص', 'moyenne dans le temps (1 fois par minute) · hors séances') + '</span></div><div class="rp-ch s"><canvas id="rp-chr"></canvas></div>' + cnBox(cnChr(rep)) + '</div>';
 }
 function zTxt(rep, a, b) { var z = rep.zones; return z ? z[a - 1].lo + '–' + z[b - 1].hi + ' bpm' : ''; }
 
@@ -1385,10 +1398,15 @@ function drawReportCharts(rep) {
       mk('rp-en-' + c.i, { type: 'line', data: { labels: lab, datasets: [{ data: c.en.cho, borderColor: '#F26B21', borderWidth: 1.8, pointRadius: 0, tension: .3 }, { data: c.en.fat, borderColor: '#E0B020', borderWidth: 1.8, pointRadius: 0, tension: .3 }] }, options: o2 });
     }
   });
-  if (rep.d.chr && rep.d.chr.length >= 8) {
-    var cx = [], cy = []; for (var ci = 0; ci < rep.d.chr.length; ci += 2) { cx.push(hhmm(rep.d.chr[ci] / 60)); cy.push(rep.d.chr[ci + 1]); }
-    var oc = o0(); oc.scales = { x: { ticks: { maxTicksLimit: 8, maxRotation: 0 }, grid: { display: false } }, y: { suggestedMin: 50 } };
-    mk('rp-chr', { type: 'line', data: { labels: cx, datasets: [{ data: cy, borderColor: '#E24B4A', borderWidth: 1.8, pointRadius: 0, tension: .25, spanGaps: true }] }, options: oc });
+  var cs = rep.d.chr && rep.d.chr.length >= 8 ? chrStats(rep.d.chr) : null;
+  if (cs) {
+    // المحور = الوقت الحقيقي 00:00→24:00 (كل ساعة بنفس العرض) · فراغ أكثر من 15 د (حصة، الساعة منحّية) = الخط يتقطع
+    var cd = [], prev = null;
+    cs.pts.forEach(function (p) { if (prev != null && p.m - prev > 15) cd.push({ x: prev + 1, y: null }); cd.push({ x: p.m, y: Math.round(p.b * 10) / 10 }); prev = p.m; });
+    var oc = o0(); oc.interaction = { mode: 'nearest', axis: 'x', intersect: false };
+    oc.scales = { x: { type: 'linear', min: 0, max: 1440, ticks: { stepSize: 120, maxRotation: 0, callback: function (v) { return hhmm(v / 60); } }, grid: { display: false } }, y: { suggestedMin: 45 } };
+    oc.plugins.tooltip = { callbacks: { title: function (it) { return it.length ? hhmm(it[0].parsed.x / 60) : ''; }, label: function (x) { return Math.round(x.parsed.y) + ' bpm'; } } };
+    mk('rp-chr', { type: 'line', data: { datasets: [{ data: cd, parsing: false, borderColor: '#E24B4A', borderWidth: 1.6, pointRadius: 0, tension: 0, spanGaps: false }] }, options: oc });
   }
   var all = daysOf(rep.s.id).filter(function (x) { return x.date <= rep.date; }).slice(-14), lab = all.map(function (x) { return x.date.slice(8) + '/' + x.date.slice(5, 7); });
   var base = all.map(function (x) { var r = C.readiness(daysOf(rep.s.id), x.date); return r && r.hrvBase ? Math.round(r.hrvBase) : null; });
