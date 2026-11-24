@@ -1,5 +1,5 @@
 /* VO2max Al-Wathba — application */
-var APP_V = '6.0';
+var APP_V = '6.2';
 (function () {
 'use strict';
 var C = window.VO2C;
@@ -1097,7 +1097,8 @@ function drawReport(s) {
   var dates = days.map(function (x) { return x.date; }).reverse().slice(0, 30);
   if (!S.rdate || dates.indexOf(S.rdate) < 0) S.rdate = dates[0];
   var dd = days.find(function (x) { return x.date === S.rdate; }), mo = String(S.rdate).slice(0, 7);
-  var needD = dd && ((dd.hasChr && !dd.chr) || (dd.ex || []).some(function (e) { return e.hasHr && !e.hr; }));
+  // v6.1: النسخة اللي في الهاتف قديمة (نبض الحصص بالمعدل كل 5 ث، ولا ناقصة) ← نعاودو نجيبوها من Drive
+  var needD = dd && ((dd.hasChr && !dd.chr) || (dd.ex || []).some(function (e) { return e.hasHr && !e.hr; }) || rawLacks(s.id, mo));
   if (needD) ensureRaw(s.id, [mo]);
   if (dd) exHrFallback(s.id, dd.date, dd.ex || []);
   var rep = dayReport(s, S.rdate);
@@ -1518,13 +1519,13 @@ function cnChr(rep) {
   var M = dayMerged(rep); if (!M) return null;
   var hm = function (m) { return hhmm(m / 60); }, say = [];
   if (M.min != null) say.push(A('أقل نبض في الليل ', 'FC la plus basse (nuit) ') + nb(M.min) + A(' على ', ' à ') + hm(M.tMin) + ' · ' + A('أعلى نبض ', 'FC max ') + nb(M.max) + A(' على ', ' à ') + hm(M.tMax) + (M.dmin != null ? ' · ' + A('أقل نبض في النهار ', 'FC la plus basse (journée) ') + nb(M.dmin) + A(' على ', ' à ') + hm(M.tDmin) : '') + '.');
-  if (M.nS) say.push(A('النبض تاع ' + nb(M.nS) + ' حصص داخل في المنحنى (بالبنفسجي)، كيما Polar.', 'FC des ' + M.nS + ' séances incluse (en violet), comme Polar.'));
+  if (M.nS) say.push(A('النبض تاع ' + nb(M.nS) + ' حصص داخل في المنحنى، والحصص معلّمين بالمربعات الحمرا، كيما Polar.', 'FC des ' + M.nS + ' séances incluse (en violet), comme Polar.'));
   if (C.num(rep.d.rhr) != null) say.push(A('نبض الراحة تاع الليل (Polar) ' + nb(C.num(rep.d.rhr)) + ' bpm (متوسط على الليل، ماشي أصغر قراءة).', 'FC de repos nocturne (Polar) ' + nb(C.num(rep.d.rhr)) + ' bpm (moyenne de la nuit, pas la valeur la plus basse).'));
   var nowM = new Date().getHours() * 60 + new Date().getMinutes();
   if (M.last != null && rep.date < today() && M.last < 20 * 60) say.push('⚠️ ' + A('المنحنى ما يغطيش النهار كامل (آخر قراءة ' + hm(M.last) + '): الـ Loop ما بعثش الباقي لـ Polar.', 'Courbe incomplète (dernière mesure ' + hm(M.last) + ').'));
   else if (M.last != null && rep.date === today() && nowM - M.last > 90) say.push('⏳ ' + A('آخر قراءة ' + hm(M.last) + ': الباقي يجي كي الـ Loop يدير Sync مع الهاتف، ومن بعد «جيب دوك».', 'Dernière mesure ' + hm(M.last) + ' : la suite arrive après la synchro du Loop.'));
-  return { say: say, how: A('<b style="color:#E24B4A">الأحمر</b> = نبض الـ Loop على طول الليل والنهار (كل 5 دقايق في الراحة، وكل بضع ثواني كي يتحرك). <b style="color:#7B4FD6">البنفسجي</b> = النبض في الحصص (كل ثانية). المحور = الوقت الحقيقي 00:00 → 24:00. الأرقام الثلاثة (أقل نبض في الليل، أعلى نبض، أقل نبض في النهار) هي نفسها اللي يبيّنها Polar Flow تحت المنحنى تاعو.',
-    '<b style="color:#E24B4A">Rouge</b> = FC du Loop jour et nuit. <b style="color:#7B4FD6">Violet</b> = FC des séances (chaque seconde). Axe = heure réelle 00:00 → 24:00. Les trois valeurs (min nuit, max, min journée) sont celles affichées par Polar Flow.') };
+  return { say: say, how: A('<b style="color:#6a2fd0">البنفسجي</b> = النبض (الـ Loop على طول النهار + الحصص كل ثانية). <b>الأبيض</b> = مستوى النشاط (🪑 جلوس، 🧍 خفيف، 🚶 متوسط، 🏃 قوي). الأزرق الغامق = الليل. <b style="color:#d0103a">المربعات الحمرا</b> = الحصص وتحتها الساعة اللي بدات فيها (اضغط عليها تتفتح)، و☀️ = النوضة. حط صبعك على المنحنى يبانلك الوقت والنبض والنشاط. الأرقام الثلاثة (أقل نبض في الليل، أعلى نبض، أقل نبض في النهار) هي نفسها اللي يبيّنها Polar Flow تحت المنحنى تاعو.',
+    '<b style="color:#6a2fd0">Violet</b> = FC (Loop + séances). <b>Blanc</b> = niveau d’activité. Bleu foncé = nuit. <b style="color:#d0103a">Carrés rouges</b> = séances avec l’heure de début (touchez pour ouvrir), ☀️ = réveil. Touchez la courbe pour l’heure, la FC et l’activité. Les trois valeurs (min nuit, max, min journée) sont celles affichées par Polar Flow.') };
 }
 function cnSess(rep, e, Z) {
   var st = sessStats(e, rep), rate = e.rate || 1, hm = Math.max.apply(null, e.hr), mx = e.hrMax || hm, im = e.hr.indexOf(hm), say = [];
@@ -1548,8 +1549,106 @@ function dayHrHtml(rep) {
   var M = dayMerged(rep); if (!M) return '';
   return '<div class="rp-c" style="margin-bottom:12px"><div class="l">❤️ ' + A('النبض في النهار كامل (Loop + الحصص)', 'FC de la journée (Loop + séances)') + '</div><div class="rp-chips">' +
     (M.min != null ? '<span>🌙 ' + A('أقل نبض في الليل', 'min nuit') + ' <b>' + M.min + '</b></span>' : '') + (M.max != null ? '<span>▲ max <b>' + M.max + '</b></span>' : '') + (M.dmin != null ? '<span>☀️ ' + A('أقل نبض في النهار', 'min journée') + ' <b>' + M.dmin + '</b></span>' : '') +
-    '</div><div class="rp-ch s"><canvas id="rp-chr"></canvas></div>' + cnBox(cnChr(rep)) + '</div>';
+    '</div><div id="rp-chr24" style="margin-top:6px"></div>' + cnBox(cnChr(rep)) + '</div>';
 }
+// ❤️ منحنى 24 ساعة كيما Polar Flow: السما (الليل/النهار) · الأبيض = مستوى النشاط · البنفسجي = النبض
+// المربعات الحمرا = الحصص بالساعة تاعها · ☀️ = النوضة · 🌙47 / 197 / ☀️58 في الساعة اللي صراو فيها
+function drawDay24(rep, box) {
+  var M = dayMerged(rep); if (!M || !box) return;
+  var d = rep.d, W = Math.max(300, box.clientWidth || 340), mob = W < 560;
+  var L = mob ? 26 : 34, Rr = 12, T = 8, PH = mob ? 170 : 210, B = T + PH, H = B + (mob ? 76 : 80);
+  var X = function (m) { return L + (W - L - Rr) * Math.max(0, Math.min(1440, m)) / 1440; };
+  var hmax = Math.max(200, (M.max || 0) + 8), hmin = 30;
+  var YH = function (b) { return B - 4 - (b - hmin) / (hmax - hmin) * (PH - 12); };
+  var YA = function (l) { return B - 6 - l / 4 * (PH * 0.78); };
+  var mm = function (t) { var x = String(t || '').match(/^(\d+):(\d+)/); return x ? +x[1] * 60 + +x[2] : null; };
+  var f1 = function (v) { return Math.round(v * 10) / 10; };
+  var wake = M.w && M.w.a != null ? M.w.a : null, sleepB = M.w && M.w.b != null && M.w.b < 1440 ? M.w.b : null;
+  var s = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" style="display:block;direction:ltr;font-family:Rubik,system-ui,sans-serif;touch-action:pan-y">';
+  // السما: غامق في الليل، سماوي في النهار
+  var fw = wake != null ? wake / 1440 : 0.3, fs = sleepB != null ? sleepB / 1440 : 1;
+  s += '<defs><linearGradient id="d24sky" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#0a4fa3"/><stop offset="' + Math.max(0, fw - 0.02) + '" stop-color="#1572c8"/><stop offset="' + Math.min(1, fw + 0.03) + '" stop-color="#12c6e6"/><stop offset="' + Math.max(0, fs - 0.03) + '" stop-color="#12c6e6"/><stop offset="' + fs + '" stop-color="#1572c8"/><stop offset="1" stop-color="#0a4fa3"/></linearGradient>' +
+    '<linearGradient id="d24fog" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity=".55"/></linearGradient></defs>';
+  s += '<rect x="' + L + '" y="' + T + '" width="' + (W - L - Rr) + '" height="' + PH + '" fill="url(#d24sky)" rx="4"/><rect x="' + L + '" y="' + (T + PH * 0.55) + '" width="' + (W - L - Rr) + '" height="' + (PH * 0.45) + '" fill="url(#d24fog)"/>';
+  // نجوم الليل
+  var st = [[0.03, .2], [0.08, .45], [0.13, .15], [0.17, .38], [0.21, .25], [0.05, .6]];
+  if (wake != null) st.forEach(function (p) { if (p[0] * 1440 < wake - 30) s += '<circle cx="' + X(p[0] * 1440) + '" cy="' + (T + p[1] * PH) + '" r="1.3" fill="#fff" opacity=".8"/>'; });
+  // خطوط مستويات النشاط + الأيقونات على اليسار (جري، مشي، وقوف، جلوس)
+  var IC = [[4, '🏃'], [3, '🚶'], [2, '🧍'], [1, '🪑']];
+  IC.forEach(function (x) { var y = YA(x[0]); s += '<line x1="' + L + '" x2="' + (W - Rr) + '" y1="' + y + '" y2="' + y + '" stroke="#fff" stroke-opacity=".35" stroke-dasharray="2 3"/><text x="' + (L / 2) + '" y="' + (y + 5) + '" font-size="' + (mob ? 12 : 14) + '" text-anchor="middle">' + x[1] + '</text>'; });
+  // الخط الأبيض: مستوى النشاط دقيقة بدقيقة (Polar) · متوسط متحرك باش يبان ناعم كيما Polar
+  if (d.az && d.az.length >= 4) {
+    var lv = []; for (var i = 0; i + 3 < d.az.length; i += 2) { var z = d.az[i + 1]; if (z < 0 || z > 4) continue; for (var m = Math.floor(d.az[i] / 60); m < Math.ceil(d.az[i + 2] / 60) && m < 1440; m++) lv[m] = z; }
+    var pa = '', on = false;
+    for (var k = 0; k < 1440; k++) {
+      if (lv[k] == null) { on = false; continue; }
+      var sm = 0, n = 0, hw = mob ? 7 : 5; for (var j = k - hw; j <= k + hw; j++) if (lv[j] != null) { sm += lv[j]; n++; }
+      pa += (on ? 'L' : 'M') + f1(X(k)) + ' ' + f1(YA(sm / n)); on = true;
+    }
+    s += '<path d="' + pa + '" fill="none" stroke="#fff" stroke-width="' + (mob ? 1.6 : 2.2) + '" stroke-linejoin="round" opacity=".95"/>';
+  }
+  // الخط البنفسجي: النبض (Loop + الحصص) · فراغ أكثر من 15 د = الخط يتقطع
+  var hr = M.loop.slice(); M.ses.forEach(function (p) { hr = hr.concat(p); }); hr.sort(function (a, b) { return a.m - b.m; });
+  var ph = '', prev = null;
+  hr.forEach(function (p) { ph += (prev == null || p.m - prev > 15 ? 'M' : 'L') + f1(X(p.m)) + ' ' + f1(YH(p.b)); prev = p.m; });
+  s += '<path d="' + ph + '" fill="none" stroke="#6a2fd0" stroke-width="' + (mob ? 1.5 : 2) + '" stroke-linejoin="round"/>';
+  // الشريط تحت: الحصص بالأحمر، النوم بالبنفسجي الفاتح
+  s += '<rect x="' + L + '" y="' + B + '" width="' + (W - L - Rr) + '" height="5" fill="#3a4152"/>';
+  if (wake != null) s += '<rect x="' + L + '" y="' + B + '" width="' + (X(wake) - L) + '" height="5" fill="#8f7be8"/>';
+  if (sleepB != null) s += '<rect x="' + X(sleepB) + '" y="' + B + '" width="' + (X(1440) - X(sleepB)) + '" height="5" fill="#8f7be8"/>';
+  rep.all.forEach(function (e) { var a = mm(e.start); if (a == null) return; s += '<rect x="' + X(a) + '" y="' + B + '" width="' + Math.max(2, X(a + exSec(e) / 60) - X(a)) + '" height="5" fill="#e0123c"/>'; });
+  // الساعات
+  var yAx = B + 18;
+  for (var hh = 0; hh <= 24; hh += (mob ? 4 : 2)) s += '<line x1="' + X(hh * 60) + '" x2="' + X(hh * 60) + '" y1="' + (B + 5) + '" y2="' + (B + 9) + '" stroke="#9aa9bb"/><text x="' + X(hh * 60) + '" y="' + yAx + '" font-size="11" fill="#5f6b7a" text-anchor="' + (hh === 24 ? 'end' : hh === 0 ? 'start' : 'middle') + '">' + ('0' + hh).slice(-2) + '</text>';
+  // المربعات: ☀️ النوضة + كل حصة، وتحتها الساعة · كي يتقاربو نزحزحوهم باش ما يتغطاوش
+  var mk = []; if (wake != null) mk.push({ m: wake, ic: '☀️', c: '#1d8fe0', t: hhmm(wake / 60), i: -1 });
+  rep.all.forEach(function (e, i) { var a = mm(e.start); if (a != null) mk.push({ m: a, ic: exIc(e), c: '#d0103a', t: e.start, i: i }); });
+  mk.sort(function (a, b) { return a.m - b.m; });
+  var sz = mob ? 20 : 24, last = -1e9, row = 0, lastT = -1e9;
+  mk.forEach(function (o) {
+    var x0 = X(o.m), x = Math.max(x0, last + sz + 2); last = x;
+    s += '<g class="d24m" data-i="' + o.i + '" style="cursor:' + (o.i >= 0 ? 'pointer' : 'default') + '">' + (x !== x0 ? '<line x1="' + x0 + '" x2="' + x + '" y1="' + (B - 2) + '" y2="' + (B - 2) + '" stroke="#fff"/>' : '') +
+      '<rect x="' + (x - sz / 2) + '" y="' + (B - sz - 3) + '" width="' + sz + '" height="' + sz + '" rx="4" fill="' + o.c + '" stroke="#fff" stroke-width="1"/><text x="' + x + '" y="' + (B - 3 - sz * 0.28) + '" font-size="' + (sz * 0.62) + '" text-anchor="middle">' + o.ic + '</text>';
+    row = x - lastT < (mob ? 34 : 40) ? 1 - row : 0; lastT = x;
+    s += '<text x="' + x + '" y="' + (yAx + 15 + row * 13) + '" font-size="' + (mob ? 10.5 : 11.5) + '" font-weight="700" fill="' + o.c + '" text-anchor="middle">' + o.t + '</text></g>';
+  });
+  // الأرقام الثلاثة تحت (كيما Polar) في الساعة اللي صراو فيها
+  var pills = [];
+  if (M.min != null) pills.push({ m: M.tMin, t: '🌙 ' + M.min + ' bpm' });
+  if (M.max != null) pills.push({ m: M.tMax, t: M.max + ' bpm' });
+  if (M.dmin != null) pills.push({ m: M.tDmin, t: '☀️ ' + M.dmin + ' bpm' });
+  var yP = H - 16, pw = mob ? 62 : 74, lastP = -1e9;
+  pills.sort(function (a, b) { return a.m - b.m; }).forEach(function (p) {
+    var x = Math.max(L + pw / 2, Math.min(W - Rr - pw / 2, X(p.m))); x = Math.max(x, lastP + pw + 4); lastP = x;
+    s += '<line x1="' + X(p.m) + '" x2="' + X(p.m) + '" y1="' + (B + 5) + '" y2="' + (yP - 9) + '" stroke="#6a2fd0" stroke-opacity=".35" stroke-dasharray="2 2"/><rect x="' + (x - pw / 2) + '" y="' + (yP - 10) + '" width="' + pw + '" height="20" rx="5" fill="#6a2fd0"/><text x="' + x + '" y="' + (yP + 4) + '" font-size="' + (mob ? 11 : 12.5) + '" font-weight="700" fill="#fff" text-anchor="middle">' + p.t + '</text>';
+  });
+  s += '<line class="d24c" x1="0" x2="0" y1="' + T + '" y2="' + B + '" stroke="#fff" stroke-width="1.5" opacity="0"/></svg>';
+  box.style.position = 'relative';
+  box.innerHTML = s + '<div class="d24tip" style="position:absolute;top:4px;display:none;background:rgba(11,61,145,.92);color:#fff;border-radius:8px;padding:4px 8px;font-size:12px;pointer-events:none;white-space:nowrap;direction:' + (LANG === 'fr' ? 'ltr' : 'rtl') + '"></div>';
+  // كي تحط صبعك: الوقت + النبض + مستوى النشاط
+  var svg = box.querySelector('svg'), tip = box.querySelector('.d24tip'), cur = box.querySelector('.d24c');
+  var AZN = [A('نوم', 'Sommeil'), A('جلوس', 'Assis'), A('خفيف', 'Faible'), A('متوسط', 'Moyen'), A('قوي', 'Élevé')];
+  var near = function (m) { var bst = null; hr.forEach(function (p) { if (Math.abs(p.m - m) <= 8 && (!bst || Math.abs(p.m - m) < Math.abs(bst.m - m))) bst = p; }); return bst; };
+  var show = function (ev) {
+    var r = svg.getBoundingClientRect(), px = (ev.touches ? ev.touches[0].clientX : ev.clientX) - r.left; if (px < L || px > W - Rr) { hide(); return; }
+    var m = (px - L) / (W - L - Rr) * 1440, p = near(m), lvl = lv ? lv[Math.round(m)] : null, ses = rep.all.filter(function (e) { var a = mm(e.start); return a != null && m >= a && m <= a + exSec(e) / 60; })[0];
+    cur.setAttribute('x1', px); cur.setAttribute('x2', px); cur.setAttribute('opacity', '.8');
+    tip.innerHTML = '<b><bdi>' + hhmm(m / 60) + '</bdi></b>' + (p ? ' · ♥ <b><bdi>' + Math.round(p.b) + ' bpm</bdi></b>' : '') + (lvl != null ? ' · ' + AZN[lvl] : '') + (ses ? '<br>' + exIc(ses) + ' ' + exSport(ses) + ' <bdi>' + ses.start + '</bdi>' : '');
+    tip.style.display = 'block'; var tw = tip.offsetWidth; tip.style.left = Math.max(0, Math.min(W - tw, px - tw / 2)) + 'px';
+  };
+  var hide = function () { tip.style.display = 'none'; cur.setAttribute('opacity', '0'); };
+  var lv = lv || null;
+  svg.addEventListener('mousemove', show); svg.addEventListener('mouseleave', hide);
+  svg.addEventListener('touchstart', show, { passive: true }); svg.addEventListener('touchmove', show, { passive: true }); svg.addEventListener('touchend', function () { setTimeout(hide, 1500); });
+  // الضغط على حصة: تتفتح في القائمة
+  Array.prototype.forEach.call(box.querySelectorAll('.d24m'), function (g) {
+    var i = +g.getAttribute('data-i'); if (i < 0) return;
+    g.addEventListener('click', function () { var dt = document.querySelector('details[data-ex="d' + i + '"]'); if (dt) { dt.open = true; dt.scrollIntoView({ behavior: 'smooth', block: 'start' }); } });
+  });
+  // كي يتبدّل عرض الشاشة نعاودو نرسمو
+  if (!box._rs) { box._rs = true; var tw0 = W; window.addEventListener('resize', function () { if (!document.body.contains(box)) return; if (Math.abs((box.clientWidth || 0) - tw0) > 30) { tw0 = box.clientWidth; drawDay24(rep, box); } }); }
+}
+
 function zTxt(rep, a, b) { var z = rep.zones; return z ? z[a - 1].lo + '–' + z[b - 1].hi + ' bpm' : ''; }
 
 // منحنى حصة: النبض كيما Polar (كل ثانية)، ملوّن حسب المناطق
@@ -1574,14 +1673,7 @@ function drawReportCharts(rep) {
     drawSessChart(c);
   });
   var M = dayMerged(rep);
-  if (M && document.getElementById('rp-chr')) {
-    // المحور = الوقت الحقيقي 00:00→24:00 · فراغ أكثر من 15 د = الخط يتقطع
-    var line = function (pts) { var cd = [], prev = null; pts.forEach(function (p) { if (prev != null && p.m - prev > 15) cd.push({ x: prev + 1, y: null }); cd.push({ x: p.m, y: Math.round(p.b * 10) / 10 }); prev = p.m; }); return cd; };
-    var oc = o0(); oc.interaction = { mode: 'nearest', axis: 'x', intersect: false }; oc.animation = false;
-    oc.scales = { x: { type: 'linear', min: 0, max: 1440, ticks: { stepSize: 120, maxRotation: 0, callback: function (v) { return hhmm(v / 60); } }, grid: { display: false } }, y: { suggestedMin: 45 } };
-    oc.plugins.tooltip = { callbacks: { title: function (it) { return it.length ? hhmm(it[0].parsed.x / 60) : ''; }, label: function (x) { return Math.round(x.parsed.y) + ' bpm'; } } };
-    mk('rp-chr', { type: 'line', data: { datasets: [{ data: line(M.loop), parsing: false, borderColor: '#E24B4A', borderWidth: 1.6, pointRadius: 0, tension: 0, spanGaps: false }].concat(M.ses.map(function (p) { return { data: line(p), parsing: false, borderColor: '#7B4FD6', borderWidth: 1.6, pointRadius: 0, tension: 0, spanGaps: false }; })) }, options: oc });
-  }
+  if (M && document.getElementById('rp-chr24')) drawDay24(rep, document.getElementById('rp-chr24'));
   if (rep.hyp && document.getElementById('rp-hyp')) {
     // الـ hypnogram: درجات (صاحي فوق، عميق تحت) كيما Polar
     var hy = rep.d.hyp, lvl = { 0: 4, 1: 3, 2: 2, 3: 2, 4: 1 }, hd = [];
